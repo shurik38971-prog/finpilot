@@ -49,6 +49,10 @@ function extractJsonFromText(text: string) {
   }
 }
 
+export async function GET() {
+  return NextResponse.json({ ok: true, route: "/api/analyze" });
+}
+
 export async function POST(req: Request) {
   try {
     console.log("Analyze route started");

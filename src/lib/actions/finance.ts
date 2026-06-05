@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { forecastCashFlow } from "@/lib/finance/forecast";
+import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
 import { computeDashboardSummary } from "@/lib/finance/index";
 import { revalidatePath } from "next/cache";
 import type { Frequency } from "@/types/database";
@@ -208,6 +210,36 @@ export async function getFinancialData() {
 export async function getDashboardSummary() {
   const { incomes, expenses, debts } = await getFinancialData();
   return computeDashboardSummary(incomes, expenses, debts);
+}
+
+export async function getAnalysisContext() {
+  const { incomes, expenses, debts } = await getFinancialData();
+  const summary = computeDashboardSummary(incomes, expenses, debts);
+  const forecast = forecastCashFlow(incomes, expenses, debts);
+  const avalanche = calculateDebtPayoff(debts, 0, "avalanche");
+
+  return {
+    monthlyIncome: summary.totalIncome,
+    monthlyExpenses: summary.totalExpenses,
+    debtPayments: summary.debtPayments,
+    netCashFlow: summary.netCashFlow,
+    totalDebt: summary.totalDebt,
+    financialIndex: summary.financialIndex,
+    incomeSources: incomes.length,
+    recurringIncomes: incomes.filter((i) => i.is_recurring).length,
+    essentialExpenses: expenses.filter((e) => e.is_essential).length,
+    nonEssentialExpenses: expenses.filter((e) => !e.is_essential).length,
+    debtCount: debts.length,
+    monthsToDebtFree: avalanche.monthsToFreedom,
+    threeMonthForecast: forecast.map((f) => ({
+      month: f.month,
+      income: f.income,
+      expenses: f.expenses,
+      debtPayments: f.debtPayments,
+      net: f.net,
+      cumulative: f.cumulative,
+    })),
+  };
 }
 
 // ── Demo seed ──

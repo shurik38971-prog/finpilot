@@ -26,6 +26,20 @@ export default async function AdminLayout({
           <Link href="/admin" className="font-semibold text-accent">
             FinPilot Admin
           </Link>
+          <nav className="flex gap-3 text-sm">
+            <Link
+              href="/admin"
+              className="text-muted hover:text-foreground transition-colors"
+            >
+              Аналитика
+            </Link>
+            <Link
+              href="/admin/insights"
+              className="text-muted hover:text-foreground transition-colors"
+            >
+              Product Insights
+            </Link>
+          </nav>
           <span className="text-xs text-muted hidden sm:inline">
             {user.email}
           </span>

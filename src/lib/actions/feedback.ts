@@ -1,8 +1,6 @@
 "use server";
 
 import {
-  DISAPPEARANCE_OPTIONS,
-  type DisappearanceId,
   type UsefulFeatureId,
   USEFUL_FEATURES,
 } from "@/lib/feedback/constants";
@@ -10,7 +8,6 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 const FEATURE_IDS = new Set(USEFUL_FEATURES.map((f) => f.id));
-const DISAPPEARANCE_IDS = new Set(DISAPPEARANCE_OPTIONS.map((d) => d.id));
 const MESSAGE_TYPES = new Set(["idea", "bug", "confusion"]);
 
 async function getUserId() {
@@ -37,52 +34,48 @@ export async function hasProductFeedback(): Promise<boolean> {
 }
 
 export async function submitProductFeedback(input: {
-  usefulness_score: number;
-  most_useful_features: UsefulFeatureId[];
+  most_useful_feature: UsefulFeatureId;
+  took_action: boolean;
+  action_description: string;
   confusion_text: string;
-  disappearance_score: DisappearanceId;
+  missing_feature: string;
+  lost_value_text: string;
 }) {
   const { supabase, userId } = await getUserId();
 
-  if (
-    input.usefulness_score < 1 ||
-    input.usefulness_score > 10 ||
-    !Number.isInteger(input.usefulness_score)
-  ) {
-    throw new Error("Invalid usefulness score");
+  if (!FEATURE_IDS.has(input.most_useful_feature)) {
+    throw new Error("Invalid feature");
   }
 
-  if (input.most_useful_features.length === 0) {
-    throw new Error("Select at least one feature");
-  }
-
-  for (const feature of input.most_useful_features) {
-    if (!FEATURE_IDS.has(feature)) {
-      throw new Error("Invalid feature");
+  if (input.took_action) {
+    const desc = input.action_description.trim();
+    if (desc.length < 2 || desc.length > 2000) {
+      throw new Error("Describe what you did");
     }
   }
 
-  if (!DISAPPEARANCE_IDS.has(input.disappearance_score)) {
-    throw new Error("Invalid disappearance option");
-  }
-
-  const disappearanceLabel = DISAPPEARANCE_OPTIONS.find(
-    (d) => d.id === input.disappearance_score
-  )!.label;
+  const featureLabel =
+    USEFUL_FEATURES.find((f) => f.id === input.most_useful_feature)?.label ??
+    input.most_useful_feature;
 
   const { error } = await supabase.from("feedback").upsert(
     {
       user_id: userId,
-      usefulness_score: input.usefulness_score,
-      most_useful_features: input.most_useful_features,
+      most_useful_feature: featureLabel,
+      took_action: input.took_action,
+      action_description: input.took_action
+        ? input.action_description.trim()
+        : null,
       confusion_text: input.confusion_text.trim() || null,
-      disappearance_score: disappearanceLabel,
+      missing_feature: input.missing_feature.trim() || null,
+      lost_value_text: input.lost_value_text.trim() || null,
     },
     { onConflict: "user_id" }
   );
 
   if (error) throw error;
   revalidatePath("/admin");
+  revalidatePath("/admin/insights");
 }
 
 export async function submitFeedbackMessage(input: {
@@ -108,4 +101,5 @@ export async function submitFeedbackMessage(input: {
 
   if (error) throw error;
   revalidatePath("/admin");
+  revalidatePath("/admin/insights");
 }

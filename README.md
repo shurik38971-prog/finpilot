@@ -1,131 +1,44 @@
-# FinPilot
+# FinPilot — приложение (личный кабинет)
 
-Личный ИИ-финансовый директор для самозанятого человека с нестабильным доходом и долгами.
+Сервис для самозанятых: доходы, расходы, долги, цели, ИИ-анализ, действия.
 
-## Стек
+> **Это не лендинг.** Маркетинговый сайт — отдельный проект в папке  
+> `A:\Projects\ lendihg FinPilot` (порт **3001**).
 
-- **Next.js 15** (App Router)
-- **TypeScript**
-- **Tailwind CSS 4**
-- **Supabase** (Auth + Postgres)
-- **Recharts**
-- **OpenAI API**
+## Два проекта
 
-## Возможности MVP
+| | **Приложение** (этот репозиторий) | **Лендинг** |
+|---|-----------------------------------|-------------|
+| Папка | `A:\Projects\FinPilot` | `A:\Projects\ lendihg FinPilot` |
+| Порт dev | 3000 | 3001 |
+| GitHub | `shurik38971-prog/finpilot` | `shurik38971-prog/finpilot-landing` |
+| Назначение | Личный кабинет, Supabase, админка | Маркетинг, SEO, кнопки в приложение |
 
-- Авторизация через Supabase
-- Дашборд с финансовой сводкой
-- CRUD для доходов, расходов и долгов
-- Финансовый индекс (0–100)
-- Прогноз денежного потока на 3 месяца
-- Антикризисный режим: метод лавины и снежного кома
-- Сценарии «что будет, если»
-- ИИ-анализ через `/api/analyze`
-
-## Быстрый старт
-
-### 1. Установка
+## Быстрый старт (приложение)
 
 ```bash
+cd A:\Projects\FinPilot
 npm install
-```
-
-### 2. Переменные окружения
-
-Скопируйте `.env.example` в `.env.local`:
-
-```bash
 cp .env.example .env.local
-```
-
-Заполните:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-OPENAI_API_KEY=...
-```
-
-### 3. База данных
-
-Выполните SQL-миграцию в Supabase SQL Editor:
-
-```
-supabase/migrations/001_initial_schema.sql
-```
-
-### 4. Запуск
-
-```bash
+# заполните Supabase, GPTunnel, ADMIN_EMAILS
 npm run dev
 ```
 
-Откройте [http://localhost:3000](http://localhost:3000).
+http://localhost:3000
 
-## Структура проекта
+## База данных
 
-```
-src/
-├── app/
-│   ├── (app)/          # Защищённые страницы с сайдбаром
-│   ├── api/analyze/    # ИИ-анализ
-│   ├── auth/           # OAuth callback
-│   ├── login/          # Вход
-│   └── signup/         # Регистрация
-├── components/
-│   ├── ui/             # Базовые UI-компоненты
-│   ├── layout/         # Shell, Sidebar, PageHeader
-│   ├── dashboard/      # Виджеты дашборда
-│   ├── forms/          # Формы CRUD
-│   └── crud/           # Переиспользуемый RecordList
-├── lib/
-│   ├── finance/        # Бизнес-логика
-│   ├── supabase/       # Клиенты Supabase
-│   └── actions/        # Server Actions
-└── types/              # TypeScript типы
-```
+Все миграции — **только для приложения**. Список по порядку:
 
-## Демо-данные
+**[supabase/MIGRATIONS.md](supabase/MIGRATIONS.md)** (001 → 013)
 
-На дашборде нажмите **«Загрузить демо-данные»** — появятся примеры доходов, расходов и долгов самозанятого. Кнопка **«Перезагрузить демо»** доступна, когда данные уже есть.
+Не пропускайте номера. После `012` обязательно выполните `013`.
 
-## Деплой на Vercel
+## Стек
 
-### Через CLI
+Next.js 15 · TypeScript · Tailwind · Supabase · GPTunnel · Recharts
 
-```bash
-npm i -g vercel
-vercel login
-vercel
-```
+## Деплой
 
-При деплое добавьте переменные окружения в Vercel Dashboard → Settings → Environment Variables:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `OPENAI_API_KEY`
-
-### Через GitHub
-
-1. Запушьте репозиторий на GitHub
-2. Импортируйте проект на [vercel.com/new](https://vercel.com/new)
-3. Добавьте env-переменные
-4. Deploy
-
-### Supabase после деплоя
-
-В Supabase → Authentication → URL Configuration добавьте URL Vercel в **Redirect URLs**:
-
-```
-https://your-app.vercel.app/auth/callback
-```
-
-## Финансовый индекс
-
-Индекс от 0 до 100 учитывает:
-
-- Соотношение чистого потока к доходу (30%)
-- Долговую нагрузку (25%)
-- Подушку безопасности (20%)
-- Долю обязательных расходов (15%)
-- Диверсификацию доходов (10%)
+- **Приложение:** Vercel → `finpilot` (или `app.finpilot.ru`)
+- **Лендинг:** отдельный Vercel-проект из папки лендинга → `NEXT_PUBLIC_APP_URL` указывает на URL приложения

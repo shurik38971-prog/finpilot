@@ -6,16 +6,30 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 type MessageType = "idea" | "bug" | "confusion";
 
-export function FeedbackPageClient() {
-  const [selected, setSelected] = useState<MessageType | null>(null);
+const VALID_TYPES = new Set<MessageType>(["idea", "bug", "confusion"]);
+
+function FeedbackForm() {
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get("type");
+  const initialType =
+    typeParam && VALID_TYPES.has(typeParam as MessageType)
+      ? (typeParam as MessageType)
+      : null;
+
+  const [selected, setSelected] = useState<MessageType | null>(initialType);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (initialType) setSelected(initialType);
+  }, [initialType]);
 
   async function handleSubmit() {
     if (!selected || message.trim().length < 3) return;
@@ -116,5 +130,13 @@ export function FeedbackPageClient() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export function FeedbackPageClient() {
+  return (
+    <Suspense>
+      <FeedbackForm />
+    </Suspense>
   );
 }

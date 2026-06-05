@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { BarChart3 } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trackClientEvent } from "@/lib/analytics/client";
@@ -42,9 +42,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <BarChart3 className="h-8 w-8 text-accent" />
-          <span className="text-2xl font-bold">FinPilot</span>
+        <div className="flex justify-center mb-8">
+          <Logo variant="stacked" iconSize={40} />
         </div>
 
         <div className="glass p-8">

@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -73,10 +74,7 @@ export function Sidebar({
   const content = (
     <>
       <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-6 w-6 text-accent" />
-          <span className="text-lg font-bold tracking-tight">FinPilot</span>
-        </div>
+        <Logo variant="wordmark" href="/dashboard" iconSize={28} />
         {onMobileClose && (
           <button
             onClick={onMobileClose}

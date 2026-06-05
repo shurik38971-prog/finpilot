@@ -1,7 +1,6 @@
 "use server";
 
 import { isAdminUser } from "@/lib/admin/is-admin";
-import { featureLabel } from "@/lib/feedback/constants";
 import { createClient } from "@/lib/supabase/server";
 
 export interface AdminAnalyticsDashboard {
@@ -38,19 +37,7 @@ export interface AdminAnalyticsDashboard {
     user_id: string | null;
   }[];
   productFeedback: {
-    avgUsefulness: number | null;
     responseCount: number;
-    popularFeatures: { label: string; count: number }[];
-    disappearanceDistribution: { label: string; count: number }[];
-    recentSurveys: {
-      id: string;
-      usefulness_score: number | null;
-      most_useful_features: string[];
-      confusion_text: string | null;
-      disappearance_score: string | null;
-      created_at: string;
-      user_id: string;
-    }[];
     recentMessages: {
       id: string;
       type: string;
@@ -194,33 +181,6 @@ export async function getAdminAnalytics(
 
   const confusions = allFeedback.filter((f) => f.feedback_type === "confusion");
 
-  const usefulnessScores = allSurveys
-    .map((s) => s.usefulness_score)
-    .filter((s): s is number => s != null);
-  const avgUsefulness =
-    usefulnessScores.length > 0
-      ? Math.round(
-          (usefulnessScores.reduce((a, b) => a + b, 0) /
-            usefulnessScores.length) *
-            10
-        ) / 10
-      : null;
-
-  const featureCounts = new Map<string, number>();
-  for (const survey of allSurveys) {
-    for (const feature of survey.most_useful_features ?? []) {
-      featureCounts.set(feature, (featureCounts.get(feature) ?? 0) + 1);
-    }
-  }
-  const popularFeatures = [...featureCounts.entries()]
-    .map(([id, count]) => ({ label: featureLabel(id), count }))
-    .sort((a, b) => b.count - a.count);
-
-  const disappearanceDistribution = countBy(
-    allSurveys.filter((s) => s.disappearance_score),
-    (s) => s.disappearance_score as string
-  ).map((x) => ({ label: x.label, count: x.count }));
-
   return {
     periodDays: days,
     totalEvents: allEvents.length,
@@ -243,11 +203,7 @@ export async function getAdminAnalytics(
       user_id: e.user_id,
     })),
     productFeedback: {
-      avgUsefulness,
       responseCount: allSurveys.length,
-      popularFeatures: popularFeatures.slice(0, 10),
-      disappearanceDistribution: disappearanceDistribution.slice(0, 10),
-      recentSurveys: allSurveys.slice(0, 20) as AdminAnalyticsDashboard["productFeedback"]["recentSurveys"],
       recentMessages: allMessages.slice(0, 30) as AdminAnalyticsDashboard["productFeedback"]["recentMessages"],
     },
   };

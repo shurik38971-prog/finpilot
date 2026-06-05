@@ -15,6 +15,7 @@ import type {
   AnalysisPlanItem,
   HealthStatus,
 } from "@/types/analysis";
+import { AnalysisDisclaimer } from "@/components/early-access/analysis-disclaimer";
 import { PostAnalysisSurveyModal } from "@/components/feedback/post-analysis-survey-modal";
 import { trackButtonClick } from "@/lib/analytics/client";
 import { COPY } from "@/lib/copy/ui";
@@ -310,6 +311,8 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
               accent="text-accent"
             />
           </div>
+
+          <AnalysisDisclaimer />
         </div>
       )}
     </div>

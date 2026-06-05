@@ -7,6 +7,7 @@ import { NextBestActionCard } from "@/components/dashboard/next-best-action-card
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { PageHeader } from "@/components/layout/page-header";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { EarlyAccessBanner } from "@/components/early-access/early-access-banner";
 import { getFinancialData } from "@/lib/actions/finance";
 import { getOnboardingProgress } from "@/lib/actions/onboarding";
 import { getNextBestAction, getPrimaryGoalFocus } from "@/lib/actions/tasks";
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
 
         <div className="space-y-6">
           {onboarding && <OnboardingChecklist progress={onboarding} />}
+          <EarlyAccessBanner />
           <DemoDataBanner isEmpty={isEmpty} />
           <NextBestActionCard action={nextBestAction} />
           <GoalFocusCard focus={goalFocus} />

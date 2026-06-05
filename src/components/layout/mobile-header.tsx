@@ -1,6 +1,7 @@
 "use client";
 
-import { BarChart3, Menu } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
+import { Menu } from "lucide-react";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -16,10 +17,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
       >
         <Menu className="h-5 w-5" />
       </button>
-      <div className="flex items-center gap-2">
-        <BarChart3 className="h-5 w-5 text-accent" />
-        <span className="font-bold">FinPilot</span>
-      </div>
+      <Logo variant="wordmark" iconSize={22} />
     </header>
   );
 }

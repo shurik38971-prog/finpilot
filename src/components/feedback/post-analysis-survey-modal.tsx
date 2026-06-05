@@ -2,8 +2,6 @@
 
 import { submitProductFeedback } from "@/lib/actions/feedback";
 import {
-  DISAPPEARANCE_OPTIONS,
-  type DisappearanceId,
   type UsefulFeatureId,
   USEFUL_FEATURES,
 } from "@/lib/feedback/constants";
@@ -19,10 +17,11 @@ interface PostAnalysisSurveyModalProps {
 }
 
 const STEPS = [
-  "Насколько полезным оказался FinPilot?",
   "Что оказалось самым полезным?",
+  "После анализа вы сделали какое-нибудь действие?",
   "Что было непонятно?",
-  "Если FinPilot завтра исчезнет, насколько вам будет жалко его потерять?",
+  "Какой функции вам не хватает больше всего?",
+  "Если бы FinPilot завтра перестал работать, что бы вы потеряли?",
 ] as const;
 
 export function PostAnalysisSurveyModal({
@@ -31,21 +30,23 @@ export function PostAnalysisSurveyModal({
   onComplete,
 }: PostAnalysisSurveyModalProps) {
   const [step, setStep] = useState(0);
-  const [score, setScore] = useState<number | null>(null);
-  const [features, setFeatures] = useState<UsefulFeatureId[]>([]);
+  const [feature, setFeature] = useState<UsefulFeatureId | null>(null);
+  const [tookAction, setTookAction] = useState<boolean | null>(null);
+  const [actionDescription, setActionDescription] = useState("");
   const [confusion, setConfusion] = useState("");
-  const [disappearance, setDisappearance] = useState<DisappearanceId | null>(
-    null
-  );
+  const [missingFeature, setMissingFeature] = useState("");
+  const [lostValue, setLostValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   function reset() {
     setStep(0);
-    setScore(null);
-    setFeatures([]);
+    setFeature(null);
+    setTookAction(null);
+    setActionDescription("");
     setConfusion("");
-    setDisappearance(null);
+    setMissingFeature("");
+    setLostValue("");
     setError("");
   }
 
@@ -54,30 +55,31 @@ export function PostAnalysisSurveyModal({
     reset();
   }
 
-  function toggleFeature(id: UsefulFeatureId) {
-    setFeatures((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-    );
-  }
-
   function canNext() {
-    if (step === 0) return score !== null;
-    if (step === 1) return features.length > 0;
+    if (step === 0) return feature !== null;
+    if (step === 1) {
+      if (tookAction === null) return false;
+      if (tookAction) return actionDescription.trim().length >= 2;
+      return true;
+    }
     if (step === 2) return true;
-    if (step === 3) return disappearance !== null;
+    if (step === 3) return true;
+    if (step === 4) return lostValue.trim().length >= 2;
     return false;
   }
 
   async function handleSubmit() {
-    if (score === null || !disappearance || features.length === 0) return;
+    if (!feature || tookAction === null || lostValue.trim().length < 2) return;
     setLoading(true);
     setError("");
     try {
       await submitProductFeedback({
-        usefulness_score: score,
-        most_useful_features: features,
+        most_useful_feature: feature,
+        took_action: tookAction,
+        action_description: actionDescription,
         confusion_text: confusion,
-        disappearance_score: disappearance,
+        missing_feature: missingFeature,
+        lost_value_text: lostValue,
       });
       onComplete();
       handleClose();
@@ -94,7 +96,7 @@ export function PostAnalysisSurveyModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Ваше мнение важно"
+      title="Помогите сделать FinPilot полезнее"
       className="max-w-md"
     >
       <p className="text-xs text-muted mb-4">
@@ -103,46 +105,56 @@ export function PostAnalysisSurveyModal({
       <h3 className="text-sm font-medium mb-4">{STEPS[step]}</h3>
 
       {step === 0 && (
-        <div className="grid grid-cols-5 gap-2">
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+        <div className="space-y-2">
+          {USEFUL_FEATURES.map(({ id, label }) => (
             <button
-              key={n}
+              key={id}
               type="button"
-              onClick={() => setScore(n)}
+              onClick={() => setFeature(id)}
               className={cn(
-                "rounded-lg border py-2 text-sm font-medium transition-colors",
-                score === n
-                  ? "border-accent bg-accent/15 text-accent"
-                  : "border-border text-muted hover:border-accent/40"
+                "w-full text-left rounded-lg border px-3 py-2.5 text-sm transition-colors",
+                feature === id
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border text-muted hover:border-accent/40 hover:text-foreground"
               )}
             >
-              {n}
+              {label}
             </button>
           ))}
         </div>
       )}
 
       {step === 1 && (
-        <div className="space-y-2">
-          {USEFUL_FEATURES.map(({ id, label }) => (
-            <label
-              key={id}
-              className={cn(
-                "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors",
-                features.includes(id)
-                  ? "border-accent bg-accent/10"
-                  : "border-border hover:border-accent/30"
-              )}
-            >
-              <input
-                type="checkbox"
-                className="accent-accent"
-                checked={features.includes(id)}
-                onChange={() => toggleFeature(id)}
-              />
-              {label}
-            </label>
-          ))}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { value: true, label: "Да" },
+              { value: false, label: "Нет" },
+            ].map(({ value, label }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setTookAction(value)}
+                className={cn(
+                  "rounded-lg border py-2.5 text-sm font-medium transition-colors",
+                  tookAction === value
+                    ? "border-accent bg-accent/15 text-accent"
+                    : "border-border text-muted hover:border-accent/40"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {tookAction && (
+            <textarea
+              className="w-full min-h-[100px] rounded-lg border border-border bg-surface px-3 py-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-accent"
+              placeholder="Что именно вы сделали?"
+              value={actionDescription}
+              onChange={(e) => setActionDescription(e.target.value)}
+              maxLength={2000}
+            />
+          )}
         </div>
       )}
 
@@ -157,23 +169,23 @@ export function PostAnalysisSurveyModal({
       )}
 
       {step === 3 && (
-        <div className="space-y-2">
-          {DISAPPEARANCE_OPTIONS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setDisappearance(id)}
-              className={cn(
-                "w-full text-left rounded-lg border px-3 py-2.5 text-sm transition-colors",
-                disappearance === id
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-border text-muted hover:border-accent/40 hover:text-foreground"
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <textarea
+          className="w-full min-h-[120px] rounded-lg border border-border bg-surface px-3 py-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-accent"
+          placeholder="Например: напоминания, интеграция с банком, совместный доступ..."
+          value={missingFeature}
+          onChange={(e) => setMissingFeature(e.target.value)}
+          maxLength={2000}
+        />
+      )}
+
+      {step === 4 && (
+        <textarea
+          className="w-full min-h-[120px] rounded-lg border border-border bg-surface px-3 py-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-accent"
+          placeholder="Опишите, что для вас важнее всего в сервисе"
+          value={lostValue}
+          onChange={(e) => setLostValue(e.target.value)}
+          maxLength={2000}
+        />
       )}
 
       {error && <p className="text-sm text-red-400 mt-3">{error}</p>}

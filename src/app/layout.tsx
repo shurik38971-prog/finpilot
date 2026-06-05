@@ -5,9 +5,12 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 export const metadata: Metadata = {
-  title: "FinPilot — ИИ-финансовый директор",
+  title: "FinPilot — Личный кабинет",
   description:
-    "Личный финансовый директор для самозанятых с нестабильным доходом и долгами",
+    "Личный финансовый директор для самозанятых: доходы, цели, ИИ-анализ и план действий.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

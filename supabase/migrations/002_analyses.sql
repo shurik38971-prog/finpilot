@@ -1,19 +1,24 @@
--- История ИИ-анализов
+alter table public.analyses
+add column if not exists financial_index integer;
 
-create table public.analyses (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  financial_index integer,
-  main_problem text not null,
-  recommendations jsonb not null default '{}',
-  model_used text,
-  created_at timestamptz not null default now()
-);
+alter table public.analyses
+add column if not exists main_problem text;
 
-create index analyses_user_id_idx on public.analyses(user_id);
-create index analyses_created_at_idx on public.analyses(created_at desc);
+alter table public.analyses
+add column if not exists recommendations jsonb not null default '{}';
+
+alter table public.analyses
+add column if not exists model_used text;
+
+create index if not exists analyses_user_id_idx
+on public.analyses(user_id);
+
+create index if not exists analyses_created_at_idx
+on public.analyses(created_at desc);
 
 alter table public.analyses enable row level security;
+
+drop policy if exists "Users manage own analyses" on public.analyses;
 
 create policy "Users manage own analyses"
   on public.analyses for all

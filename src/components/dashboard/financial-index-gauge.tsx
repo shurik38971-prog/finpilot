@@ -4,10 +4,24 @@ import { getIndexLabel } from "@/lib/finance/index";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface FinancialIndexGaugeProps {
-  index: number;
+  index: number | null;
 }
 
 export function FinancialIndexGauge({ index }: FinancialIndexGaugeProps) {
+  if (index === null) {
+    return (
+      <Card className="flex flex-col items-center">
+        <CardHeader className="text-center w-full">
+          <CardTitle>Финансовый индекс</CardTitle>
+          <CardDescription>Здоровье ваших финансов от 0 до 100</CardDescription>
+        </CardHeader>
+        <div className="flex flex-1 items-center justify-center py-12 px-4 text-center">
+          <p className="text-sm text-muted">Недостаточно данных для расчёта</p>
+        </div>
+      </Card>
+    );
+  }
+
   const { label, color } = getIndexLabel(index);
   const circumference = 2 * Math.PI * 54;
   const offset = circumference - (index / 100) * circumference;

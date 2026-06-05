@@ -2,17 +2,21 @@ import type { Debt, Expense, Income } from "@/types/database";
 import { toMonthlyAmount } from "@/lib/utils";
 
 export function monthlyIncomeTotal(incomes: Income[]): number {
-  return incomes.reduce(
-    (sum, i) => sum + toMonthlyAmount(i.amount, i.frequency, i.is_recurring),
-    0
-  );
+  return incomes
+    .filter((i) => i.is_recurring)
+    .reduce(
+      (sum, i) => sum + toMonthlyAmount(i.amount, i.frequency, true),
+      0
+    );
 }
 
 export function monthlyExpenseTotal(expenses: Expense[]): number {
-  return expenses.reduce(
-    (sum, e) => sum + toMonthlyAmount(e.amount, e.frequency, e.is_recurring),
-    0
-  );
+  return expenses
+    .filter((e) => e.is_recurring)
+    .reduce(
+      (sum, e) => sum + toMonthlyAmount(e.amount, e.frequency, true),
+      0
+    );
 }
 
 export function totalDebtRemaining(debts: Debt[]): number {
@@ -23,8 +27,17 @@ export function monthlyDebtPayments(debts: Debt[]): number {
   return debts.reduce((sum, d) => sum + d.minimum_payment, 0);
 }
 
+export function hasFinancialData(
+  incomes: Income[],
+  expenses: Expense[],
+  debts: Debt[]
+): boolean {
+  return incomes.length > 0 || expenses.length > 0 || debts.length > 0;
+}
+
 /**
  * Financial Health Index (0–100) for self-employed with unstable income.
+ * Returns null when there is no income, expense, or debt data to analyze.
  *
  * Components:
  * - Cash flow ratio (30%): net / income
@@ -37,16 +50,16 @@ export function calculateFinancialIndex(
   incomes: Income[],
   expenses: Expense[],
   debts: Debt[]
-): number {
+): number | null {
+  if (!hasFinancialData(incomes, expenses, debts)) {
+    return null;
+  }
+
   const monthlyIncome = monthlyIncomeTotal(incomes);
   const monthlyExpenses = monthlyExpenseTotal(expenses);
   const debtPayments = monthlyDebtPayments(debts);
   const totalDebt = totalDebtRemaining(debts);
   const netCashFlow = monthlyIncome - monthlyExpenses - debtPayments;
-
-  if (monthlyIncome === 0 && monthlyExpenses === 0 && totalDebt === 0) {
-    return 50;
-  }
 
   let score = 0;
 
@@ -72,12 +85,11 @@ export function calculateFinancialIndex(
     score += 20;
   }
 
-  // Essential expense ratio (15 pts)
+  // Essential expense ratio (15 pts) — recurring essential only
   const essential = expenses
-    .filter((e) => e.is_essential)
+    .filter((e) => e.is_essential && e.is_recurring)
     .reduce(
-      (sum, e) =>
-        sum + toMonthlyAmount(e.amount, e.frequency, e.is_recurring),
+      (sum, e) => sum + toMonthlyAmount(e.amount, e.frequency, true),
       0
     );
   if (monthlyIncome > 0) {
@@ -92,6 +104,38 @@ export function calculateFinancialIndex(
   score += Math.min(10, uniqueSources * 3);
 
   return Math.round(Math.min(100, Math.max(0, score)));
+}
+
+export interface DashboardSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  debtPayments: number;
+  netCashFlow: number;
+  totalDebt: number;
+  financialIndex: number | null;
+}
+
+/** Сводка дашборда: регулярные доходы/расходы, платежи по долгам, чистый поток. */
+export function computeDashboardSummary(
+  incomes: Income[],
+  expenses: Expense[],
+  debts: Debt[]
+): DashboardSummary {
+  const totalIncome = Math.round(monthlyIncomeTotal(incomes));
+  const totalExpenses = Math.round(monthlyExpenseTotal(expenses));
+  const debtPayments = Math.round(monthlyDebtPayments(debts));
+  const netCashFlow = totalIncome - totalExpenses - debtPayments;
+  const totalDebt = Math.round(totalDebtRemaining(debts));
+  const financialIndex = calculateFinancialIndex(incomes, expenses, debts);
+
+  return {
+    totalIncome,
+    totalExpenses,
+    debtPayments,
+    netCashFlow,
+    totalDebt,
+    financialIndex,
+  };
 }
 
 export function getIndexLabel(index: number): {

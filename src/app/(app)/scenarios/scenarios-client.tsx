@@ -128,7 +128,10 @@ export function ScenariosPageClient({
 }
 
 function ScenarioCard({ result }: { result: ScenarioResult }) {
-  const { label, color } = getIndexLabel(result.financialIndex);
+  const indexLabel =
+    result.financialIndex === null
+      ? { label: "Недостаточно данных", color: "text-muted" }
+      : getIndexLabel(result.financialIndex);
 
   return (
     <Card>
@@ -160,8 +163,10 @@ function ScenarioCard({ result }: { result: ScenarioResult }) {
         </div>
         <div className="flex justify-between items-center pt-2 border-t border-border">
           <span className="text-muted">Фин. индекс</span>
-          <Badge className={color}>
-            {result.financialIndex} — {label}
+          <Badge className={indexLabel.color}>
+            {result.financialIndex === null
+              ? indexLabel.label
+              : `${result.financialIndex} — ${indexLabel.label}`}
           </Badge>
         </div>
       </div>

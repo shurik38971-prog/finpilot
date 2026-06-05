@@ -44,7 +44,7 @@ export interface FinancialSummary {
   netCashFlow: number;
   totalDebt: number;
   monthlyDebtPayments: number;
-  financialIndex: number;
+  financialIndex: number | null;
   savingsRate: number;
 }
 
@@ -78,7 +78,7 @@ export interface ScenarioResult {
   monthlyExpenses: number;
   extraDebtPayment: number;
   monthsToDebtFree: number;
-  financialIndex: number;
+  financialIndex: number | null;
   threeMonthBalance: number;
 }
 

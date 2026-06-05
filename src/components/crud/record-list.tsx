@@ -3,8 +3,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { notifyFinancialDataChanged } from "@/lib/finance-events";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface Column<T> {
@@ -39,8 +41,14 @@ export function RecordList<T extends { id: string }>({
   onDelete,
   formTitle,
 }: RecordListProps<T>) {
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<T | undefined>();
+
+  function refreshAfterMutation() {
+    router.refresh();
+    notifyFinancialDataChanged();
+  }
 
   function openCreate() {
     setEditing(undefined);
@@ -57,9 +65,15 @@ export function RecordList<T extends { id: string }>({
     setEditing(undefined);
   }
 
+  function handleFormSuccess() {
+    closeModal();
+    refreshAfterMutation();
+  }
+
   async function handleDelete(id: string) {
     if (!confirm("Удалить запись?")) return;
     await onDelete(id);
+    refreshAfterMutation();
   }
 
   return (
@@ -128,7 +142,7 @@ export function RecordList<T extends { id: string }>({
         onClose={closeModal}
         title={editing ? formTitle.edit : formTitle.create}
       >
-        <FormComponent item={editing} onSuccess={closeModal} />
+        <FormComponent item={editing} onSuccess={handleFormSuccess} />
       </Modal>
     </>
   );

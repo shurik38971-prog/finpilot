@@ -1,6 +1,7 @@
 "use client";
 
 import { seedDemoData } from "@/lib/actions/finance";
+import { notifyFinancialDataChanged } from "@/lib/finance-events";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Database, Loader2 } from "lucide-react";
@@ -25,6 +26,7 @@ export function DemoDataBanner({ isEmpty }: DemoDataBannerProps) {
     try {
       await seedDemoData(force || !isEmpty);
       router.refresh();
+      notifyFinancialDataChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка загрузки");
     } finally {

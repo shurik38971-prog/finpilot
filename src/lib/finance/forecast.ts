@@ -17,12 +17,6 @@ export function forecastCashFlow(
   const baseExpenses = monthlyExpenseTotal(expenses);
   const debtPayments = monthlyDebtPayments(debts);
 
-  // Adjust for recent one-time items (last 30 days avg vs recurring)
-  const recentIncome = incomes
-    .filter((i) => !i.is_recurring)
-    .reduce((s, i) => s + i.amount, 0);
-  const adjustedIncome = baseIncome * 0.7 + (recentIncome / 3) * 0.3;
-
   const forecast: CashFlowForecast[] = [];
   let cumulative = 0;
   const now = new Date();
@@ -33,7 +27,7 @@ export function forecastCashFlow(
 
     // Slight decay for self-employed uncertainty
     const uncertaintyFactor = 1 - m * 0.03;
-    const income = Math.round(adjustedIncome * uncertaintyFactor);
+    const income = Math.round(baseIncome * uncertaintyFactor);
     const expenseTotal = Math.round(baseExpenses);
     const net = income - expenseTotal - debtPayments;
     cumulative += net;

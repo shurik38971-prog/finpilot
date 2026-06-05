@@ -12,14 +12,14 @@ interface SummaryCardsProps {
 const cards = [
   {
     key: "income",
-    label: "Доход / мес",
+    label: "Доход / мес (регуляр.)",
     icon: TrendingUp,
     color: "text-emerald-400",
     getValue: (p: SummaryCardsProps) => p.totalIncome,
   },
   {
     key: "expenses",
-    label: "Расходы / мес",
+    label: "Расходы / мес (регуляр.)",
     icon: TrendingDown,
     color: "text-red-400",
     getValue: (p: SummaryCardsProps) => p.totalExpenses,

@@ -1,8 +1,25 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { computeDashboardSummary } from "@/lib/finance/index";
 import { revalidatePath } from "next/cache";
 import type { Frequency } from "@/types/database";
+
+const FINANCIAL_PATHS = [
+  "/dashboard",
+  "/income",
+  "/expenses",
+  "/debts",
+  "/crisis",
+  "/scenarios",
+  "/analyze",
+] as const;
+
+function revalidateFinancialPages() {
+  for (const path of FINANCIAL_PATHS) {
+    revalidatePath(path);
+  }
+}
 
 async function getUserId() {
   const supabase = await createClient();
@@ -39,8 +56,7 @@ export async function createIncome(formData: FormData) {
     frequency: isRecurring ? (formData.get("frequency") as Frequency) : null,
   });
   if (error) throw error;
-  revalidatePath("/income");
-  revalidatePath("/dashboard");
+  revalidateFinancialPages();
 }
 
 export async function updateIncome(id: string, formData: FormData) {
@@ -58,16 +74,14 @@ export async function updateIncome(id: string, formData: FormData) {
     })
     .eq("id", id);
   if (error) throw error;
-  revalidatePath("/income");
-  revalidatePath("/dashboard");
+  revalidateFinancialPages();
 }
 
 export async function deleteIncome(id: string) {
   const { supabase } = await getUserId();
   const { error } = await supabase.from("incomes").delete().eq("id", id);
   if (error) throw error;
-  revalidatePath("/income");
-  revalidatePath("/dashboard");
+  revalidateFinancialPages();
 }
 
 // ── Expenses ──
@@ -97,8 +111,7 @@ export async function createExpense(formData: FormData) {
     is_essential: formData.get("is_essential") === "on",
   });
   if (error) throw error;
-  revalidatePath("/expenses");
-  revalidatePath("/dashboard");
+  revalidateFinancialPages();
 }
 
 export async function updateExpense(id: string, formData: FormData) {
@@ -117,16 +130,14 @@ export async function updateExpense(id: string, formData: FormData) {
     })
     .eq("id", id);
   if (error) throw error;
-  revalidatePath("/expenses");
-  revalidatePath("/dashboard");
+  revalidateFinancialPages();
 }
 
 export async function deleteExpense(id: string) {
   const { supabase } = await getUserId();
   const { error } = await supabase.from("expenses").delete().eq("id", id);
   if (error) throw error;
-  revalidatePath("/expenses");
-  revalidatePath("/dashboard");
+  revalidateFinancialPages();
 }
 
 // ── Debts ──
@@ -155,9 +166,7 @@ export async function createDebt(formData: FormData) {
     priority: Number(formData.get("priority") || 0),
   });
   if (error) throw error;
-  revalidatePath("/debts");
-  revalidatePath("/dashboard");
-  revalidatePath("/crisis");
+  revalidateFinancialPages();
 }
 
 export async function updateDebt(id: string, formData: FormData) {
@@ -175,18 +184,14 @@ export async function updateDebt(id: string, formData: FormData) {
     })
     .eq("id", id);
   if (error) throw error;
-  revalidatePath("/debts");
-  revalidatePath("/dashboard");
-  revalidatePath("/crisis");
+  revalidateFinancialPages();
 }
 
 export async function deleteDebt(id: string) {
   const { supabase } = await getUserId();
   const { error } = await supabase.from("debts").delete().eq("id", id);
   if (error) throw error;
-  revalidatePath("/debts");
-  revalidatePath("/dashboard");
-  revalidatePath("/crisis");
+  revalidateFinancialPages();
 }
 
 // ── Aggregated data ──
@@ -198,6 +203,11 @@ export async function getFinancialData() {
     getDebts(),
   ]);
   return { incomes, expenses, debts };
+}
+
+export async function getDashboardSummary() {
+  const { incomes, expenses, debts } = await getFinancialData();
+  return computeDashboardSummary(incomes, expenses, debts);
 }
 
 // ── Demo seed ──
@@ -247,5 +257,5 @@ export async function seedDemoData(replace = false) {
   );
   if (debtError) throw debtError;
 
-  revalidatePath("/", "layout");
+  revalidateFinancialPages();
 }

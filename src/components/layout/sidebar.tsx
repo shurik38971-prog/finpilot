@@ -9,6 +9,7 @@ import {
   LogOut,
   History,
   Sparkles,
+  Target,
   TrendingDown,
   TrendingUp,
   X,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/scenarios", label: "Сценарии", icon: Zap },
   { href: "/analyze", label: "ИИ-анализ", icon: Sparkles },
   { href: "/history", label: "История", icon: History },
+  { href: "/goals", label: "Цели", icon: Target },
 ];
 
 interface SidebarProps {

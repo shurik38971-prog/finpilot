@@ -21,6 +21,10 @@ export function formatDate(date: string): string {
   }).format(new Date(date));
 }
 
+export function getTodayDateString(timeZone = "Europe/Moscow"): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date());
+}
+
 export function formatHistoryDate(date: string): string {
   return new Intl.DateTimeFormat("ru-RU", {
     day: "2-digit",

@@ -173,7 +173,7 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-400" />
-                Главная угроза
+                {result.main_problem_label || "Главная угроза"}
               </CardTitle>
             </CardHeader>
             <p className="px-5 pb-5 text-sm leading-relaxed">

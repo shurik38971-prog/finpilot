@@ -4,10 +4,15 @@ import {
   generateComparisonComment,
 } from "@/lib/ai/generate-comparison";
 import { getGptunnelConfig, gptunnelChat } from "@/lib/ai/gptunnel";
+import { PROBLEM_LABELS, resolveProblemLabel } from "@/lib/finance/problem-labels";
 import { createClient } from "@/lib/supabase/server";
+import { getTodayDateString } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import type { AiAnalysisResult, AnalysisRecord } from "@/types/analysis";
 import { NextResponse } from "next/server";
+
+const ANALYSIS_SELECT =
+  "id, user_id, financial_index, main_problem, main_problem_short, next_step, analysis_date, recommendations, model_used, index_delta, comparison_comment, created_at";
 
 function extractJsonFromText(text: string) {
   const cleaned = text
@@ -30,6 +35,8 @@ function extractJsonFromText(text: string) {
 }
 
 function buildAnalysisPrompt(context: Awaited<ReturnType<typeof getAnalysisContext>>) {
+  const labels = PROBLEM_LABELS.join(" | ");
+
   return `
 Проанализируй финансовые данные самозанятого:
 ${JSON.stringify(context, null, 2)}
@@ -39,7 +46,8 @@ ${JSON.stringify(context, null, 2)}
   "summary": "краткая диагностика текущего положения",
   "health_status": "good | bad | critical",
   "health_explanation": "если положение хорошее — объясни почему; если плохое — прямо и без смягчения",
-  "main_threat": "главная угроза для финансов",
+  "main_problem_label": "короткая метка из списка: ${labels}",
+  "main_threat": "развёрнутое описание главной угрозы (2-3 предложения)",
   "money_leaks": ["утечка денег 1", "утечка денег 2"],
   "cash_gap_risk": {
     "level": "high | medium | low",
@@ -57,7 +65,8 @@ ${JSON.stringify(context, null, 2)}
   ]
 }
 
-Не добавляй markdown. Не добавляй пояснения вне JSON. Верни только JSON.
+main_problem_label — строго короткая фраза для таблицы (до 5 слов).
+Не добавляй markdown. Верни только JSON.
 `;
 }
 
@@ -83,7 +92,7 @@ export async function POST(_req: Request) {
     }
 
     const context = await getAnalysisContext();
-    const prompt = buildAnalysisPrompt(context);
+    const today = getTodayDateString();
 
     const chatResult = await gptunnelChat(
       [
@@ -101,7 +110,7 @@ export async function POST(_req: Request) {
 Если плохое — не смягчай формулировки.
 Отвечай только валидным JSON без markdown.`,
         },
-        { role: "user", content: prompt },
+        { role: "user", content: buildAnalysisPrompt(context) },
       ],
       0.3
     );
@@ -121,16 +130,26 @@ export async function POST(_req: Request) {
     const parsed = extractJsonFromText(chatResult.content) as AiAnalysisResult;
     console.log("Model used:", chatResult.model);
 
-    const mainProblem =
+    const mainThreat =
       parsed.main_threat?.trim() || parsed.summary?.trim() || "Не определена";
+    const mainProblemShort = resolveProblemLabel(
+      parsed.main_problem_label,
+      mainThreat
+    );
+    const nextStep = parsed.plan_7_days?.[0]?.action?.trim() ?? null;
+
+    await supabase
+      .from("analyses")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("analysis_date", today);
 
     const { data: previousAnalysis } = await supabase
       .from("analyses")
-      .select(
-        "id, user_id, financial_index, main_problem, recommendations, model_used, index_delta, comparison_comment, created_at"
-      )
+      .select(ANALYSIS_SELECT)
       .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
+      .lt("analysis_date", today)
+      .order("analysis_date", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -141,27 +160,26 @@ export async function POST(_req: Request) {
         )
       : null;
 
-    let comparisonComment: string | null = null;
-
     const { data: saved, error: saveError } = await supabase
       .from("analyses")
       .insert({
         user_id: user.id,
         financial_index: context.financialIndex,
-        main_problem: mainProblem,
+        main_problem: mainThreat,
+        main_problem_short: mainProblemShort,
+        next_step: nextStep,
+        analysis_date: today,
         recommendations: parsed,
         model_used: chatResult.model,
         index_delta: indexDelta,
       })
-      .select(
-        "id, user_id, financial_index, main_problem, recommendations, model_used, index_delta, comparison_comment, created_at"
-      )
+      .select(ANALYSIS_SELECT)
       .single();
 
     if (saveError) {
       console.error("Failed to save analysis:", saveError);
     } else if (previousAnalysis && saved) {
-      comparisonComment = await generateComparisonComment(
+      const comparisonComment = await generateComparisonComment(
         saved as AnalysisRecord,
         previousAnalysis as AnalysisRecord
       );

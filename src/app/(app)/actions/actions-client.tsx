@@ -208,6 +208,8 @@ function TaskRow({
   );
 }
 
+const VISIBLE_ACTIVE_TASKS = 5;
+
 interface ActionsPageClientProps {
   tasks: FinancialTaskWithGoal[];
 }
@@ -215,6 +217,7 @@ interface ActionsPageClientProps {
 export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [showAllActive, setShowAllActive] = useState(false);
 
   const pending = tasks
     .filter((t) => t.status === "pending")
@@ -226,7 +229,16 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
   const postponed = tasks.filter((t) => t.status === "postponed");
   const done = tasks.filter((t) => t.status === "done");
   const primary = pending[0] ?? null;
-  const activeTasks = pending.slice(primary ? 1 : 0).concat(postponed);
+  const activeTasks = pending
+    .filter((task) => task.id !== primary?.id)
+    .concat(postponed.filter((task) => task.id !== primary?.id));
+  const hiddenActiveCount = Math.max(
+    0,
+    activeTasks.length - VISIBLE_ACTIVE_TASKS
+  );
+  const visibleActiveTasks = showAllActive
+    ? activeTasks
+    : activeTasks.slice(0, VISIBLE_ACTIVE_TASKS);
 
   async function runAction(id: string, action: (id: string) => Promise<void>) {
     setLoadingId(id);
@@ -277,7 +289,7 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
                 <CardTitle className="text-base">Активные задачи</CardTitle>
               </CardHeader>
               <div>
-                {activeTasks.map((task) => (
+                {visibleActiveTasks.map((task) => (
                   <TaskRow
                     key={task.id}
                     task={task}
@@ -291,6 +303,17 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
                   />
                 ))}
               </div>
+              {hiddenActiveCount > 0 && !showAllActive && (
+                <div className="px-5 pb-5">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowAllActive(true)}
+                  >
+                    Показать ещё ({hiddenActiveCount})
+                  </Button>
+                </div>
+              )}
             </Card>
           )}
 

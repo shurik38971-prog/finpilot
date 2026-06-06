@@ -83,6 +83,7 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisApiResponse | null>(null);
   const [createdTasksCount, setCreatedTasksCount] = useState<number | null>(null);
+  const [updatedTasksCount, setUpdatedTasksCount] = useState<number | null>(null);
   const [skippedDuplicateTasksCount, setSkippedDuplicateTasksCount] =
     useState<number | null>(null);
   const [error, setError] = useState("");
@@ -93,6 +94,7 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
     setError("");
     setResult(null);
     setCreatedTasksCount(null);
+    setUpdatedTasksCount(null);
     setSkippedDuplicateTasksCount(null);
 
     trackButtonClick("analyze-run", "Запустить ИИ-анализ");
@@ -108,6 +110,7 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
 
       const {
         created_tasks_count,
+        updated_tasks_count,
         skipped_duplicate_tasks_count,
         tasks_created,
         show_feedback_survey,
@@ -117,6 +120,7 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
       };
       setResult(analysis);
       setCreatedTasksCount(created_tasks_count ?? tasks_created ?? 0);
+      setUpdatedTasksCount(updated_tasks_count ?? 0);
       setSkippedDuplicateTasksCount(skipped_duplicate_tasks_count ?? 0);
       if (show_feedback_survey) {
         setSurveyOpen(true);
@@ -186,9 +190,12 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2 text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" />
-                {createdTasksCount !== null && createdTasksCount > 0
-                  ? `Анализ готов. Создано новых задач: ${createdTasksCount}.`
+                {createdTasksCount !== null &&
+                updatedTasksCount !== null &&
+                (createdTasksCount > 0 || updatedTasksCount > 0)
+                  ? `Анализ готов. Обновили существующие задачи: ${updatedTasksCount}. Новых задач: ${createdTasksCount}.`
                   : createdTasksCount === 0 &&
+                      updatedTasksCount === 0 &&
                       skippedDuplicateTasksCount !== null &&
                       skippedDuplicateTasksCount > 0
                     ? "Анализ готов. Новых задач нет — похожие рекомендации уже есть в действиях."
@@ -197,10 +204,12 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
               <CardDescription>
                 {createdTasksCount !== null && createdTasksCount > 0
                   ? "Новые дела добавлены в список «Что делать»."
-                  : skippedDuplicateTasksCount !== null &&
-                      skippedDuplicateTasksCount > 0
-                    ? `Пропущено дублей: ${skippedDuplicateTasksCount}.`
-                    : "Рекомендации сохранены в отчёте анализа."}
+                  : updatedTasksCount !== null && updatedTasksCount > 0
+                    ? "Актуальные рекомендации обновлены в существующих задачах."
+                    : skippedDuplicateTasksCount !== null &&
+                        skippedDuplicateTasksCount > 0
+                      ? `Пропущено дублей: ${skippedDuplicateTasksCount}.`
+                      : "Рекомендации сохранены в отчёте анализа."}
               </CardDescription>
             </CardHeader>
             <div className="px-5 pb-5">

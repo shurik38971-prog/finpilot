@@ -1,7 +1,15 @@
 import type { FinancialGoal } from "@/types/goals";
 import type { TaskImpact } from "@/types/task-impact";
 
-export type TaskStatus = "pending" | "done" | "postponed";
+export type TaskStatus = "pending" | "done" | "postponed" | "archived";
+
+export type TaskCategory =
+  | "debt_negotiation"
+  | "cut_optional_spending"
+  | "increase_income"
+  | "budget_control"
+  | "emergency_fund"
+  | "other";
 
 export interface FinancialTask {
   id: string;
@@ -11,6 +19,7 @@ export interface FinancialTask {
   goal_progress_amount: number | null;
   title: string;
   normalized_title?: string | null;
+  task_category?: TaskCategory | string | null;
   description: string | null;
   impact_score: number;
   impact_label: string | null;
@@ -36,6 +45,7 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   pending: "Активна",
   done: "Выполнена",
   postponed: "Отложена",
+  archived: "В архиве",
 };
 
 export interface PrimaryGoalFocus {

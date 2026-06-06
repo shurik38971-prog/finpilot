@@ -266,6 +266,7 @@ export async function POST(_req: Request) {
       page_path: "/analyze",
       properties: {
         tasks_created: taskResult.created_tasks_count,
+        tasks_updated: taskResult.updated_tasks_count,
         skipped_duplicate_tasks: taskResult.skipped_duplicate_tasks_count,
         index: context.financialIndex ?? null,
       },
@@ -274,6 +275,7 @@ export async function POST(_req: Request) {
     return NextResponse.json({
       ...parsed,
       created_tasks_count: taskResult.created_tasks_count,
+      updated_tasks_count: taskResult.updated_tasks_count,
       skipped_duplicate_tasks_count: taskResult.skipped_duplicate_tasks_count,
       tasks_created: taskResult.created_tasks_count,
       show_feedback_survey: showFeedbackSurvey,

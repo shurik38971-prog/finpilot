@@ -71,6 +71,7 @@ export async function getFinancialTasks(): Promise<FinancialTaskWithGoal[]> {
     .from("financial_tasks")
     .select(TASK_SELECT)
     .eq("user_id", userId)
+    .neq("status", "archived")
     .order("priority_score", { ascending: false })
     .order("impact_score", { ascending: false })
     .order("created_at", { ascending: false });

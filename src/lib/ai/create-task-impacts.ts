@@ -64,3 +64,22 @@ export async function createTaskImpacts(
 
   return rows.length;
 }
+
+export async function refreshTaskImpacts(
+  supabase: SupabaseClient,
+  userId: string,
+  tasks: InsertedTask[],
+  options: {
+    incomes: Income[];
+    expenses: Expense[];
+    debts: Debt[];
+    goals: FinancialGoal[];
+  }
+): Promise<void> {
+  if (tasks.length === 0) return;
+
+  const taskIds = tasks.map((task) => task.id);
+  await supabase.from("task_impacts").delete().in("task_id", taskIds);
+
+  await createTaskImpacts(supabase, userId, tasks, options);
+}

@@ -19,6 +19,7 @@
 | 013 | `013_feedback_v2_reactivation.sql` |
 | 014 | `014_user_profiles_privacy.sql` |
 | 015 | `015_financial_tasks_normalized_title.sql` |
+| 016 | `016_financial_tasks_category_archived.sql` |
 
 **Важно:** `013` меняет таблицу `feedback` из `012`. Если `012` ещё не выполняли — сначала `012`, затем `013`.
 

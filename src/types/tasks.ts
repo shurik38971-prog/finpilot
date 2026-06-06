@@ -10,6 +10,7 @@ export interface FinancialTask {
   goal_id: string | null;
   goal_progress_amount: number | null;
   title: string;
+  normalized_title?: string | null;
   description: string | null;
   impact_score: number;
   impact_label: string | null;

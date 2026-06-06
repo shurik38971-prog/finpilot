@@ -46,6 +46,9 @@ export interface AiAnalysisResult {
 }
 
 export interface AnalysisApiResponse extends AiAnalysisResult {
+  created_tasks_count?: number;
+  skipped_duplicate_tasks_count?: number;
+  /** @deprecated use created_tasks_count */
   tasks_created?: number;
 }
 

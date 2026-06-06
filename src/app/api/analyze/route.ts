@@ -229,7 +229,7 @@ export async function POST(_req: Request) {
       }
     }
 
-    const tasksCreated = await createTasksFromAnalysis(
+    const taskResult = await createTasksFromAnalysis(
       supabase,
       user.id,
       saved.id,
@@ -265,14 +265,17 @@ export async function POST(_req: Request) {
       user_id: user.id,
       page_path: "/analyze",
       properties: {
-        tasks_created: tasksCreated,
+        tasks_created: taskResult.created_tasks_count,
+        skipped_duplicate_tasks: taskResult.skipped_duplicate_tasks_count,
         index: context.financialIndex ?? null,
       },
     });
 
     return NextResponse.json({
       ...parsed,
-      tasks_created: tasksCreated,
+      created_tasks_count: taskResult.created_tasks_count,
+      skipped_duplicate_tasks_count: taskResult.skipped_duplicate_tasks_count,
+      tasks_created: taskResult.created_tasks_count,
       show_feedback_survey: showFeedbackSurvey,
     });
   } catch (error) {

@@ -4,6 +4,7 @@ import { syncPendingTaskPriorities } from "@/lib/ai/sync-task-priorities";
 import { BENEFIT_LABELS } from "@/lib/copy/ui";
 import { computeDashboardSummary } from "@/lib/finance/index";
 import { matchTaskToGoal } from "@/lib/finance/match-task-to-goal";
+import { normalizeTaskTitle } from "@/lib/finance/normalize-task-title";
 import type { Debt, Expense, Income } from "@/types/database";
 import type {
   AiAction30Day,
@@ -27,31 +28,22 @@ const PRIORITY_LABEL: Record<string, string> = {
   low: BENEFIT_LABELS.low,
 };
 
+export interface CreateTasksFromAnalysisResult {
+  created_tasks_count: number;
+  skipped_duplicate_tasks_count: number;
+}
+
 interface TaskInsert {
   user_id: string;
   analysis_id: string;
   goal_id: string | null;
   goal_progress_amount: number | null;
   title: string;
+  normalized_title: string;
   description: string | null;
   impact_score: number;
   impact_label: string | null;
   due_date: string | null;
-}
-
-function normalizeTitle(title: string): string {
-  return title.toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-function isSimilarTitle(a: string, b: string): boolean {
-  const left = normalizeTitle(a);
-  const right = normalizeTitle(b);
-  if (!left || !right) return false;
-  if (left === right) return true;
-  if (left.length >= 10 && right.length >= 10) {
-    return left.includes(right) || right.includes(left);
-  }
-  return false;
 }
 
 function dueDateFromDays(days?: number): string | null {
@@ -88,6 +80,7 @@ function mapNextBestAction(
     analysis_id: analysisId,
     ...goalLink,
     title,
+    normalized_title: normalizeTaskTitle(title),
     description,
     impact_score: Math.min(100, Math.max(1, action.impact_score ?? 80)),
     impact_label: action.impact_label ?? BENEFIT_LABELS.high,
@@ -112,6 +105,7 @@ function mapAction30Day(
     analysis_id: analysisId,
     ...goalLink,
     title,
+    normalized_title: normalizeTaskTitle(title),
     description,
     impact_score: PRIORITY_SCORE[priority] ?? 50,
     impact_label: PRIORITY_LABEL[priority] ?? BENEFIT_LABELS.medium,
@@ -124,9 +118,14 @@ export async function createTasksFromAnalysis(
   userId: string,
   analysisId: string,
   parsed: AiAnalysisResult
-): Promise<number> {
+): Promise<CreateTasksFromAnalysisResult> {
+  const emptyResult: CreateTasksFromAnalysisResult = {
+    created_tasks_count: 0,
+    skipped_duplicate_tasks_count: 0,
+  };
+
   const [
-    { data: pendingTasks },
+    { data: activeTasks },
     { data: goals },
     { data: debts },
     { data: incomes },
@@ -134,9 +133,9 @@ export async function createTasksFromAnalysis(
   ] = await Promise.all([
     supabase
       .from("financial_tasks")
-      .select("title")
+      .select("id, normalized_title, title")
       .eq("user_id", userId)
-      .eq("status", "pending"),
+      .in("status", ["pending", "postponed"]),
     supabase.from("financial_goals").select("*").eq("user_id", userId),
     supabase.from("debts").select("*").eq("user_id", userId),
     supabase.from("incomes").select("*").eq("user_id", userId),
@@ -145,45 +144,61 @@ export async function createTasksFromAnalysis(
 
   const userGoals = (goals ?? []) as FinancialGoal[];
   const debtTitles = (debts ?? []).map((d) => d.title);
-  const pendingTitles = pendingTasks?.map((t) => t.title) ?? [];
-  const toInsert: TaskInsert[] = [];
 
-  function isDuplicate(title: string): boolean {
-    return (
-      pendingTitles.some((t) => isSimilarTitle(t, title)) ||
-      toInsert.some((t) => isSimilarTitle(t.title, title))
-    );
+  const existingNormalized = new Set(
+    (activeTasks ?? [])
+      .map((task) =>
+        task.normalized_title
+          ? task.normalized_title
+          : normalizeTaskTitle(task.title ?? "")
+      )
+      .filter(Boolean)
+  );
+
+  const batchNormalized = new Set<string>();
+  const toInsert: TaskInsert[] = [];
+  let skippedDuplicateTasksCount = 0;
+
+  function tryAddTask(task: TaskInsert) {
+    const normalized = task.normalized_title;
+    if (!normalized) return;
+
+    if (existingNormalized.has(normalized) || batchNormalized.has(normalized)) {
+      skippedDuplicateTasksCount += 1;
+      return;
+    }
+
+    batchNormalized.add(normalized);
+    toInsert.push(task);
   }
 
   if (parsed.next_best_action?.title) {
-    const task = mapNextBestAction(
-      parsed.next_best_action,
-      userId,
-      analysisId,
-      userGoals,
-      debtTitles
+    tryAddTask(
+      mapNextBestAction(
+        parsed.next_best_action,
+        userId,
+        analysisId,
+        userGoals,
+        debtTitles
+      )
     );
-    if (!isDuplicate(task.title)) {
-      toInsert.push(task);
-    }
   }
 
   for (const action of parsed.actions_30_days ?? []) {
     if (toInsert.length >= MAX_TASKS_PER_ANALYSIS) break;
     if (!action.action?.trim()) continue;
 
-    const task = mapAction30Day(
-      action,
-      userId,
-      analysisId,
-      userGoals,
-      debtTitles
+    tryAddTask(
+      mapAction30Day(action, userId, analysisId, userGoals, debtTitles)
     );
-    if (isDuplicate(task.title)) continue;
-    toInsert.push(task);
   }
 
-  if (toInsert.length === 0) return 0;
+  if (toInsert.length === 0) {
+    return {
+      created_tasks_count: 0,
+      skipped_duplicate_tasks_count: skippedDuplicateTasksCount,
+    };
+  }
 
   const { data: inserted, error } = await supabase
     .from("financial_tasks")
@@ -192,7 +207,7 @@ export async function createTasksFromAnalysis(
 
   if (error) {
     console.error("Failed to create financial tasks:", error);
-    return 0;
+    return emptyResult;
   }
 
   await createTaskImpacts(supabase, userId, inserted ?? [], {
@@ -211,5 +226,8 @@ export async function createTasksFromAnalysis(
     hasNegativeCashflow: summary.netCashFlow < 0,
   });
 
-  return inserted?.length ?? 0;
+  return {
+    created_tasks_count: inserted?.length ?? 0,
+    skipped_duplicate_tasks_count: skippedDuplicateTasksCount,
+  };
 }

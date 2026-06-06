@@ -82,7 +82,9 @@ function PlanList({
 export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisApiResponse | null>(null);
-  const [tasksCreated, setTasksCreated] = useState<number | null>(null);
+  const [createdTasksCount, setCreatedTasksCount] = useState<number | null>(null);
+  const [skippedDuplicateTasksCount, setSkippedDuplicateTasksCount] =
+    useState<number | null>(null);
   const [error, setError] = useState("");
   const [surveyOpen, setSurveyOpen] = useState(false);
 
@@ -90,7 +92,8 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
     setLoading(true);
     setError("");
     setResult(null);
-    setTasksCreated(null);
+    setCreatedTasksCount(null);
+    setSkippedDuplicateTasksCount(null);
 
     trackButtonClick("analyze-run", "Запустить ИИ-анализ");
 
@@ -103,13 +106,18 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
         return;
       }
 
-      const { tasks_created, show_feedback_survey, ...analysis } =
-        data as AnalysisApiResponse & {
-          tasks_created?: number;
-          show_feedback_survey?: boolean;
-        };
+      const {
+        created_tasks_count,
+        skipped_duplicate_tasks_count,
+        tasks_created,
+        show_feedback_survey,
+        ...analysis
+      } = data as AnalysisApiResponse & {
+        show_feedback_survey?: boolean;
+      };
       setResult(analysis);
-      setTasksCreated(tasks_created ?? 0);
+      setCreatedTasksCount(created_tasks_count ?? tasks_created ?? 0);
+      setSkippedDuplicateTasksCount(skipped_duplicate_tasks_count ?? 0);
       if (show_feedback_survey) {
         setSurveyOpen(true);
       }
@@ -178,15 +186,21 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2 text-emerald-400">
                 <CheckCircle2 className="h-4 w-4" />
-                Анализ готов
-                {tasksCreated !== null && tasksCreated > 0
-                  ? `. Создано задач: ${tasksCreated}`
-                  : ""}
+                {createdTasksCount !== null && createdTasksCount > 0
+                  ? `Анализ готов. Создано новых задач: ${createdTasksCount}.`
+                  : createdTasksCount === 0 &&
+                      skippedDuplicateTasksCount !== null &&
+                      skippedDuplicateTasksCount > 0
+                    ? "Анализ готов. Новых задач нет — похожие рекомендации уже есть в действиях."
+                    : "Анализ готов"}
               </CardTitle>
               <CardDescription>
-                {tasksCreated && tasksCreated > 0
+                {createdTasksCount !== null && createdTasksCount > 0
                   ? "Новые дела добавлены в список «Что делать»."
-                  : "Новые задачи не созданы — возможно, похожие уже активны."}
+                  : skippedDuplicateTasksCount !== null &&
+                      skippedDuplicateTasksCount > 0
+                    ? `Пропущено дублей: ${skippedDuplicateTasksCount}.`
+                    : "Рекомендации сохранены в отчёте анализа."}
               </CardDescription>
             </CardHeader>
             <div className="px-5 pb-5">

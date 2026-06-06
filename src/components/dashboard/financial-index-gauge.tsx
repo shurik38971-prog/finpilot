@@ -7,9 +7,13 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 
 interface FinancialIndexGaugeProps {
   index: number | null;
+  primaryRisk?: string | null;
 }
 
-export function FinancialIndexGauge({ index }: FinancialIndexGaugeProps) {
+export function FinancialIndexGauge({
+  index,
+  primaryRisk = null,
+}: FinancialIndexGaugeProps) {
   if (index === null) {
     return (
       <Card className="flex h-full flex-col items-center !p-4">
@@ -70,6 +74,16 @@ export function FinancialIndexGauge({ index }: FinancialIndexGaugeProps) {
           <span className="text-xs text-muted">{label}</span>
         </div>
       </div>
+      {primaryRisk && (
+        <div className="mt-1 w-full rounded-lg border border-orange-400/20 bg-orange-400/5 px-3 py-2.5 text-center">
+          <p className="text-[11px] uppercase tracking-wide text-muted">
+            Главный риск
+          </p>
+          <p className="text-sm font-medium text-orange-400 mt-0.5 leading-snug">
+            {primaryRisk}
+          </p>
+        </div>
+      )}
     </Card>
   );
 }

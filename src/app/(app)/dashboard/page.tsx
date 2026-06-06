@@ -26,10 +26,18 @@ import {
 import { computeDashboardSummary } from "@/lib/finance/index";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 import { interpretForecast } from "@/lib/finance/forecast-interpretation";
+import { getPrimaryFinancialRisk } from "@/lib/finance/primary-financial-risk";
+import { shouldShowOnboardingChecklist } from "@/lib/onboarding/visibility";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [
     { incomes, expenses, debts },
     goalFocus,
@@ -93,10 +101,20 @@ export default async function DashboardPage() {
     hasAnalysis: onboarding?.analysis_done ?? false,
   });
 
-  const showOnboardingInProgress =
-    onboarding && !onboarding.completed;
-  const showOnboardingCompleted =
-    onboarding && onboarding.completed;
+  const showOnboardingChecklist =
+    onboarding &&
+    shouldShowOnboardingChecklist(onboarding.completed, user?.created_at);
+
+  const primaryFinancialRisk =
+    financialIndex !== null
+      ? getPrimaryFinancialRisk(
+          incomes,
+          expenses,
+          debts,
+          goals,
+          profileType
+        )
+      : null;
 
   return (
     <DashboardAutoRefresh>
@@ -108,7 +126,7 @@ export default async function DashboardPage() {
 
         <div className="space-y-4">
           {financialProfile.needsProfileSetup && <ProfileOnboardingCard />}
-          {showOnboardingInProgress && (
+          {showOnboardingChecklist && (
             <OnboardingChecklist progress={onboarding} />
           )}
 
@@ -130,7 +148,10 @@ export default async function DashboardPage() {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,35fr)_minmax(0,65fr)] gap-4 items-stretch">
-            <FinancialIndexGauge index={financialIndex} />
+            <FinancialIndexGauge
+              index={financialIndex}
+              primaryRisk={primaryFinancialRisk}
+            />
             <CashFlowChart
               data={forecast.data}
               insufficientData={forecast.insufficientData}
@@ -144,9 +165,6 @@ export default async function DashboardPage() {
 
           <EarlyAccessBanner />
 
-          {showOnboardingCompleted && (
-            <OnboardingChecklist progress={onboarding} />
-          )}
           <DemoDataBanner isEmpty={isEmpty} />
         </div>
       </div>

@@ -9,22 +9,16 @@ export function EarlyAccessBanner() {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent" />
-          Ранний доступ
+          Помогите улучшить FinPilot
         </CardTitle>
         <CardDescription className="leading-relaxed">
-          FinPilot развивается вместе с первыми пользователями. Если рекомендация
-          показалась неточной или что-то непонятно — расскажите нам.
+          Какая рекомендация оказалась самой полезной?
         </CardDescription>
       </CardHeader>
-      <div className="flex flex-wrap gap-2 px-5 pb-5">
-        <Link href="/feedback?type=idea">
+      <div className="px-5 pb-5">
+        <Link href="/feedback">
           <Button variant="secondary" size="sm">
             Оставить отзыв
-          </Button>
-        </Link>
-        <Link href="/feedback?type=bug">
-          <Button variant="ghost" size="sm">
-            Сообщить о проблеме
           </Button>
         </Link>
       </div>

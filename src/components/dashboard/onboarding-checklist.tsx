@@ -4,16 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { OnboardingProgress } from "@/types/onboarding";
-import {
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Circle,
-  ListChecks,
-  Sparkles,
-} from "lucide-react";
+import { CheckCircle2, Circle, ListChecks, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 
 interface OnboardingChecklistProps {
   progress: OnboardingProgress;
@@ -59,26 +51,7 @@ const STEPS = [
 ] as const;
 
 export function OnboardingChecklist({ progress }: OnboardingChecklistProps) {
-  const [collapsed, setCollapsed] = useState(progress.completed);
   const doneCount = STEPS.filter((s) => progress[s.field]).length;
-
-  if (progress.completed && collapsed) {
-    return (
-      <Card className="border-emerald-500/20 bg-emerald-500/5 !p-0 max-h-12 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setCollapsed(false)}
-          className="flex w-full h-12 items-center justify-between gap-3 px-4 text-left"
-        >
-          <span className="flex items-center gap-2 text-sm font-medium text-emerald-400 truncate">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            Настройка завершена
-          </span>
-          <ChevronDown className="h-4 w-4 text-muted shrink-0" />
-        </button>
-      </Card>
-    );
-  }
 
   return (
     <Card className="border-accent/30 bg-gradient-to-br from-accent/10 to-transparent">
@@ -94,16 +67,6 @@ export function OnboardingChecklist({ progress }: OnboardingChecklistProps) {
               получите главное действие от ИИ.
             </CardDescription>
           </div>
-          {progress.completed && (
-            <button
-              type="button"
-              onClick={() => setCollapsed(true)}
-              className="text-muted hover:text-foreground p-1"
-              aria-label="Свернуть"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </button>
-          )}
         </div>
         <div className="mt-3 flex items-center gap-2 text-xs text-muted">
           <span>

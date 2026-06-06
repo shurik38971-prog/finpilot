@@ -2,7 +2,7 @@
 
 import { FeedbackWidget } from "@/components/analytics/feedback-widget";
 import { ProductAnalytics } from "@/components/analytics/product-analytics";
-import { QuickFeedbackPrompt } from "@/components/feedback/quick-feedback-prompt";
+import { ValueFeedbackPrompt } from "@/components/feedback/value-feedback-prompt";
 import { useState } from "react";
 import { MobileHeader } from "./mobile-header";
 import { Sidebar } from "./sidebar";
@@ -29,7 +29,7 @@ export function AppShell({
         <main className="p-4 sm:p-6 md:p-8">{children}</main>
       </div>
       <FeedbackWidget />
-      <QuickFeedbackPrompt />
+      <ValueFeedbackPrompt />
     </div>
   );
 }

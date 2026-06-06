@@ -258,34 +258,6 @@ export async function POST(_req: Request) {
 
     await markOnboardingStep("analysis");
 
-    const [{ count: analysisCount }, { data: existingFeedback }] =
-      await Promise.all([
-        supabase
-          .from("analyses")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id),
-        supabase
-          .from("feedback")
-          .select("id")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
-
-    const showFeedbackSurvey =
-      !existingFeedback && (analysisCount ?? 0) === 1;
-
-    const ratingSince = new Date();
-    ratingSince.setDate(ratingSince.getDate() - 7);
-    const { data: recentAnalysisRating } = await supabase
-      .from("analysis_ratings")
-      .select("id")
-      .eq("user_id", user.id)
-      .gte("created_at", ratingSince.toISOString())
-      .limit(1)
-      .maybeSingle();
-
-    const showAnalysisRating = recentAnalysisRating == null;
-
     revalidatePath("/history");
     revalidatePath("/actions");
     revalidatePath("/dashboard");
@@ -319,8 +291,6 @@ export async function POST(_req: Request) {
       updated_tasks_count: taskResult.updated_tasks_count,
       skipped_duplicate_tasks_count: taskResult.skipped_duplicate_tasks_count,
       tasks_created: taskResult.created_tasks_count,
-      show_feedback_survey: showFeedbackSurvey,
-      show_analysis_rating: showAnalysisRating,
       analysis_id: saved.id,
     });
   } catch (error) {

@@ -16,10 +16,9 @@ import type {
   HealthStatus,
 } from "@/types/analysis";
 import { AnalysisDisclaimer } from "@/components/early-access/analysis-disclaimer";
-import { AnalysisRatingModal } from "@/components/feedback/analysis-rating-modal";
-import { PostAnalysisSurveyModal } from "@/components/feedback/post-analysis-survey-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { trackButtonClick } from "@/lib/analytics/client";
+import { markAnalysisCompleted } from "@/lib/feedback/post-analysis-engagement";
 import { COPY } from "@/lib/copy/ui";
 import { AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -96,10 +95,6 @@ export function AnalyzePageClient({
   const [skippedDuplicateTasksCount, setSkippedDuplicateTasksCount] =
     useState<number | null>(null);
   const [error, setError] = useState("");
-  const [surveyOpen, setSurveyOpen] = useState(false);
-  const [ratingOpen, setRatingOpen] = useState(false);
-  const [pendingRating, setPendingRating] = useState(false);
-
   async function handleAnalyze() {
     setLoading(true);
     setError("");
@@ -124,25 +119,13 @@ export function AnalyzePageClient({
         updated_tasks_count,
         skipped_duplicate_tasks_count,
         tasks_created,
-        show_feedback_survey,
-        show_analysis_rating,
         ...analysis
-      } = data as AnalysisApiResponse & {
-        show_feedback_survey?: boolean;
-        show_analysis_rating?: boolean;
-      };
+      } = data as AnalysisApiResponse & { tasks_created?: number };
       setResult(analysis);
       setCreatedTasksCount(created_tasks_count ?? tasks_created ?? 0);
       setUpdatedTasksCount(updated_tasks_count ?? 0);
       setSkippedDuplicateTasksCount(skipped_duplicate_tasks_count ?? 0);
-      if (show_feedback_survey && show_analysis_rating) {
-        setPendingRating(true);
-        setSurveyOpen(true);
-      } else if (show_feedback_survey) {
-        setSurveyOpen(true);
-      } else if (show_analysis_rating) {
-        setRatingOpen(true);
-      }
+      markAnalysisCompleted();
     } catch {
       setError("Не удалось выполнить анализ");
     } finally {
@@ -152,27 +135,6 @@ export function AnalyzePageClient({
 
   return (
     <div>
-      <PostAnalysisSurveyModal
-        open={surveyOpen}
-        onClose={() => {
-          setSurveyOpen(false);
-          if (pendingRating) {
-            setRatingOpen(true);
-            setPendingRating(false);
-          }
-        }}
-        onComplete={() => {
-          setSurveyOpen(false);
-          if (pendingRating) {
-            setRatingOpen(true);
-            setPendingRating(false);
-          }
-        }}
-      />
-      <AnalysisRatingModal
-        open={ratingOpen}
-        onClose={() => setRatingOpen(false)}
-      />
       <PageHeader
         title="ИИ-анализ"
         description="Персональный разбор ваших денег и что делать дальше"

@@ -21,6 +21,12 @@ interface OnboardingChecklistProps {
 
 const STEPS = [
   {
+    field: "profile_done" as const,
+    label: "Укажите, кто вы",
+    href: "/dashboard",
+    cta: "К профилю",
+  },
+  {
     field: "income_done" as const,
     label: "Добавьте доход",
     href: "/income",
@@ -84,7 +90,7 @@ export function OnboardingChecklist({ progress }: OnboardingChecklistProps) {
               Настройте FinPilot
             </CardTitle>
             <CardDescription className="mt-1">
-              Пройдите 5 шагов — займёт около 3–5 минут. После этого вы
+              Пройдите 6 шагов — займёт около 3–5 минут. После этого вы
               получите главное действие от ИИ.
             </CardDescription>
           </div>

@@ -8,8 +8,12 @@ import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { PageHeader } from "@/components/layout/page-header";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { EarlyAccessBanner } from "@/components/early-access/early-access-banner";
+import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { getFinancialData } from "@/lib/actions/finance";
 import { getOnboardingProgress } from "@/lib/actions/onboarding";
+import { ProfileDashboardHints } from "@/components/profile/profile-dashboard-hints";
+import { ProfileOnboardingCard } from "@/components/profile/profile-onboarding-card";
+import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
 import { getNextBestAction, getPrimaryGoalFocus } from "@/lib/actions/tasks";
 import { computeDashboardSummary } from "@/lib/finance/index";
 import { forecastCashFlow } from "@/lib/finance/forecast";
@@ -17,12 +21,16 @@ import { forecastCashFlow } from "@/lib/finance/forecast";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [{ incomes, expenses, debts }, goalFocus, onboarding] =
+  const [{ incomes, expenses, debts }, goalFocus, onboarding, financialProfile] =
     await Promise.all([
       getFinancialData(),
       getPrimaryGoalFocus(),
       getOnboardingProgress(),
+      getUserFinancialProfile(),
     ]);
+
+  const profileType =
+    financialProfile.profileType ?? DEFAULT_PROFILE_TYPE;
 
   const {
     totalIncome,
@@ -32,7 +40,7 @@ export default async function DashboardPage() {
     netCashFlow,
     totalDebt,
     financialIndex,
-  } = computeDashboardSummary(incomes, expenses, debts);
+  } = computeDashboardSummary(incomes, expenses, debts, profileType);
 
   const nextBestAction = await getNextBestAction({
     hasNegativeCashflow: netCashFlow < 0,
@@ -50,7 +58,11 @@ export default async function DashboardPage() {
         />
 
         <div className="space-y-6">
+          {financialProfile.needsProfileSetup && <ProfileOnboardingCard />}
           {onboarding && <OnboardingChecklist progress={onboarding} />}
+          {!financialProfile.needsProfileSetup && (
+            <ProfileDashboardHints profileType={profileType} />
+          )}
           <EarlyAccessBanner />
           <DemoDataBanner isEmpty={isEmpty} />
           <NextBestActionCard action={nextBestAction} />

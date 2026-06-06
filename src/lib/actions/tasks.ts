@@ -1,5 +1,6 @@
 "use server";
 
+import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/server";
 import { syncPendingTaskPriorities } from "@/lib/ai/sync-task-priorities";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
@@ -90,7 +91,7 @@ export async function getTopPendingTask(): Promise<FinancialTaskWithGoal | null>
 
 function toNextBestActionResult(
   task: FinancialTaskWithGoal,
-  options?: { hasNegativeCashflow?: boolean }
+  options?: { hasNegativeCashflow?: boolean; profileType?: import("@/types/profile").ProfileType }
 ): NextBestActionResult {
   const { reasons } = calculateTaskPriority(
     {
@@ -102,7 +103,11 @@ function toNextBestActionResult(
       goal_id: task.goal_id,
       goal_type: task.goal?.type ?? null,
     },
-    { hasNegativeCashflow: options?.hasNegativeCashflow, impact: task.impact }
+    {
+      hasNegativeCashflow: options?.hasNegativeCashflow,
+      impact: task.impact,
+      profileType: options?.profileType,
+    }
   );
 
   return {
@@ -124,8 +129,9 @@ export async function getNextBestAction(
   options?: { hasNegativeCashflow?: boolean }
 ): Promise<NextBestActionResult | null> {
   const { supabase, userId } = await getUserId();
+  const profileType = await getProfileTypeForUser(supabase, userId);
 
-  await syncPendingTaskPriorities(supabase, userId, options);
+  await syncPendingTaskPriorities(supabase, userId, { ...options, profileType });
 
   const { data, error } = await supabase
     .from("financial_tasks")
@@ -142,7 +148,7 @@ export async function getNextBestAction(
   if (!data) return null;
 
   const task = mapTask(data as Record<string, unknown>);
-  return toNextBestActionResult(task, options);
+  return toNextBestActionResult(task, { ...options, profileType });
 }
 
 export async function getTasksByGoalId(

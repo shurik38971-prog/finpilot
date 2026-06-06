@@ -3,7 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
+import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { computeDashboardSummary } from "@/lib/finance/index";
+import { DEFAULT_PROFILE_TYPE, PROFILE_TYPE_LABELS } from "@/types/profile";
 import {
   markOnboardingStep,
   markOnboardingSteps,
@@ -221,17 +223,36 @@ export async function getFinancialData() {
 }
 
 export async function getDashboardSummary() {
-  const { incomes, expenses, debts } = await getFinancialData();
-  return computeDashboardSummary(incomes, expenses, debts);
+  const [{ incomes, expenses, debts }, profile] = await Promise.all([
+    getFinancialData(),
+    getUserFinancialProfile(),
+  ]);
+  return computeDashboardSummary(
+    incomes,
+    expenses,
+    debts,
+    profile.profileType ?? DEFAULT_PROFILE_TYPE
+  );
 }
 
 export async function getAnalysisContext() {
-  const { incomes, expenses, debts } = await getFinancialData();
-  const summary = computeDashboardSummary(incomes, expenses, debts);
+  const [{ incomes, expenses, debts }, profile] = await Promise.all([
+    getFinancialData(),
+    getUserFinancialProfile(),
+  ]);
+  const profileType = profile.profileType ?? DEFAULT_PROFILE_TYPE;
+  const summary = computeDashboardSummary(
+    incomes,
+    expenses,
+    debts,
+    profileType
+  );
   const forecast = forecastCashFlow(incomes, expenses, debts);
   const avalanche = calculateDebtPayoff(debts, 0, "avalanche");
 
   return {
+    profileType,
+    profileTypeLabel: PROFILE_TYPE_LABELS[profileType],
     actualMonthlyIncome: summary.totalIncome,
     expectedMonthlyIncome: summary.expectedIncome,
     averageActualIncome3Months: summary.averageActualIncome3Months,

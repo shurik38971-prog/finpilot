@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { calculateTaskPriority } from "@/lib/services/task-priority";
 import type { GoalType } from "@/types/goals";
 import type { TaskImpact } from "@/types/task-impact";
+import type { ProfileType } from "@/types/profile";
 
 interface TaskRow {
   id: string;
@@ -20,8 +22,11 @@ interface TaskRow {
 export async function syncPendingTaskPriorities(
   supabase: SupabaseClient,
   userId: string,
-  options?: { hasNegativeCashflow?: boolean }
+  options?: { hasNegativeCashflow?: boolean; profileType?: ProfileType }
 ): Promise<void> {
+  const profileType =
+    options?.profileType ?? (await getProfileTypeForUser(supabase, userId));
+
   const { data, error } = await supabase
     .from("financial_tasks")
     .select(
@@ -64,7 +69,11 @@ export async function syncPendingTaskPriorities(
           goal_id: row.goal_id,
           goal_type: goal?.type ?? null,
         },
-        { hasNegativeCashflow: options?.hasNegativeCashflow, impact }
+        {
+          hasNegativeCashflow: options?.hasNegativeCashflow,
+          impact,
+          profileType,
+        }
       );
 
       if (

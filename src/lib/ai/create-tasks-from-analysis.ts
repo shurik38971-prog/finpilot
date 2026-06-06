@@ -4,6 +4,7 @@ import {
   refreshTaskImpacts,
 } from "@/lib/ai/create-task-impacts";
 import { syncPendingTaskPriorities } from "@/lib/ai/sync-task-priorities";
+import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { deduplicateUserTasksForUser } from "@/lib/finance/deduplicate-user-tasks";
 import { BENEFIT_LABELS } from "@/lib/copy/ui";
 import {
@@ -296,12 +297,14 @@ export async function createTasksFromAnalysis(
     });
   }
 
+  const profileType = await getProfileTypeForUser(supabase, userId);
   const summary = computeDashboardSummary(
     financeOptions.incomes,
     financeOptions.expenses,
-    financeOptions.debts
+    financeOptions.debts,
+    profileType
   );
-  const priorityOptions = { hasNegativeCashflow: summary.netCashFlow < 0 };
+  const priorityOptions = { hasNegativeCashflow: summary.netCashFlow < 0, profileType };
 
   const updatedTasks: Array<{
     id: string;
@@ -324,7 +327,7 @@ export async function createTasksFromAnalysis(
         goal_type:
           userGoals.find((goal) => goal.id === candidate.goal_id)?.type ?? null,
       },
-      priorityOptions
+      { ...priorityOptions, profileType }
     );
 
     const { error } = await supabase
@@ -385,7 +388,10 @@ export async function createTasksFromAnalysis(
   }
 
   if (createdTasksCount > 0 || updatedTasks.length > 0) {
-    await syncPendingTaskPriorities(supabase, userId, priorityOptions);
+    await syncPendingTaskPriorities(supabase, userId, {
+      ...priorityOptions,
+      profileType,
+    });
   }
 
   try {

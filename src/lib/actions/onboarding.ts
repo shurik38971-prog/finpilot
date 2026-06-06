@@ -9,6 +9,7 @@ const STEP_FIELD: Record<
   OnboardingStep,
   keyof Pick<
     OnboardingProgress,
+    | "profile_done"
     | "income_done"
     | "expenses_done"
     | "debts_done"
@@ -16,6 +17,7 @@ const STEP_FIELD: Record<
     | "analysis_done"
   >
 > = {
+  profile: "profile_done",
   income: "income_done",
   expenses: "expenses_done",
   debts: "debts_done",
@@ -25,6 +27,7 @@ const STEP_FIELD: Record<
 
 function isAllStepsDone(row: Pick<
   OnboardingProgress,
+  | "profile_done"
   | "income_done"
   | "expenses_done"
   | "debts_done"
@@ -32,6 +35,7 @@ function isAllStepsDone(row: Pick<
   | "analysis_done"
 >) {
   return (
+    row.profile_done &&
     row.income_done &&
     row.expenses_done &&
     row.debts_done &&
@@ -76,7 +80,12 @@ async function reconcileFromData(
   userId: string,
   row: OnboardingProgress
 ): Promise<OnboardingProgress> {
-  const [incomes, expenses, debts, goals, analyses] = await Promise.all([
+  const [profile, incomes, expenses, debts, goals, analyses] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("profile_type")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase.from("incomes").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("expenses").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("debts").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -85,6 +94,7 @@ async function reconcileFromData(
   ]);
 
   const next = {
+    profile_done: row.profile_done || Boolean(profile.data?.profile_type),
     income_done: row.income_done || (incomes.count ?? 0) > 0,
     expenses_done: row.expenses_done || (expenses.count ?? 0) > 0,
     debts_done: row.debts_done || (debts.count ?? 0) > 0,
@@ -94,6 +104,7 @@ async function reconcileFromData(
 
   const completed = isAllStepsDone(next);
   const unchanged =
+    next.profile_done === row.profile_done &&
     next.income_done === row.income_done &&
     next.expenses_done === row.expenses_done &&
     next.debts_done === row.debts_done &&

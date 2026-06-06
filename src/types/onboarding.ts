@@ -1,6 +1,7 @@
 export interface OnboardingProgress {
   id: string;
   user_id: string;
+  profile_done: boolean;
   income_done: boolean;
   expenses_done: boolean;
   debts_done: boolean;
@@ -12,6 +13,7 @@ export interface OnboardingProgress {
 }
 
 export type OnboardingStep =
+  | "profile"
   | "income"
   | "expenses"
   | "debts"

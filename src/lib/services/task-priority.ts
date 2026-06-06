@@ -1,5 +1,10 @@
+import {
+  detectTaskProfileFlags,
+  getProfileTaskBoost,
+} from "@/lib/profile/financial-profile";
 import type { GoalType } from "@/types/goals";
 import type { TaskImpact } from "@/types/task-impact";
+import { DEFAULT_PROFILE_TYPE, type ProfileType } from "@/types/profile";
 
 const DEBT_KEYWORDS = [
   "долг",
@@ -77,6 +82,7 @@ export function calculateTaskPriority(
   options?: {
     hasNegativeCashflow?: boolean;
     impact?: TaskImpact | null;
+    profileType?: ProfileType;
   }
 ): TaskPriorityResult {
   const text = taskText(task);
@@ -94,25 +100,39 @@ export function calculateTaskPriority(
     score += 10;
   }
 
-  const debtRelated =
-    containsAny(text, DEBT_KEYWORDS) || task.goal_type === "debt_payoff";
+  const profileType = options?.profileType ?? DEFAULT_PROFILE_TYPE;
+  const profileFlags = detectTaskProfileFlags({
+    title: task.title,
+    description: task.description,
+    goal_type: task.goal_type,
+  });
+
+  const debtRelated = profileFlags.debtRelated;
   if (debtRelated) {
     score += 30;
     reasons.push("помогает меньше платить по долгам");
   }
 
   const cashGapRelated =
-    containsAny(text, CASH_GAP_KEYWORDS) || options?.hasNegativeCashflow;
+    profileFlags.cashGapRelated || options?.hasNegativeCashflow;
   if (cashGapRelated) {
     score += 30;
     reasons.push("срочно, если денег не хватает до следующего дохода");
   }
 
-  const cushionRelated =
-    containsAny(text, CUSHION_KEYWORDS) || task.goal_type === "safety_cushion";
+  const cushionRelated = profileFlags.cushionRelated;
   if (cushionRelated) {
     score += 20;
     reasons.push("ускоряет формирование подушки безопасности");
+  }
+
+  const profileBoost = getProfileTaskBoost(profileType, task, {
+    ...profileFlags,
+    cashGapRelated: Boolean(cashGapRelated),
+  });
+  if (profileBoost > 0) {
+    score += profileBoost;
+    reasons.push("важно для вашего финансового профиля");
   }
 
   if (task.goal_id && !debtRelated && !cushionRelated) {

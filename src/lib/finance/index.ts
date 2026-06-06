@@ -1,6 +1,15 @@
 import type { Debt, Expense, Income } from "@/types/database";
-import { incomeForHealthIndex } from "@/lib/finance/income-model";
+import {
+  actualIncomeInMonth,
+  expectedIncomeInMonth,
+  incomeForHealthIndex,
+} from "@/lib/finance/income-model";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
+import { PROFILE_INDEX_WEIGHTS } from "@/lib/profile/financial-profile";
+import {
+  DEFAULT_PROFILE_TYPE,
+  type ProfileType,
+} from "@/types/profile";
 import { toMonthlyAmount } from "@/lib/utils";
 
 export {
@@ -64,15 +73,41 @@ export function hasFinancialData(
  * - Essential expense ratio (15%): non-essential headroom
  * - Income diversity (10%): number of income sources
  */
+function incomeStabilityScore(
+  incomes: Income[],
+  maxPoints: number,
+  month: Date = new Date()
+): number {
+  if (maxPoints <= 0) return 0;
+
+  const expected = expectedIncomeInMonth(incomes, month);
+  const actual = actualIncomeInMonth(incomes, month);
+
+  if (expected > 0) {
+    const ratio = Math.min(1.2, actual / expected);
+    return Math.min(maxPoints, Math.max(0, ratio * maxPoints));
+  }
+
+  const avg = incomeForHealthIndex(incomes, month);
+  if (avg > 0 && actual > 0) {
+    const ratio = Math.min(1.2, actual / avg);
+    return Math.min(maxPoints, Math.max(0, ratio * maxPoints));
+  }
+
+  return Math.round(maxPoints * 0.4);
+}
+
 export function calculateFinancialIndex(
   incomes: Income[],
   expenses: Expense[],
-  debts: Debt[]
+  debts: Debt[],
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE
 ): number | null {
   if (!hasFinancialData(incomes, expenses, debts)) {
     return null;
   }
 
+  const weights = PROFILE_INDEX_WEIGHTS[profileType];
   const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
   const monthlyIncome = incomeForHealthIndex(incomes);
   const monthlyExpenses = summary.totalExpenses;
@@ -82,29 +117,34 @@ export function calculateFinancialIndex(
 
   let score = 0;
 
-  // Cash flow (30 pts)
   if (monthlyIncome > 0) {
     const cashFlowRatio = netCashFlow / monthlyIncome;
-    score += Math.min(30, Math.max(0, (cashFlowRatio + 0.2) * 50));
+    score += Math.min(
+      weights.cashFlow,
+      Math.max(0, (cashFlowRatio + 0.2) * (weights.cashFlow / 0.6))
+    );
   }
 
-  // Debt burden (25 pts)
   if (monthlyIncome > 0) {
     const dti = (debtPayments + totalDebt * 0.02) / monthlyIncome;
-    score += Math.min(25, Math.max(0, 25 - dti * 40));
+    score += Math.min(
+      weights.debt,
+      Math.max(0, weights.debt - dti * (weights.debt * 1.6))
+    );
   } else if (totalDebt === 0) {
-    score += 25;
+    score += weights.debt;
   }
 
-  // Savings buffer (20 pts) — months of expenses net can cover
   if (monthlyExpenses + debtPayments > 0) {
     const bufferMonths = netCashFlow / (monthlyExpenses + debtPayments);
-    score += Math.min(20, Math.max(0, bufferMonths * 10));
+    score += Math.min(
+      weights.buffer,
+      Math.max(0, bufferMonths * (weights.buffer / 2))
+    );
   } else {
-    score += 20;
+    score += weights.buffer;
   }
 
-  // Essential expense ratio (15 pts) — recurring essential only
   const essential = expenses
     .filter((e) => e.is_essential && e.is_recurring)
     .reduce(
@@ -113,14 +153,18 @@ export function calculateFinancialIndex(
     );
   if (monthlyIncome > 0) {
     const essentialRatio = essential / monthlyIncome;
-    score += Math.min(15, Math.max(0, 15 - essentialRatio * 20));
+    score += Math.min(
+      weights.essential,
+      Math.max(0, weights.essential - essentialRatio * (weights.essential * 1.3))
+    );
   } else {
-    score += 7;
+    score += Math.round(weights.essential * 0.45);
   }
 
-  // Income diversity (10 pts)
   const uniqueSources = new Set(incomes.map((i) => i.category)).size;
-  score += Math.min(10, uniqueSources * 3);
+  score += Math.min(weights.diversity, uniqueSources * (weights.diversity / 3));
+
+  score += incomeStabilityScore(incomes, weights.stability);
 
   return Math.round(Math.min(100, Math.max(0, score)));
 }
@@ -141,10 +185,16 @@ export interface DashboardSummary {
 export function computeDashboardSummary(
   incomes: Income[],
   expenses: Expense[],
-  debts: Debt[]
+  debts: Debt[],
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE
 ): DashboardSummary {
   const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
-  const financialIndex = calculateFinancialIndex(incomes, expenses, debts);
+  const financialIndex = calculateFinancialIndex(
+    incomes,
+    expenses,
+    debts,
+    profileType
+  );
 
   return {
     totalIncome: summary.totalIncome,

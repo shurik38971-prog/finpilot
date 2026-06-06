@@ -1,6 +1,8 @@
 "use client";
 
+import { FinancialProfileSettings } from "@/components/settings/financial-profile-settings";
 import { PageHeader } from "@/components/layout/page-header";
+import type { ProfileType } from "@/types/profile";
 import {
   clearAllUserData,
   clearAnalysisHistory,
@@ -43,7 +45,11 @@ const ACTION_COPY: Record<
   },
 };
 
-export function SettingsPageClient() {
+export function SettingsPageClient({
+  profileType,
+}: {
+  profileType: ProfileType;
+}) {
   const router = useRouter();
   const [pendingAction, setPendingAction] = useState<ClearAction | null>(null);
   const [loading, setLoading] = useState(false);
@@ -88,6 +94,8 @@ export function SettingsPageClient() {
         title="Настройки"
         description="Управление аккаунтом и данными FinPilot"
       />
+
+      <FinancialProfileSettings currentProfileType={profileType} />
 
       <Card>
         <CardHeader>

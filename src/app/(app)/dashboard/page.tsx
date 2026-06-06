@@ -129,15 +129,14 @@ export default async function DashboardPage() {
             totalDebt={totalDebt}
           />
 
-          <div className="max-w-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,35fr)_minmax(0,65fr)] gap-4 items-stretch">
             <FinancialIndexGauge index={financialIndex} />
+            <CashFlowChart
+              data={forecast.data}
+              insufficientData={forecast.insufficientData}
+              interpretation={forecastInterpretation}
+            />
           </div>
-
-          <CashFlowChart
-            data={forecast.data}
-            insufficientData={forecast.insufficientData}
-            interpretation={forecastInterpretation}
-          />
 
           <GoalFocusCard focus={goalFocus} />
 

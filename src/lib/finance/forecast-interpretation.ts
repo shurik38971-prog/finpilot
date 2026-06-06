@@ -1,4 +1,5 @@
 import { pickPrimaryGoal } from "@/lib/finance/match-task-to-goal";
+import { formatCurrency } from "@/lib/utils";
 import type { CashFlowForecast } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
 
@@ -29,17 +30,7 @@ function throughMonthsLabel(count: number): string {
   return `Через ${monthsLabel(count)}`;
 }
 
-function isDebtLoadRisk(
-  monthlyIncome: number,
-  debtPayments: number,
-  totalDebt: number
-): boolean {
-  if (totalDebt <= 0) return false;
-  if (monthlyIncome <= 0) return true;
-  return debtPayments / monthlyIncome >= 0.25 || debtPayments + totalDebt * 0.02 > monthlyIncome * 0.4;
-}
-
-function buildCashFlowSentence(
+function buildCashFlowInsight(
   forecast: CashFlowForecast[],
   netCashFlow: number
 ): string | null {
@@ -49,26 +40,50 @@ function buildCashFlowSentence(
     const firstPositiveIndex = forecast.findIndex((point) => point.net >= 0);
 
     if (firstPositiveIndex > 0) {
-      return `${throughMonthsLabel(firstPositiveIndex)} денежный поток станет положительным.`;
+      return `${throughMonthsLabel(firstPositiveIndex)} свободные деньги станут положительными.`;
     }
 
     const deficitMonths = forecast.filter((point) => point.net < 0).length;
     if (deficitMonths > 0) {
-      return `При текущей ситуации дефицит сохранится ещё ${monthsLabel(deficitMonths)}.`;
+      return `При текущем сценарии дефицит сохранится ещё ${monthsLabel(deficitMonths)}.`;
     }
+  }
+
+  if (currentNet > 0) {
+    return `Сейчас в месяц остаётся ${formatCurrency(currentNet)} — можно откладывать или направлять на цели.`;
   }
 
   return null;
 }
 
-function buildGoalSentence(
+function buildCushionInsight(
+  goals: FinancialGoal[],
+  netCashFlow: number
+): string | null {
+  if (netCashFlow <= 0) return null;
+
+  const cushionGoal = goals.find((goal) => goal.type === "safety_cushion");
+  if (!cushionGoal) return null;
+
+  const remaining = cushionGoal.target_amount - cushionGoal.current_amount;
+  if (remaining <= 0) {
+    return "Подушка безопасности по вашей цели уже достигнута.";
+  }
+
+  const months = Math.ceil(remaining / netCashFlow);
+  if (months <= 0 || months > 120) return null;
+
+  return `До подушки безопасности осталось примерно ${monthsLabel(months)}.`;
+}
+
+function buildGoalInsight(
   goals: FinancialGoal[],
   netCashFlow: number
 ): string | null {
   if (netCashFlow <= 0) return null;
 
   const goal = pickPrimaryGoal(goals);
-  if (!goal) return null;
+  if (!goal || goal.type === "safety_cushion") return null;
 
   const remaining = goal.target_amount - goal.current_amount;
   if (remaining <= 0) return null;
@@ -76,7 +91,26 @@ function buildGoalSentence(
   const months = Math.ceil(remaining / netCashFlow);
   if (months <= 0 || months > 120) return null;
 
-  return `При текущем темпе до цели останется примерно ${monthsLabel(months)}.`;
+  return `При текущем темпе до цели «${goal.title}» останется примерно ${monthsLabel(months)}.`;
+}
+
+function buildDebtInsight(
+  monthlyIncome: number,
+  debtPayments: number,
+  totalDebt: number
+): string | null {
+  if (totalDebt <= 0) return null;
+  if (monthlyIncome <= 0) {
+    return "Основной риск сейчас — долговая нагрузка без стабильного дохода.";
+  }
+
+  const debtShare = debtPayments / monthlyIncome;
+  if (debtShare >= 0.25) {
+    const percent = Math.round(debtShare * 100);
+    return `На долги уходит ${percent}% дохода — это главный фактор риска.`;
+  }
+
+  return null;
 }
 
 export function interpretForecast(
@@ -86,35 +120,16 @@ export function interpretForecast(
     return null;
   }
 
-  const sentences: string[] = [];
-
-  const cashFlowSentence = buildCashFlowSentence(
-    input.forecast,
-    input.netCashFlow
-  );
-  if (cashFlowSentence) {
-    sentences.push(cashFlowSentence);
-  }
-
-  const goalSentence = buildGoalSentence(input.goals, input.netCashFlow);
-  if (goalSentence && sentences.length < 2) {
-    sentences.push(goalSentence);
-  }
-
-  if (
-    sentences.length < 2 &&
-    isDebtLoadRisk(
+  const candidates = [
+    buildCashFlowInsight(input.forecast, input.netCashFlow),
+    buildCushionInsight(input.goals, input.netCashFlow),
+    buildGoalInsight(input.goals, input.netCashFlow),
+    buildDebtInsight(
       input.monthlyIncome,
       input.debtPayments,
       input.totalDebt
-    )
-  ) {
-    sentences.push("Основной риск сейчас — долговая нагрузка.");
-  }
+    ),
+  ].filter((sentence): sentence is string => sentence != null);
 
-  if (sentences.length === 0) {
-    return null;
-  }
-
-  return sentences.slice(0, 2).join(" ");
+  return candidates[0] ?? null;
 }

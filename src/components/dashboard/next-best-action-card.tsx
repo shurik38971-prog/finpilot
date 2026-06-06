@@ -10,11 +10,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Modal } from "@/components/ui/modal";
 import { trackButtonClick } from "@/lib/analytics/client";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
-import {
-  benefitLabel,
-  HINTS,
-  importanceLabel,
-} from "@/lib/copy/ui";
+import { HINTS, importanceLabel } from "@/lib/copy/ui";
 import { cn, formatCurrency, formatHistoryDate } from "@/lib/utils";
 import { GOAL_TYPE_LABELS } from "@/types/goals";
 import type { NextBestActionResult } from "@/types/tasks";
@@ -212,15 +208,17 @@ export function NextBestActionCard({
   }
 
   if (collapsed) {
+    const hasEffect = impact != null || action.financial_impact > 0;
+
     return (
       <Card
         className={cn(
-          "border-accent/30 bg-accent/5 !py-2.5 !px-3 max-h-[80px] overflow-hidden",
+          "border-accent/30 bg-accent/5 !py-2.5 !px-3 overflow-hidden",
           TRANSITION_MS,
           "transition-all ease-in-out"
         )}
       >
-        <div className="flex items-center justify-between gap-3 h-full">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-muted leading-none">
               Следующее действие:
@@ -228,9 +226,17 @@ export function NextBestActionCard({
             <p className="text-sm font-medium truncate leading-tight mt-0.5">
               {action.title}
             </p>
-            <Badge variant="default" className="text-[10px] mt-1 h-5">
-              {benefitLabel(action.impact_score)}
-            </Badge>
+            {hasEffect && (
+              <p className="text-xs mt-1 truncate">
+                {impact ? (
+                  <CompactTaskEffects impact={impact} variant="inline" />
+                ) : (
+                  <span className="font-medium text-emerald-400">
+                    +{formatCurrency(action.financial_impact)} / мес
+                  </span>
+                )}
+              </p>
+            )}
           </div>
           <Button
             size="sm"

@@ -15,6 +15,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { COPY, HINTS } from "@/lib/copy/ui";
 import { formatCurrency } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
 
 interface CashFlowChartProps {
   data: CashFlowForecast[];
@@ -28,8 +29,8 @@ export function CashFlowChart({
   interpretation = null,
 }: CashFlowChartProps) {
   return (
-    <Card>
-      <CardHeader>
+    <Card className="flex h-full flex-col">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-1.5">
           Прогноз на 3 месяца
         </CardTitle>
@@ -46,12 +47,20 @@ export function CashFlowChart({
           </span>
         </CardDescription>
       </CardHeader>
+
       {interpretation && !insufficientData && (
-        <div className="mx-5 mb-4 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3 text-sm leading-relaxed text-foreground">
-          {interpretation}
+        <div className="mx-5 mb-4 rounded-xl border border-accent/30 bg-gradient-to-r from-accent/10 to-accent/5 px-4 py-3.5">
+          <p className="text-[11px] uppercase tracking-wide text-accent font-medium flex items-center gap-1.5 mb-1.5">
+            <Sparkles className="h-3.5 w-3.5" />
+            Что это значит для вас
+          </p>
+          <p className="text-sm sm:text-base font-medium leading-snug text-foreground">
+            {interpretation}
+          </p>
         </div>
       )}
-      <div className="h-72">
+
+      <div className="h-72 flex-1 min-h-[288px]">
         {insufficientData ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">
             Недостаточно данных для прогноза. Добавьте фактические поступления или

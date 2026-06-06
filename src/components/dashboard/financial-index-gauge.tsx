@@ -12,7 +12,7 @@ interface FinancialIndexGaugeProps {
 export function FinancialIndexGauge({ index }: FinancialIndexGaugeProps) {
   if (index === null) {
     return (
-      <Card className="flex flex-col items-center !p-4">
+      <Card className="flex h-full flex-col items-center !p-4">
         <CardHeader className="text-center w-full mb-2">
           <CardTitle className="text-base flex items-center justify-center gap-1">
             {COPY.moneyScore}
@@ -32,7 +32,7 @@ export function FinancialIndexGauge({ index }: FinancialIndexGaugeProps) {
   const offset = circumference - (index / 100) * circumference;
 
   return (
-    <Card className="flex flex-col items-center !p-4">
+    <Card className="flex h-full flex-col items-center justify-center !p-4">
       <CardHeader className="text-center w-full mb-2">
         <CardTitle className="text-base flex items-center justify-center gap-1">
           {COPY.moneyScore}

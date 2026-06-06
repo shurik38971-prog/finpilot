@@ -76,7 +76,10 @@ export function SummaryCards(props: SummaryCardsProps) {
                 )}
                 <p
                   className={cn(
-                    "text-lg font-bold mt-1 tabular-nums",
+                    "font-bold mt-1 tabular-nums",
+                    key === "income" || key === "expenses"
+                      ? "text-xl sm:text-[1.35rem]"
+                      : "text-lg",
                     key === "net" && getValue(props) < 0 && "text-red-400"
                   )}
                 >

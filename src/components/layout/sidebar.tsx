@@ -13,6 +13,7 @@ import {
   CircleHelp,
   History,
   MessageCircle,
+  Settings,
   Sparkles,
   Target,
   TrendingDown,
@@ -40,6 +41,7 @@ const navItems = [
   { href: "/goals", label: "Цели", icon: Target },
   { href: "/feedback", label: "Обратная связь", icon: MessageCircle },
   { href: "/faq", label: "FAQ", icon: CircleHelp },
+  { href: "/settings", label: "Настройки", icon: Settings },
 ];
 
 interface SidebarProps {

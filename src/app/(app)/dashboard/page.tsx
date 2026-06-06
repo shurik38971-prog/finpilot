@@ -5,6 +5,7 @@ import { FinancialIndexGauge } from "@/components/dashboard/financial-index-gaug
 import { GoalFocusCard } from "@/components/dashboard/goal-focus-card";
 import { NextBestActionCard } from "@/components/dashboard/next-best-action-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { ProfileReadinessWidget } from "@/components/dashboard/profile-readiness-widget";
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { EarlyAccessBanner } from "@/components/early-access/early-access-banner";
 import { PageHeader } from "@/components/layout/page-header";
@@ -15,6 +16,7 @@ import { getFinancialData } from "@/lib/actions/finance";
 import { getOnboardingProgress } from "@/lib/actions/onboarding";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { computeProfileDashboardStats } from "@/lib/profile/dashboard-stats";
+import { computeProfileReadiness } from "@/lib/profile/profile-readiness";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
 import {
   getNextBestAction,
@@ -73,6 +75,13 @@ export default async function DashboardPage() {
       )
     : null;
 
+  const profileReadiness = computeProfileReadiness({
+    hasIncome: incomes.length > 0,
+    hasExpenses: expenses.length > 0,
+    hasGoal: goals.length > 0,
+    hasAnalysis: onboarding?.analysis_done ?? false,
+  });
+
   const showOnboardingInProgress =
     onboarding && !onboarding.completed;
   const showOnboardingCompleted =
@@ -91,6 +100,8 @@ export default async function DashboardPage() {
           {showOnboardingInProgress && (
             <OnboardingChecklist progress={onboarding} />
           )}
+
+          <ProfileReadinessWidget readiness={profileReadiness} />
 
           <NextBestActionCard
             action={nextBestAction}

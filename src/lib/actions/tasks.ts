@@ -81,7 +81,9 @@ export async function getFinancialTasks(): Promise<FinancialTaskWithGoal[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []).map((row) => mapTask(row as Record<string, unknown>));
+  return (data ?? [])
+    .map((row) => mapTask(row as Record<string, unknown>))
+    .filter((task) => Boolean(task.explanation?.trim()));
 }
 
 export async function getTopPendingTask(): Promise<FinancialTaskWithGoal | null> {
@@ -168,13 +170,16 @@ export async function getNextBestAction(
     .order("priority_score", { ascending: false })
     .order("impact_score", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
   if (error) throw error;
-  if (!data) return null;
 
-  const task = mapTask(data as Record<string, unknown>);
+  const task = (data ?? [])
+    .map((row) => mapTask(row as Record<string, unknown>))
+    .find((row) => Boolean(row.explanation?.trim()));
+
+  if (!task) return null;
+
   return toNextBestActionResult(task, { ...options, profileType });
 }
 

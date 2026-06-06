@@ -46,6 +46,14 @@ const EMPLOYER_SALARY_PATTERNS = [
   /связаться\s+с\s+работодател/i,
 ];
 
+const INCOME_CONFIRMATION_PATTERNS = [
+  /подтверд\w*\s+доход/i,
+  /подтверд\w*\s+зарплат/i,
+  /подтверд\w*\s+поступлен/i,
+  /провер\w*\s+поступлен/i,
+  /уточн\w*\s+доход/i,
+];
+
 function matchesAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
@@ -63,6 +71,13 @@ export function isForbiddenRecommendation(
 
   if (!flags.hasEmployerSalaryIssues) {
     if (matchesAny(normalized, EMPLOYER_SALARY_PATTERNS)) return true;
+  }
+
+  if (
+    flags.hasOnboardingBaseline &&
+    matchesAny(normalized, INCOME_CONFIRMATION_PATTERNS)
+  ) {
+    return true;
   }
 
   if (flags.subscriptionExpensesTotal === 0 && /подписк/i.test(normalized)) {
@@ -283,11 +298,26 @@ export function sanitizeAnalysisResult(
     ? undefined
     : parsed.debt_recommendation;
 
+  const health_explanation = isForbiddenRecommendation(
+    parsed.health_explanation ?? "",
+    flags
+  )
+    ? "Оценка построена только на данных, которые вы указали в FinPilot."
+    : parsed.health_explanation;
+
+  const cashflow_forecast_comment = isForbiddenRecommendation(
+    parsed.cashflow_forecast_comment ?? "",
+    flags
+  )
+    ? undefined
+    : parsed.cashflow_forecast_comment;
+
   return {
     ...parsed,
     summary,
     main_threat: mainThreat,
     main_problem: mainProblem,
+    health_explanation,
     money_leaks: moneyLeaks,
     plan_7_days: plan7,
     plan_30_days: plan30,
@@ -295,6 +325,7 @@ export function sanitizeAnalysisResult(
     actions_30_days: actions30,
     next_best_action: nextBest,
     debt_recommendation: debtRecommendation,
+    cashflow_forecast_comment,
     risks: (parsed.risks ?? []).filter(
       (risk) =>
         !isForbiddenRecommendation(risk.title, flags) &&

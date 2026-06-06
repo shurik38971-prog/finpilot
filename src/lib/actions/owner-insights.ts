@@ -1,6 +1,11 @@
 "use server";
 
 import { isAdminUser } from "@/lib/admin/is-admin";
+import {
+  cutoffDaysAgo,
+  getUserRegistrationStats,
+  newUserIdsSince,
+} from "@/lib/admin/user-registrations";
 import { lowRatingReasonLabel } from "@/lib/feedback/low-rating-reasons";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { createClient } from "@/lib/supabase/server";
@@ -193,7 +198,11 @@ export async function getOwnerInsights(
 ): Promise<OwnerInsightsDashboard> {
   const supabase = await requireAdmin();
   const since = sinceDate(periodDays);
-  const since7d = sinceDate(7);
+  const registrationStats = await getUserRegistrationStats(7);
+  const newUserIds7d = newUserIdsSince(
+    registrationStats.users,
+    cutoffDaysAgo(7)
+  );
 
   const [
     { data: allEvents, error: allEventsError },
@@ -233,12 +242,8 @@ export async function getOwnerInsights(
   const allRatings = ratings ?? [];
   const allGoals = goals ?? [];
 
-  const totalUsers = new Set(eventsAll.map((event) => event.user_id)).size;
-
-  const newUsers7d = usersWithEvent(
-    eventsAll.filter((event) => event.created_at >= since7d),
-    PRODUCT_EVENTS.SIGNUP_COMPLETED
-  ).size;
+  const totalUsers = registrationStats.totalUsers;
+  const newUsers7d = registrationStats.newUsers7d;
 
   const activatedAll = [...usersWithEvent(eventsAll, PRODUCT_EVENTS.INCOME_ADDED)].filter(
     (userId) =>
@@ -249,10 +254,7 @@ export async function getOwnerInsights(
   const activationRatePercent =
     totalUsers > 0 ? Math.round((activatedAll / totalUsers) * 1000) / 10 : 0;
 
-  const activatedUsers7d = [...usersWithEvent(
-    eventsAll.filter((event) => event.created_at >= since7d),
-    PRODUCT_EVENTS.SIGNUP_COMPLETED
-  )].filter(
+  const activatedUsers7d = [...newUserIds7d].filter(
     (userId) =>
       usersWithEvent(eventsAll, PRODUCT_EVENTS.INCOME_ADDED).has(userId) &&
       usersWithEvent(eventsAll, PRODUCT_EVENTS.EXPENSE_ADDED).has(userId) &&

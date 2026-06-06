@@ -29,6 +29,7 @@
 | 023 | `023_profile_income_parameters.sql` |
 | 024 | `024_rename_profile_income_columns.sql` |
 | 025 | `025_derive_base_income_from_range.sql` |
+| 026 | `026_profile_expected_monthly_income.sql` |
 
 **Важно:** `013` меняет таблицу `feedback` из `012`. Если `012` ещё не выполняли — сначала `012`, затем `013`.
 

@@ -43,6 +43,7 @@ export function IncomeExpectationsSettings({
       averageMonthly: null,
       badMonth: bad,
       goodMonth: good,
+      storedExpectedMonthly: null,
     });
   }, [badMonth, goodMonth]);
 
@@ -58,6 +59,7 @@ export function IncomeExpectationsSettings({
         badMonth: Number(badMonth),
         averageMonthly: null,
         goodMonth: Number(goodMonth),
+        storedExpectedMonthly: initialParams.storedExpectedMonthly,
       });
       setToastMessage("Ожидания дохода обновлены");
       router.refresh();

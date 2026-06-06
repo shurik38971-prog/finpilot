@@ -1,8 +1,10 @@
 import {
+  averageActualInMonthsWithData,
   expectedIncomeAmount,
   resolveIncomeType,
 } from "@/lib/finance/income-model";
 import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
+import { recurringExpectedMonthlyTotal } from "@/lib/finance/profile-expected-income";
 import {
   resolveVariableIncomeScenarios,
   toForecastScenarios,
@@ -12,7 +14,6 @@ import { hasProfileIncomeParameters } from "@/types/profile-income";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
 import { PROFILE_TYPES, type ProfileType } from "@/types/profile";
 import type { Income } from "@/types/database";
-import { averageActualInMonthsWithData } from "@/lib/finance/income-model";
 
 export const FORECAST_INSUFFICIENT_MESSAGE =
   "Недостаточно данных для прогноза. Укажите доход в плохом и хорошем месяце.";
@@ -27,12 +28,6 @@ export interface ForecastIncomeModel {
   basisLabel: string;
   baseMonthlyIncome: number;
   scenarios?: ForecastScenario[];
-}
-
-function recurringExpectedMonthlyTotal(incomes: Income[]): number {
-  return incomes
-    .filter((income) => resolveIncomeType(income) === "expected")
-    .reduce((sum, income) => sum + expectedIncomeAmount(income), 0);
 }
 
 function variableIncomeForecast(
@@ -62,7 +57,11 @@ export function resolveProfileForecastIncome(
 
   switch (profileType) {
     case PROFILE_TYPES.employee: {
-      if (recurring <= 0) {
+      const salary =
+        recurring > 0
+          ? recurring
+          : (profileIncome?.storedExpectedMonthly ?? 0);
+      if (salary <= 0) {
         return {
           insufficientData: true,
           basisLabel: FORECAST_INSUFFICIENT_MESSAGE,
@@ -72,13 +71,17 @@ export function resolveProfileForecastIncome(
 
       return {
         insufficientData: false,
-        basisLabel: `На основании регулярной зарплаты: ${formatCurrency(recurring)}/мес`,
-        baseMonthlyIncome: recurring,
+        basisLabel: `На основании регулярной зарплаты: ${formatCurrency(salary)}/мес`,
+        baseMonthlyIncome: salary,
       };
     }
 
     case PROFILE_TYPES.retiree: {
-      if (recurring <= 0) {
+      const pension =
+        recurring > 0
+          ? recurring
+          : (profileIncome?.storedExpectedMonthly ?? 0);
+      if (pension <= 0) {
         return {
           insufficientData: true,
           basisLabel: FORECAST_INSUFFICIENT_MESSAGE,
@@ -88,8 +91,8 @@ export function resolveProfileForecastIncome(
 
       return {
         insufficientData: false,
-        basisLabel: `На основании пенсии: ${formatCurrency(recurring)}/мес`,
-        baseMonthlyIncome: recurring,
+        basisLabel: `На основании пенсии: ${formatCurrency(pension)}/мес`,
+        baseMonthlyIncome: pension,
       };
     }
 
@@ -138,11 +141,13 @@ export function resolveProfileForecastIncome(
         };
       }
 
-      if (expectedMonthly > 0) {
+      const storedBusiness = profileIncome?.storedExpectedMonthly ?? 0;
+      const businessBase = expectedMonthly > 0 ? expectedMonthly : storedBusiness;
+      if (businessBase > 0) {
         return {
           insufficientData: false,
-          basisLabel: `На основании ожидаемого среднего дохода бизнеса: ${formatCurrency(expectedMonthly)}/мес`,
-          baseMonthlyIncome: expectedMonthly,
+          basisLabel: `На основании ожидаемого среднего дохода бизнеса: ${formatCurrency(businessBase)}/мес`,
+          baseMonthlyIncome: businessBase,
         };
       }
 

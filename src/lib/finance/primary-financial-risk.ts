@@ -1,9 +1,7 @@
-import {
-  actualIncomeInMonth,
-  expectedIncomeInMonth,
-  incomeForHealthIndex,
-} from "@/lib/finance/income-model";
+import { actualIncomeInMonth, expectedIncomeInMonth } from "@/lib/finance/income-model";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
+import { resolvePlanningMonthlyIncome } from "@/lib/finance/profile-expected-income";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
 import {
   DEFAULT_PROFILE_TYPE,
   type ProfileType,
@@ -23,17 +21,25 @@ export function getPrimaryFinancialRisk(
   expenses: Expense[],
   debts: Debt[],
   goals: FinancialGoal[],
-  profileType: ProfileType = DEFAULT_PROFILE_TYPE
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): string | null {
   const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
-  const monthlyIncome = incomeForHealthIndex(incomes);
+  const monthlyIncome = resolvePlanningMonthlyIncome(
+    summary.totalIncome,
+    profileType,
+    incomes,
+    profileIncome
+  );
+  const freeMoney =
+    monthlyIncome - summary.totalExpenses - summary.debtPayments;
   const monthlyBurn = summary.recurringExpenses + summary.debtPayments;
   const burnBase =
     monthlyBurn > 0 ? monthlyBurn : summary.totalExpenses + summary.debtPayments;
 
   const risks: { severity: number; label: string }[] = [];
 
-  if (summary.freeMoney < 0) {
+  if (freeMoney < 0) {
     risks.push({ severity: 100, label: "Нехватка свободных денег" });
   }
 

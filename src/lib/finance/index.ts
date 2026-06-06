@@ -8,11 +8,12 @@ import {
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import { PROFILE_INDEX_WEIGHTS } from "@/lib/profile/financial-profile";
 import {
-  getExpectedMonthlyIncome,
-  getVariableIncomeComparisonLabel,
-} from "@/lib/finance/variable-income-scenarios";
+  resolvePlanningMonthlyIncome,
+  resolveProfileExpectedIncome,
+} from "@/lib/finance/profile-expected-income";
+import { getVariableIncomeComparisonLabel } from "@/lib/finance/variable-income-scenarios";
 import {
-  hasProfileIncomeParameters,
+  hasAnyProfileIncomeExpectation,
   type ProfileIncomeParameters,
 } from "@/types/profile-income";
 import { usesVariableIncome } from "@/types/profile";
@@ -60,6 +61,12 @@ export {
   resolveVariableIncomeScenarios,
   toAnalysisIncomeFields,
 } from "@/lib/finance/variable-income-scenarios";
+
+export {
+  recurringExpectedMonthlyTotal,
+  resolvePlanningMonthlyIncome,
+  resolveProfileExpectedIncome,
+} from "@/lib/finance/profile-expected-income";
 
 export function monthlyIncomeTotal(incomes: Income[]): number {
   return getMonthlyFinanceSummary(incomes, [], []).totalIncome;
@@ -137,15 +144,27 @@ export function calculateFinancialIndex(
 ): number | null {
   const operationalIncomes = filterOperationalIncomes(incomes);
 
+  const profileExpected = resolveProfileExpectedIncome(
+    profileType,
+    operationalIncomes,
+    profileIncome
+  );
+
   if (!hasFinancialData(operationalIncomes, expenses, debts)) {
-    if (!hasProfileIncomeParameters(profileIncome)) {
+    if (!profileExpected && !hasAnyProfileIncomeExpectation(profileIncome)) {
       return null;
     }
   }
 
   const weights = PROFILE_INDEX_WEIGHTS[profileType];
   const summary = getMonthlyFinanceSummary(operationalIncomes, expenses, debts);
-  const monthlyIncome = incomeForHealthIndex(operationalIncomes);
+  const monthlyIncome =
+    resolvePlanningMonthlyIncome(
+      summary.totalIncome,
+      profileType,
+      operationalIncomes,
+      profileIncome
+    ) || incomeForHealthIndex(operationalIncomes);
   const monthlyExpenses = summary.totalExpenses;
   const debtPayments = summary.debtPayments;
   const totalDebt = summary.totalDebt;
@@ -200,11 +219,6 @@ export function calculateFinancialIndex(
   const uniqueSources = new Set(operationalIncomes.map((i) => i.category)).size;
   score += Math.min(weights.diversity, uniqueSources * (weights.diversity / 3));
 
-  const profileExpected =
-    usesVariableIncome(profileType)
-      ? getExpectedMonthlyIncome(profileIncome, operationalIncomes)
-      : null;
-
   score += incomeStabilityScore(
     operationalIncomes,
     weights.stability,
@@ -216,8 +230,12 @@ export function calculateFinancialIndex(
 }
 
 export interface DashboardSummary {
+  /** Actual income received in the current month. */
   totalIncome: number;
+  /** Profile-aware expected income (salary, pension, base scenario, etc.). */
   expectedIncome: number;
+  /** Shown on dashboard when actual month is still empty. */
+  displayIncome: number;
   incomeComparison: string | null;
   averageActualIncome3Months: number | null;
   totalExpenses: number;
@@ -245,27 +263,37 @@ export function computeDashboardSummary(
     profileIncome
   );
 
-  const profileExpected = usesVariableIncome(profileType)
-    ? getExpectedMonthlyIncome(profileIncome, operationalIncomes)
-    : null;
-  const expectedIncome = profileExpected ?? summary.expectedIncome;
-  const incomeComparison =
-    profileExpected !== null
-      ? getVariableIncomeComparisonLabel(
-          summary.totalIncome,
-          profileIncome,
-          operationalIncomes
-        )
-      : summary.incomeComparison;
+  const profileExpected =
+    resolveProfileExpectedIncome(
+      profileType,
+      operationalIncomes,
+      profileIncome
+    ) ?? 0;
+  const expectedIncome = profileExpected || summary.expectedIncome;
+  const planningIncome = resolvePlanningMonthlyIncome(
+    summary.totalIncome,
+    profileType,
+    operationalIncomes,
+    profileIncome
+  );
+  const incomeComparison = usesVariableIncome(profileType)
+    ? getVariableIncomeComparisonLabel(
+        summary.totalIncome,
+        profileIncome,
+        operationalIncomes
+      )
+    : getIncomeComparisonMessage(summary.totalIncome, expectedIncome);
 
   return {
     totalIncome: summary.totalIncome,
     expectedIncome,
+    displayIncome: planningIncome,
     incomeComparison,
     averageActualIncome3Months: summary.averageActualIncome3Months,
     totalExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
-    netCashFlow: summary.freeMoney,
+    netCashFlow:
+      planningIncome - summary.totalExpenses - summary.debtPayments,
     totalDebt: summary.totalDebt,
     financialIndex,
   };

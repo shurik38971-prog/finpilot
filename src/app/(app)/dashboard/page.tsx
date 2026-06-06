@@ -21,7 +21,10 @@ import {
   getIncomeGap,
   getVariableIncomeComparisonLabel,
 } from "@/lib/finance/variable-income-scenarios";
-import { hasProfileIncomeParameters } from "@/types/profile-income";
+import {
+  hasAnyProfileIncomeExpectation,
+  hasProfileIncomeParameters,
+} from "@/types/profile-income";
 import { DEFAULT_PROFILE_TYPE, usesVariableIncome } from "@/types/profile";
 import {
   getNextBestAction,
@@ -68,6 +71,7 @@ export default async function DashboardPage() {
 
   const {
     totalIncome,
+    displayIncome,
     expectedIncome,
     incomeComparison,
     totalExpenses,
@@ -100,7 +104,7 @@ export default async function DashboardPage() {
     forecast: forecast.data,
     insufficientData: forecast.insufficientData,
     netCashFlow,
-    monthlyIncome: totalIncome,
+    monthlyIncome: displayIncome,
     totalDebt,
     debtPayments,
     goals,
@@ -121,7 +125,8 @@ export default async function DashboardPage() {
     : null;
 
   const profileReadiness = computeProfileReadiness({
-    hasIncome: incomes.length > 0 || hasProfileIncomeParameters(profileIncome),
+    hasIncome:
+      incomes.length > 0 || hasAnyProfileIncomeExpectation(profileIncome),
     hasExpenses: expenses.length > 0,
     hasGoal: goals.length > 0,
     hasAnalysis: onboarding?.analysis_done ?? false,
@@ -133,12 +138,13 @@ export default async function DashboardPage() {
 
   const primaryFinancialRisk =
     financialIndex !== null
-      ? getPrimaryFinancialRisk(
+        ? getPrimaryFinancialRisk(
           incomes,
           expenses,
           debts,
           goals,
-          profileType
+          profileType,
+          profileIncome
         )
       : null;
 
@@ -180,7 +186,8 @@ export default async function DashboardPage() {
           />
 
           <SummaryCards
-            totalIncome={totalIncome}
+            totalIncome={displayIncome}
+            actualIncome={totalIncome}
             expectedIncome={expectedIncome}
             incomeComparison={incomeComparison}
             totalExpenses={totalExpenses}

@@ -39,7 +39,7 @@ export async function getProfileIncomeParameters(): Promise<ProfileIncomeParamet
     const { data, error } = await supabase
       .from("user_profiles")
       .select(
-        "average_month_income, bad_month_income, good_month_income, income_average_monthly, income_bad_month, income_good_month"
+        "average_month_income, bad_month_income, good_month_income, expected_monthly_income, income_average_monthly, income_bad_month, income_good_month"
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -74,6 +74,21 @@ export async function saveProfileIncomeParameters(
   revalidateProfileIncomePaths();
 }
 
+export async function saveStoredExpectedMonthly(amount: number): Promise<void> {
+  const { supabase, userId } = await getUserId();
+  const { error } = await supabase.from("user_profiles").upsert(
+    {
+      user_id: userId,
+      expected_monthly_income: amount,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+
+  if (error) throw error;
+  revalidateProfileIncomePaths();
+}
+
 export async function clearProfileIncomeParameters(): Promise<void> {
   const { supabase, userId } = await getUserId();
   const { error } = await supabase
@@ -82,6 +97,7 @@ export async function clearProfileIncomeParameters(): Promise<void> {
       average_month_income: null,
       bad_month_income: null,
       good_month_income: null,
+      expected_monthly_income: null,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);

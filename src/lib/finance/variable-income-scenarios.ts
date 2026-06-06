@@ -59,7 +59,12 @@ export function resolveVariableIncomeScenarios(
     return null;
   }
 
-  const base = deriveBaseIncomeFromProfile({ averageMonthly: null, badMonth: bad, goodMonth: good })!;
+  const base = deriveBaseIncomeFromProfile({
+    averageMonthly: null,
+    badMonth: bad,
+    goodMonth: good,
+    storedExpectedMonthly: null,
+  })!;
 
   return {
     bad,

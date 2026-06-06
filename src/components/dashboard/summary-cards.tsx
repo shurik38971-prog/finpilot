@@ -14,6 +14,7 @@ export interface VariableIncomeSummary {
 
 interface SummaryCardsProps {
   totalIncome: number;
+  actualIncome?: number;
   expectedIncome: number;
   incomeComparison: string | null;
   totalExpenses: number;
@@ -124,9 +125,20 @@ export function SummaryCards(props: SummaryCardsProps) {
                     >
                       {formatCurrency(getValue(props))}
                     </p>
-                    {key === "income" && props.expectedIncome > 0 && (
+                    {key === "income" &&
+                      props.actualIncome !== undefined &&
+                      props.actualIncome > 0 &&
+                      props.expectedIncome > 0 &&
+                      props.actualIncome !== props.expectedIncome && (
                       <p className="text-[11px] text-muted mt-0.5 truncate">
                         Ожидалось: {formatCurrency(props.expectedIncome)}
+                      </p>
+                    )}
+                    {key === "income" &&
+                      props.actualIncome === 0 &&
+                      props.expectedIncome > 0 && (
+                      <p className="text-[11px] text-muted mt-0.5 truncate">
+                        Фактических поступлений в этом месяце пока нет
                       </p>
                     )}
                     {key === "income" && props.incomeComparison && (

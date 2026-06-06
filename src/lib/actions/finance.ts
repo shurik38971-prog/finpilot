@@ -4,7 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
-import { computeDashboardSummary } from "@/lib/finance/index";
+import {
+  computeDashboardSummary,
+  resolvePlanningMonthlyIncome,
+} from "@/lib/finance/index";
 import { getProfileIncomeParameters } from "@/lib/actions/profile-income";
 import { toAnalysisIncomeFields } from "@/lib/finance/variable-income-scenarios";
 import { usesVariableIncome } from "@/types/profile";
@@ -274,15 +277,23 @@ export async function getAnalysisContext() {
       )
     : null;
 
+  const planningIncome = resolvePlanningMonthlyIncome(
+    summary.totalIncome,
+    profileType,
+    incomes,
+    profileIncome
+  );
+
   return {
     profileType,
     profileTypeLabel: PROFILE_TYPE_LABELS[profileType],
     actualMonthlyIncome: summary.totalIncome,
     expectedMonthlyIncome: summary.expectedIncome,
+    planningMonthlyIncome: planningIncome,
     averageActualIncome3Months: summary.averageActualIncome3Months,
     incomeVsExpectedDelta: summary.totalIncome - summary.expectedIncome,
     ...variableIncomeContext,
-    monthlyIncome: summary.totalIncome,
+    monthlyIncome: planningIncome,
     monthlyExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
     netCashFlow: summary.netCashFlow,

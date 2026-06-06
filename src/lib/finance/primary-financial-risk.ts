@@ -13,7 +13,7 @@ import type { Debt, Expense, Income } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
 
 function reserveTargetMonths(profileType: ProfileType): number {
-  if (profileType === "freelancer") return 6;
+  if (profileType === "freelancer" || profileType === "self_employed") return 6;
   if (profileType === "business_owner") return 4;
   return 3;
 }
@@ -71,7 +71,7 @@ export function getPrimaryFinancialRisk(
   const expected = expectedIncomeInMonth(incomes, now);
   const actual = actualIncomeInMonth(incomes, now);
   if (
-    profileType === "freelancer" &&
+    (profileType === "freelancer" || profileType === "self_employed") &&
     expected > 0 &&
     actual < expected * 0.75
   ) {

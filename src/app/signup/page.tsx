@@ -4,6 +4,7 @@ import { PrivacyConsentCheckbox } from "@/components/auth/privacy-consent-checkb
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { recordSignupCompleted } from "@/lib/actions/analytics-signup";
+import { initOnboardingForNewUser } from "@/lib/actions/onboarding";
 import { recordPrivacyAcceptance } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/logo";
@@ -75,7 +76,12 @@ function SignupForm() {
         } catch (profileError) {
           console.error("Failed to record privacy acceptance:", profileError);
         }
-        router.push("/dashboard");
+        try {
+          await initOnboardingForNewUser();
+        } catch (onboardingError) {
+          console.error("Failed to init onboarding:", onboardingError);
+        }
+        router.push("/onboarding");
         router.refresh();
         return;
       }

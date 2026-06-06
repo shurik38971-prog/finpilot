@@ -129,6 +129,28 @@ async function reconcileFromData(
   return updated as OnboardingProgress;
 }
 
+export async function initOnboardingForNewUser(): Promise<void> {
+  try {
+    const { supabase, userId } = await getUserId();
+    const { data: existing } = await supabase
+      .from("onboarding_progress")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existing) return;
+
+    const { error } = await supabase.from("onboarding_progress").insert({
+      user_id: userId,
+      completed: false,
+    });
+
+    if (error) throw error;
+  } catch (error) {
+    console.error("initOnboardingForNewUser failed:", error);
+  }
+}
+
 export async function getOnboardingProgress(): Promise<OnboardingProgress | null> {
   try {
     const { supabase, userId } = await getUserId();
@@ -164,6 +186,7 @@ export async function markOnboardingStep(step: OnboardingStep): Promise<void> {
 
     if (error) throw error;
     revalidatePath("/dashboard");
+    revalidatePath("/onboarding");
   } catch (error) {
     console.error("markOnboardingStep failed:", step, error);
   }

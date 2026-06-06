@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 
 const PROFILE_PATHS = [
   "/dashboard",
+  "/onboarding",
   "/settings",
   "/analyze",
   "/actions",

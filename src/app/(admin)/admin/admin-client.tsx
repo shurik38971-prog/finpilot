@@ -1,6 +1,10 @@
 "use client";
 
 import { getAdminAnalytics, type AdminAnalyticsDashboard } from "@/lib/actions/admin-analytics";
+import {
+  getProductAnalytics,
+  type ProductAnalyticsDashboard,
+} from "@/lib/actions/product-analytics";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,18 +107,25 @@ function RankList({
 
 export function AdminDashboardClient({
   initialData,
+  initialProductData,
 }: {
   initialData: AdminAnalyticsDashboard;
+  initialProductData: ProductAnalyticsDashboard;
 }) {
   const [data, setData] = useState(initialData);
+  const [productData, setProductData] = useState(initialProductData);
   const [days, setDays] = useState(30);
   const [pending, startTransition] = useTransition();
 
   function refresh(period: number) {
     setDays(period);
     startTransition(async () => {
-      const next = await getAdminAnalytics(period);
+      const [next, nextProduct] = await Promise.all([
+        getAdminAnalytics(period),
+        getProductAnalytics(period),
+      ]);
       setData(next);
+      setProductData(nextProduct);
     });
   }
 
@@ -147,24 +158,37 @@ export function AdminDashboardClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Событий" value={data.totalEvents} icon={MousePointerClick} />
-        <StatCard label="Пользователей" value={data.uniqueUsers} icon={Users} />
-        <StatCard label="Сессий" value={data.uniqueSessions} icon={BarChart3} />
-        <StatCard label="Обращений" value={data.feedback.length} icon={MessageCircle} />
-      </div>
+      <Card className="border-accent/30 bg-accent/5">
+        <CardHeader>
+          <CardTitle className="text-base">Activation Rate</CardTitle>
+          <CardDescription>
+            Доход + расход + анализ — за {productData.periodDays} дней
+          </CardDescription>
+        </CardHeader>
+        <div className="px-5 pb-5">
+          <p className="text-2xl font-bold">
+            Активировано: {productData.activation.activated} из{" "}
+            {productData.activation.totalUsers} пользователей
+          </p>
+          <p className="text-sm text-muted mt-1">
+            {productData.activation.ratePercent}% activation rate
+          </p>
+        </div>
+      </Card>
 
       <Card className="border-accent/20">
         <CardHeader>
           <CardTitle className="text-base">Воронка</CardTitle>
-          <CardDescription>Ключевые шаги за период</CardDescription>
+          <CardDescription>Уникальные пользователи за период</CardDescription>
         </CardHeader>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 px-5 pb-5 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 px-5 pb-5 text-center">
           {[
-            { label: "Регистрации", value: data.funnel.signups },
-            { label: "ИИ-анализы", value: data.funnel.analyzed },
-            { label: "Задачи сделаны", value: data.funnel.tasksDone },
-            { label: "Вопросы / жалобы", value: data.funnel.feedback },
+            { label: "Регистрации", value: productData.funnel.registrations },
+            { label: "Добавили доход", value: productData.funnel.addedIncome },
+            { label: "Добавили расход", value: productData.funnel.addedExpense },
+            { label: "Запустили анализ", value: productData.funnel.startedAnalysis },
+            { label: "Создали цель", value: productData.funnel.createdGoal },
+            { label: "Выполнили задачу", value: productData.funnel.completedTask },
           ].map((item) => (
             <div
               key={item.label}
@@ -176,6 +200,80 @@ export function AdminDashboardClient({
           ))}
         </div>
       </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Retention</CardTitle>
+            <CardDescription>Вернулись после регистрации</CardDescription>
+          </CardHeader>
+          <div className="grid grid-cols-3 gap-4 px-5 pb-5 text-center">
+            {[
+              { label: "Через 1 день", data: productData.retention.day1 },
+              { label: "Через 7 дней", data: productData.retention.day7 },
+              { label: "Через 30 дней", data: productData.retention.day30 },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-lg bg-surface-hover/50 p-4"
+              >
+                <p className="text-2xl font-bold">{item.data.percent}%</p>
+                <p className="text-xs text-muted mt-1">
+                  {item.label} ({item.data.count})
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Полезность продукта</CardTitle>
+            <CardDescription>Сигналы ценности за период</CardDescription>
+          </CardHeader>
+          <div className="grid grid-cols-2 gap-4 px-5 pb-5">
+            {[
+              {
+                label: "Средняя оценка анализа",
+                value:
+                  productData.usefulness.avgAnalysisRating != null
+                    ? `${productData.usefulness.avgAnalysisRating} / 5`
+                    : "—",
+              },
+              {
+                label: "Средняя оценка рекомендаций",
+                value:
+                  productData.usefulness.avgRecommendationRating != null
+                    ? `${productData.usefulness.avgRecommendationRating} / 3`
+                    : "—",
+              },
+              {
+                label: "Выполненных задач",
+                value: productData.usefulness.completedTasks,
+              },
+              {
+                label: "Возвратов через 7 дней",
+                value: productData.usefulness.returnedDay7,
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-lg bg-surface-hover/50 p-4"
+              >
+                <p className="text-xl font-bold">{item.value}</p>
+                <p className="text-xs text-muted mt-1">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Событий (legacy)" value={data.totalEvents} icon={MousePointerClick} />
+        <StatCard label="Пользователей" value={data.uniqueUsers} icon={Users} />
+        <StatCard label="Сессий" value={data.uniqueSessions} icon={BarChart3} />
+        <StatCard label="Обращений" value={data.feedback.length} icon={MessageCircle} />
+      </div>
 
       <Card className="border-accent/30 bg-accent/5">
         <CardHeader>

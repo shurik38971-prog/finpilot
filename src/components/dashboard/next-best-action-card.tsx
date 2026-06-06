@@ -2,6 +2,7 @@
 
 import { completeTask } from "@/lib/actions/tasks";
 import type { TaskProgressStats } from "@/lib/actions/tasks";
+import { TaskRecommendationModal } from "@/components/feedback/task-recommendation-modal";
 import { CompactTaskEffects } from "@/components/tasks/compact-task-effects";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,7 @@ export function NextBestActionCard({
   );
   const [taskProgress, setTaskProgress] =
     useState<TaskProgressStats>(initialProgress);
+  const [feedbackTaskId, setFeedbackTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     setCollapsed(readCollapsedPreference());
@@ -194,13 +196,14 @@ export function NextBestActionCard({
   async function handleComplete() {
     setLoading(true);
     try {
-      const { nextAction, taskProgress: progress } = await completeTask(
-        action.id,
-        { hasNegativeCashflow }
-      );
+      const { nextAction, taskProgress: progress, askRecommendationFeedback } =
+        await completeTask(action.id, { hasNegativeCashflow });
       setTaskProgress(progress);
       setQueuedNext(nextAction);
       setPhase("completed");
+      if (askRecommendationFeedback) {
+        setFeedbackTaskId(action.id);
+      }
       router.refresh();
     } finally {
       setLoading(false);
@@ -254,6 +257,11 @@ export function NextBestActionCard({
 
   return (
     <>
+      <TaskRecommendationModal
+        open={feedbackTaskId != null}
+        taskId={feedbackTaskId}
+        onClose={() => setFeedbackTaskId(null)}
+      />
       <Card
         className={cn(
           "border-accent/40 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent shadow-lg shadow-accent/5 !p-4",

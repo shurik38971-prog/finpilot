@@ -4,7 +4,9 @@ import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/server";
 import { syncPendingTaskPriorities } from "@/lib/ai/sync-task-priorities";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackServerEvent } from "@/lib/analytics/track-server";
+import { trackProductEvent } from "@/lib/analytics/track-product";
 import { applyGoalProgressOnTaskComplete } from "@/lib/finance/goal-progress";
 import { pickPrimaryGoal } from "@/lib/finance/match-task-to-goal";
 import {
@@ -249,6 +251,7 @@ export async function completeTask(
 ): Promise<{
   nextAction: NextBestActionResult | null;
   taskProgress: TaskProgressStats;
+  askRecommendationFeedback: boolean;
 }> {
   const { supabase, userId } = await getUserId();
 
@@ -303,6 +306,11 @@ export async function completeTask(
     element_id: id,
     properties: { title: task.title },
   });
+  await trackProductEvent(
+    PRODUCT_EVENTS.TASK_COMPLETED,
+    { task_id: id, title: task.title },
+    userId
+  );
   revalidateTaskPages();
 
   const [nextAction, taskProgress] = await Promise.all([
@@ -310,7 +318,7 @@ export async function completeTask(
     getTaskProgressStats(),
   ]);
 
-  return { nextAction, taskProgress };
+  return { nextAction, taskProgress, askRecommendationFeedback: true };
 }
 
 export async function postponeTask(id: string) {

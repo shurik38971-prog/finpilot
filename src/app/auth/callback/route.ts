@@ -1,3 +1,4 @@
+import { recordSignupCompletedOnce } from "@/lib/actions/analytics-signup";
 import { recordPrivacyAcceptance } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -12,8 +13,11 @@ export async function GET(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user?.user_metadata?.privacy_accepted === true) {
-      await recordPrivacyAcceptance();
+    if (user) {
+      await recordSignupCompletedOnce();
+      if (user.user_metadata?.privacy_accepted === true) {
+        await recordPrivacyAcceptance();
+      }
     }
   }
 

@@ -16,6 +16,7 @@ import type {
   HealthStatus,
 } from "@/types/analysis";
 import { AnalysisDisclaimer } from "@/components/early-access/analysis-disclaimer";
+import { AnalysisRatingModal } from "@/components/feedback/analysis-rating-modal";
 import { PostAnalysisSurveyModal } from "@/components/feedback/post-analysis-survey-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { trackButtonClick } from "@/lib/analytics/client";
@@ -96,6 +97,8 @@ export function AnalyzePageClient({
     useState<number | null>(null);
   const [error, setError] = useState("");
   const [surveyOpen, setSurveyOpen] = useState(false);
+  const [ratingOpen, setRatingOpen] = useState(false);
+  const [pendingRating, setPendingRating] = useState(false);
 
   async function handleAnalyze() {
     setLoading(true);
@@ -122,16 +125,23 @@ export function AnalyzePageClient({
         skipped_duplicate_tasks_count,
         tasks_created,
         show_feedback_survey,
+        show_analysis_rating,
         ...analysis
       } = data as AnalysisApiResponse & {
         show_feedback_survey?: boolean;
+        show_analysis_rating?: boolean;
       };
       setResult(analysis);
       setCreatedTasksCount(created_tasks_count ?? tasks_created ?? 0);
       setUpdatedTasksCount(updated_tasks_count ?? 0);
       setSkippedDuplicateTasksCount(skipped_duplicate_tasks_count ?? 0);
-      if (show_feedback_survey) {
+      if (show_feedback_survey && show_analysis_rating) {
+        setPendingRating(true);
         setSurveyOpen(true);
+      } else if (show_feedback_survey) {
+        setSurveyOpen(true);
+      } else if (show_analysis_rating) {
+        setRatingOpen(true);
       }
     } catch {
       setError("Не удалось выполнить анализ");
@@ -144,8 +154,24 @@ export function AnalyzePageClient({
     <div>
       <PostAnalysisSurveyModal
         open={surveyOpen}
-        onClose={() => setSurveyOpen(false)}
-        onComplete={() => setSurveyOpen(false)}
+        onClose={() => {
+          setSurveyOpen(false);
+          if (pendingRating) {
+            setRatingOpen(true);
+            setPendingRating(false);
+          }
+        }}
+        onComplete={() => {
+          setSurveyOpen(false);
+          if (pendingRating) {
+            setRatingOpen(true);
+            setPendingRating(false);
+          }
+        }}
+      />
+      <AnalysisRatingModal
+        open={ratingOpen}
+        onClose={() => setRatingOpen(false)}
       />
       <PageHeader
         title="ИИ-анализ"

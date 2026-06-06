@@ -3,6 +3,7 @@
 import { PrivacyConsentCheckbox } from "@/components/auth/privacy-consent-checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { recordSignupCompleted } from "@/lib/actions/analytics-signup";
 import { recordPrivacyAcceptance } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/logo";
@@ -64,6 +65,11 @@ function SignupForm() {
         console.error("Failed to track signup event:", eventError);
       }
       if (data.session) {
+        try {
+          await recordSignupCompleted();
+        } catch (eventError) {
+          console.error("Failed to record signup analytics:", eventError);
+        }
         try {
           await recordPrivacyAcceptance();
         } catch (profileError) {

@@ -28,6 +28,8 @@ import { forecastCashFlow } from "@/lib/finance/forecast";
 import { interpretForecast } from "@/lib/finance/forecast-interpretation";
 import { getPrimaryFinancialRisk } from "@/lib/finance/primary-financial-risk";
 import { shouldShowOnboardingChecklist } from "@/lib/onboarding/visibility";
+import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
+import { trackProductEvent } from "@/lib/analytics/track-product";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +39,10 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user) {
+    await trackProductEvent(PRODUCT_EVENTS.DASHBOARD_OPENED, {}, user.id);
+  }
 
   const [
     { incomes, expenses, debts },

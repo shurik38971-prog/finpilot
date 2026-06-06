@@ -1,6 +1,8 @@
 "use server";
 
 import { markOnboardingStep } from "@/lib/actions/onboarding";
+import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
+import { trackProductEvent } from "@/lib/analytics/track-product";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { FinancialGoal, GoalType } from "@/types/goals";
@@ -60,6 +62,7 @@ export async function createGoal(formData: FormData) {
 
   if (error) throw error;
   await markOnboardingStep("goal");
+  await trackProductEvent(PRODUCT_EVENTS.GOAL_CREATED, { type }, userId);
   revalidatePath("/goals");
   revalidatePath("/dashboard");
   revalidatePath("/actions");

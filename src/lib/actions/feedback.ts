@@ -5,6 +5,8 @@ import {
   USEFUL_FEATURES,
 } from "@/lib/feedback/constants";
 import { shouldShowQuickFeedback } from "@/lib/feedback/quick-feedback";
+import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
+import { trackProductEvent } from "@/lib/analytics/track-product";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -79,6 +81,11 @@ export async function submitQuickFeedback(input: {
     quick_useful_text: usefulText || null,
     quick_feedback_at: new Date().toISOString(),
   });
+  await trackProductEvent(
+    PRODUCT_EVENTS.FEEDBACK_SUBMITTED,
+    { type: "quick", rating },
+    userId
+  );
 
   revalidatePath("/admin");
   revalidatePath("/admin/insights");
@@ -147,6 +154,11 @@ export async function submitProductFeedback(input: {
   );
 
   if (error) throw error;
+  await trackProductEvent(
+    PRODUCT_EVENTS.FEEDBACK_SUBMITTED,
+    { type: "post_analysis_survey", took_action: input.took_action },
+    userId
+  );
   revalidatePath("/admin");
   revalidatePath("/admin/insights");
 }
@@ -173,6 +185,11 @@ export async function submitFeedbackMessage(input: {
   });
 
   if (error) throw error;
+  await trackProductEvent(
+    PRODUCT_EVENTS.FEEDBACK_SUBMITTED,
+    { type: "message", message_type: input.type },
+    userId
+  );
   revalidatePath("/admin");
   revalidatePath("/admin/insights");
 }

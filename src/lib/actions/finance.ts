@@ -10,6 +10,8 @@ import {
   markOnboardingStep,
   markOnboardingSteps,
 } from "@/lib/actions/onboarding";
+import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
+import { trackProductEvent } from "@/lib/analytics/track-product";
 import { revalidatePath } from "next/cache";
 import type { Frequency, IncomeType } from "@/types/database";
 import { countIncomesByType } from "@/lib/finance/income-model";
@@ -79,6 +81,7 @@ export async function createIncome(formData: FormData) {
   });
   if (error) throw error;
   await markOnboardingStep("income");
+  await trackProductEvent(PRODUCT_EVENTS.INCOME_ADDED, {}, userId);
   revalidateFinancialPages();
 }
 
@@ -127,6 +130,7 @@ export async function createExpense(formData: FormData) {
   });
   if (error) throw error;
   await markOnboardingStep("expenses");
+  await trackProductEvent(PRODUCT_EVENTS.EXPENSE_ADDED, {}, userId);
   revalidateFinancialPages();
 }
 
@@ -183,6 +187,7 @@ export async function createDebt(formData: FormData) {
   });
   if (error) throw error;
   await markOnboardingStep("debts");
+  await trackProductEvent(PRODUCT_EVENTS.DEBT_ADDED, {}, userId);
   revalidateFinancialPages();
 }
 

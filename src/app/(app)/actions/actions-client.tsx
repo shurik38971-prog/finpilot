@@ -23,6 +23,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { TaskRecommendationModal } from "@/components/feedback/task-recommendation-modal";
 import { TaskImpactPreview } from "@/components/tasks/task-impact-preview";
 import { benefitLabel, importanceLabel } from "@/lib/copy/ui";
 
@@ -218,6 +219,7 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showAllActive, setShowAllActive] = useState(false);
+  const [feedbackTaskId, setFeedbackTaskId] = useState<string | null>(null);
 
   const pending = tasks
     .filter((t) => t.status === "pending")
@@ -253,8 +255,26 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
     }
   }
 
+  async function handleComplete(id: string) {
+    setLoadingId(id);
+    try {
+      const result = await completeTask(id);
+      if (result.askRecommendationFeedback) {
+        setFeedbackTaskId(id);
+      }
+      router.refresh();
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
   return (
     <div>
+      <TaskRecommendationModal
+        open={feedbackTaskId != null}
+        taskId={feedbackTaskId}
+        onClose={() => setFeedbackTaskId(null)}
+      />
       <PageHeader
         title="Что делать сейчас"
         description="Дела из ИИ-разбора — сначала самое важное, потом остальное"
@@ -282,7 +302,7 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
             <PrimaryActionCard
               task={primary}
               loadingId={loadingId}
-              onComplete={(id) => runAction(id, completeTask)}
+              onComplete={handleComplete}
             />
           )}
 
@@ -297,7 +317,7 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
                     key={task.id}
                     task={task}
                     loadingId={loadingId}
-                    onComplete={(id) => runAction(id, completeTask)}
+                    onComplete={handleComplete}
                     onPostpone={(id) => runAction(id, postponeTask)}
                     onDelete={(id) => {
                       if (!confirm("Удалить задачу?")) return;

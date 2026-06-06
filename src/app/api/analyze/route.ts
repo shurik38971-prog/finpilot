@@ -1,5 +1,7 @@
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackServerEvent } from "@/lib/analytics/track-server";
+import { trackProductEvent } from "@/lib/analytics/track-product";
 import { getAnalysisContext } from "@/lib/actions/finance";
 import { markOnboardingStep } from "@/lib/actions/onboarding";
 import {
@@ -117,6 +119,11 @@ export async function POST(_req: Request) {
       user_id: user.id,
       page_path: "/analyze",
     });
+    await trackProductEvent(
+      PRODUCT_EVENTS.ANALYSIS_STARTED,
+      {},
+      user.id
+    );
 
     const context = await getAnalysisContext();
     const today = getTodayDateString();
@@ -258,6 +265,18 @@ export async function POST(_req: Request) {
     const showFeedbackSurvey =
       !existingFeedback && (analysisCount ?? 0) === 1;
 
+    const ratingSince = new Date();
+    ratingSince.setDate(ratingSince.getDate() - 7);
+    const { data: recentAnalysisRating } = await supabase
+      .from("analysis_ratings")
+      .select("id")
+      .eq("user_id", user.id)
+      .gte("created_at", ratingSince.toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    const showAnalysisRating = recentAnalysisRating == null;
+
     revalidatePath("/history");
     revalidatePath("/actions");
     revalidatePath("/dashboard");
@@ -275,6 +294,15 @@ export async function POST(_req: Request) {
         index: context.financialIndex ?? null,
       },
     });
+    await trackProductEvent(
+      PRODUCT_EVENTS.ANALYSIS_COMPLETED,
+      {
+        analysis_id: saved.id,
+        tasks_created: taskResult.created_tasks_count,
+        index: context.financialIndex ?? null,
+      },
+      user.id
+    );
 
     return NextResponse.json({
       ...parsed,
@@ -283,6 +311,8 @@ export async function POST(_req: Request) {
       skipped_duplicate_tasks_count: taskResult.skipped_duplicate_tasks_count,
       tasks_created: taskResult.created_tasks_count,
       show_feedback_survey: showFeedbackSurvey,
+      show_analysis_rating: showAnalysisRating,
+      analysis_id: saved.id,
     });
   } catch (error) {
     console.error("Analyze error:", error);

@@ -17,6 +17,7 @@ import type {
 } from "@/types/analysis";
 import { AnalysisDisclaimer } from "@/components/early-access/analysis-disclaimer";
 import { PostAnalysisSurveyModal } from "@/components/feedback/post-analysis-survey-modal";
+import { EmptyState } from "@/components/ui/empty-state";
 import { trackButtonClick } from "@/lib/analytics/client";
 import { COPY } from "@/lib/copy/ui";
 import { AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
@@ -48,7 +49,9 @@ const healthVariants: Record<HealthStatus, "success" | "warning" | "danger"> = {
 };
 
 interface AnalyzePageClientProps {
-  isEmpty: boolean;
+  canAnalyze: boolean;
+  hasIncome: boolean;
+  hasExpense: boolean;
 }
 
 function PlanList({
@@ -79,7 +82,12 @@ function PlanList({
   );
 }
 
-export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
+export function AnalyzePageClient({
+  canAnalyze,
+  hasIncome,
+  hasExpense,
+}: AnalyzePageClientProps) {
+  const fillDataHref = !hasIncome ? "/income" : "/expenses";
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisApiResponse | null>(null);
   const [createdTasksCount, setCreatedTasksCount] = useState<number | null>(null);
@@ -143,7 +151,7 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
         title="ИИ-анализ"
         description="Персональный разбор ваших денег и что делать дальше"
         action={
-          <Button onClick={handleAnalyze} disabled={loading || isEmpty}>
+          <Button onClick={handleAnalyze} disabled={loading || !canAnalyze}>
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -154,16 +162,19 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
         }
       />
 
-      {isEmpty && (
-        <Card className="mb-6 border-accent/30 bg-accent/5">
-          <CardHeader>
-            <CardTitle className="text-base">Недостаточно данных</CardTitle>
-            <CardDescription>
-              Добавьте доходы, расходы или долги — тогда ИИ сможет провести
-              разбор вашей ситуации с деньгами.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      {!canAnalyze && (
+        <EmptyState
+          icon={Sparkles}
+          title="Недостаточно данных для анализа"
+          description="Добавьте базовые финансовые данные — после этого FinPilot сможет провести персональный разбор."
+          actionLabel="Заполнить данные"
+          actionHref={fillDataHref}
+          requirements={[
+            { label: "1 доход", done: hasIncome },
+            { label: "1 расход", done: hasExpense },
+          ]}
+          className="mb-6"
+        />
       )}
 
       {error && (
@@ -172,7 +183,7 @@ export function AnalyzePageClient({ isEmpty }: AnalyzePageClientProps) {
         </Card>
       )}
 
-      {!result && !loading && !error && !isEmpty && (
+      {!result && !loading && !error && canAnalyze && (
         <Card>
           <CardHeader>
             <CardTitle>Разбор от ИИ</CardTitle>

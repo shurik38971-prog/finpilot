@@ -63,8 +63,9 @@ export function IncomePageClient({ incomes }: { incomes: Income[] }) {
           },
         ]}
         emptyIcon={TrendingUp}
-        emptyTitle="Нет доходов"
-        emptyDescription="Добавьте ожидаемый доход или фактическое поступление"
+        emptyTitle="Пока нет доходов"
+        emptyDescription="Добавьте первый доход, чтобы FinPilot начал анализировать вашу ситуацию."
+        emptyActionLabel="Добавить доход"
         addLabel="Добавить доход"
         formComponent={IncomeFormWrapper}
         onDelete={deleteIncome}

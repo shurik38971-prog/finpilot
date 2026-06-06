@@ -4,6 +4,7 @@ import { GoalForm } from "@/components/forms/goal-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { deleteGoal } from "@/lib/actions/goals";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
@@ -178,19 +179,13 @@ export function GoalsPageClient({ goals, debts, tasks }: GoalsPageClientProps) {
       />
 
       {goals.length === 0 ? (
-        <Card>
-          <div className="flex flex-col items-center py-16 text-center px-6">
-            <div className="rounded-full bg-surface-hover p-4 mb-4">
-              <Target className="h-8 w-8 text-muted" />
-            </div>
-            <h3 className="text-lg font-medium mb-1">Нет целей</h3>
-            <p className="text-sm text-muted max-w-sm mb-4">
-              Задайте подушку безопасности или цель по погашению долга — FinPilot
-              покажет, сколько осталось до финиша.
-            </p>
-            <Button onClick={openCreate}>Создать первую цель</Button>
-          </div>
-        </Card>
+        <EmptyState
+          icon={Target}
+          title="Нет финансовых целей"
+          description="Создайте цель, и FinPilot построит план достижения."
+          actionLabel="Создать цель"
+          onAction={openCreate}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {goals.map((goal) => (

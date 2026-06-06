@@ -64,8 +64,10 @@ export function DebtsPageClient({ debts }: { debts: Debt[] }) {
           },
         ]}
         emptyIcon={CreditCard}
-        emptyTitle="Нет долгов"
-        emptyDescription="Отлично! Или добавьте долги для планирования погашения"
+        emptyTitle="Долгов нет — это отлично"
+        emptyDescription="Если у вас есть кредиты, рассрочки или займы, добавьте их для более точного анализа."
+        emptyActionLabel="Добавить долг"
+        emptyTone="positive"
         addLabel="Добавить долг"
         formComponent={DebtFormWrapper}
         onDelete={deleteDebt}

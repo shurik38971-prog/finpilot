@@ -2,10 +2,12 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { notifyFinancialDataChanged } from "@/lib/finance-events";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -18,9 +20,11 @@ interface Column<T> {
 interface RecordListProps<T extends { id: string }> {
   items: T[];
   columns: Column<T>[];
-  emptyIcon: React.ComponentType<{ className?: string }>;
+  emptyIcon: LucideIcon;
   emptyTitle: string;
   emptyDescription: string;
+  emptyActionLabel: string;
+  emptyTone?: "default" | "positive";
   addLabel: string;
   formComponent: React.ComponentType<{
     item?: T;
@@ -33,9 +37,11 @@ interface RecordListProps<T extends { id: string }> {
 export function RecordList<T extends { id: string }>({
   items,
   columns,
-  emptyIcon: EmptyIcon,
+  emptyIcon,
   emptyTitle,
   emptyDescription,
+  emptyActionLabel,
+  emptyTone = "default",
   addLabel,
   formComponent: FormComponent,
   onDelete,
@@ -78,22 +84,24 @@ export function RecordList<T extends { id: string }>({
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          {addLabel}
-        </Button>
-      </div>
+      {items.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            {addLabel}
+          </Button>
+        </div>
+      )}
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <div className="rounded-full bg-surface-hover p-4 mb-4">
-            <EmptyIcon className="h-8 w-8 text-muted" />
-          </div>
-          <h3 className="text-lg font-medium mb-1">{emptyTitle}</h3>
-          <p className="text-sm text-muted max-w-sm mb-4">{emptyDescription}</p>
-          <Button onClick={openCreate}>{addLabel}</Button>
-        </div>
+        <EmptyState
+          icon={emptyIcon}
+          title={emptyTitle}
+          description={emptyDescription}
+          actionLabel={emptyActionLabel}
+          onAction={openCreate}
+          tone={emptyTone}
+        />
       ) : (
         <div className="glass overflow-x-auto">
           <table className="w-full text-sm min-w-[640px]">

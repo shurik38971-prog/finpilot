@@ -1,5 +1,14 @@
 import type { Debt, Expense, Income } from "@/types/database";
+import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import { toMonthlyAmount } from "@/lib/utils";
+
+export {
+  getMonthlyFinanceSummary,
+  isDateInMonth,
+  oneTimeExpenseInMonth,
+  oneTimeIncomeInMonth,
+  type MonthlyFinanceSummary,
+} from "@/lib/finance/monthly-summary";
 
 export function monthlyIncomeTotal(incomes: Income[]): number {
   return incomes
@@ -55,11 +64,12 @@ export function calculateFinancialIndex(
     return null;
   }
 
-  const monthlyIncome = monthlyIncomeTotal(incomes);
-  const monthlyExpenses = monthlyExpenseTotal(expenses);
-  const debtPayments = monthlyDebtPayments(debts);
-  const totalDebt = totalDebtRemaining(debts);
-  const netCashFlow = monthlyIncome - monthlyExpenses - debtPayments;
+  const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
+  const monthlyIncome = summary.totalIncome;
+  const monthlyExpenses = summary.totalExpenses;
+  const debtPayments = summary.debtPayments;
+  const totalDebt = summary.totalDebt;
+  const netCashFlow = summary.freeMoney;
 
   let score = 0;
 
@@ -115,25 +125,21 @@ export interface DashboardSummary {
   financialIndex: number | null;
 }
 
-/** Сводка дашборда: регулярные доходы/расходы, платежи по долгам, чистый поток. */
+/** Сводка дашборда: регулярные и разовые операции текущего месяца. */
 export function computeDashboardSummary(
   incomes: Income[],
   expenses: Expense[],
   debts: Debt[]
 ): DashboardSummary {
-  const totalIncome = Math.round(monthlyIncomeTotal(incomes));
-  const totalExpenses = Math.round(monthlyExpenseTotal(expenses));
-  const debtPayments = Math.round(monthlyDebtPayments(debts));
-  const netCashFlow = totalIncome - totalExpenses - debtPayments;
-  const totalDebt = Math.round(totalDebtRemaining(debts));
+  const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
   const financialIndex = calculateFinancialIndex(incomes, expenses, debts);
 
   return {
-    totalIncome,
-    totalExpenses,
-    debtPayments,
-    netCashFlow,
-    totalDebt,
+    totalIncome: summary.totalIncome,
+    totalExpenses: summary.totalExpenses,
+    debtPayments: summary.debtPayments,
+    netCashFlow: summary.freeMoney,
+    totalDebt: summary.totalDebt,
     financialIndex,
   };
 }

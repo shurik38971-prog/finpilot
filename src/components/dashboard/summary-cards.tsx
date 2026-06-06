@@ -14,14 +14,14 @@ interface SummaryCardsProps {
 const cards = [
   {
     key: "income",
-    label: "Доход / мес (регуляр.)",
+    label: "Доходы за месяц",
     icon: TrendingUp,
     color: "text-emerald-400",
     getValue: (p: SummaryCardsProps) => p.totalIncome,
   },
   {
     key: "expenses",
-    label: "Расходы / мес (регуляр.)",
+    label: "Расходы за месяц",
     icon: TrendingDown,
     color: "text-red-400",
     getValue: (p: SummaryCardsProps) => p.totalExpenses,
@@ -44,23 +44,31 @@ const cards = [
 
 export function SummaryCards(props: SummaryCardsProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map(({ key, label, icon: Icon, color, getValue }) => (
-        <Card key={key}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted flex items-center gap-1">
-                {label}
-                {key === "net" && <HintTooltip hint={HINTS.freeMoney} />}
-              </p>
-              <p className={`text-xl font-bold mt-1 ${key === "net" && getValue(props) < 0 ? "text-red-400" : ""}`}>
-                {formatCurrency(getValue(props))}
-              </p>
+    <div className="space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {cards.map(({ key, label, icon: Icon, color, getValue }) => (
+          <Card key={key}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted flex items-center gap-1">
+                  {label}
+                  {key === "net" && <HintTooltip hint={HINTS.freeMoney} />}
+                </p>
+                <p
+                  className={`text-xl font-bold mt-1 ${key === "net" && getValue(props) < 0 ? "text-red-400" : ""}`}
+                >
+                  {formatCurrency(getValue(props))}
+                </p>
+              </div>
+              <Icon className={`h-5 w-5 ${color}`} />
             </div>
-            <Icon className={`h-5 w-5 ${color}`} />
-          </div>
-        </Card>
-      ))}
+          </Card>
+        ))}
+      </div>
+      <p className="text-xs text-muted px-1">
+        В карточках учитываются регулярные платежи и разовые операции текущего
+        месяца.
+      </p>
     </div>
   );
 }

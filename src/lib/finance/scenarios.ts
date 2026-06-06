@@ -1,5 +1,8 @@
 import type { Debt, Expense, Income, ScenarioResult } from "@/types/database";
-import { calculateFinancialIndex, monthlyExpenseTotal, monthlyIncomeTotal } from "@/lib/finance/index";
+import {
+  calculateFinancialIndex,
+  getMonthlyFinanceSummary,
+} from "@/lib/finance/index";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
 
@@ -42,8 +45,7 @@ export function runScenario(
     input.removeNonEssential
   );
 
-  const monthlyIncome = monthlyIncomeTotal(adjIncomes);
-  const monthlyExpenses = monthlyExpenseTotal(adjExpenses);
+  const summary = getMonthlyFinanceSummary(adjIncomes, adjExpenses, debts);
 
   const plan = calculateDebtPayoff(debts, input.extraDebtPayment, "avalanche");
   const forecast = forecastCashFlow(adjIncomes, adjExpenses, debts, 3);
@@ -51,8 +53,8 @@ export function runScenario(
 
   return {
     name: input.name,
-    monthlyIncome: Math.round(monthlyIncome),
-    monthlyExpenses: Math.round(monthlyExpenses),
+    monthlyIncome: summary.totalIncome,
+    monthlyExpenses: summary.totalExpenses,
     extraDebtPayment: input.extraDebtPayment,
     monthsToDebtFree: plan.monthsToFreedom,
     financialIndex: calculateFinancialIndex(adjIncomes, adjExpenses, debts),

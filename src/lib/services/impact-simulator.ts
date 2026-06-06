@@ -6,6 +6,8 @@ import {
 import { pickPrimaryGoal } from "@/lib/finance/match-task-to-goal";
 import type { Debt, Expense, Income } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
+import { DEFAULT_PROFILE_TYPE, type ProfileType } from "@/types/profile";
 import type {
   CurrentFinanceState,
   TaskImpactSimulation,
@@ -121,13 +123,21 @@ export function calculateDebtLoadPercent(
 export function buildCurrentFinanceState(
   incomes: Income[],
   expenses: Expense[],
-  debts: Debt[]
+  debts: Debt[],
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): CurrentFinanceState {
-  const summary = computeDashboardSummary(incomes, expenses, debts);
+  const summary = computeDashboardSummary(
+    incomes,
+    expenses,
+    debts,
+    profileType,
+    profileIncome
+  );
   return {
     financialIndex: summary.financialIndex,
     netCashFlow: summary.netCashFlow,
-    monthlyIncome: summary.totalIncome,
+    monthlyIncome: summary.monthlyIncome,
     monthlyExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
     totalDebt: summary.totalDebt,
@@ -241,7 +251,9 @@ export function applyWhatIf(
   incomes: Income[],
   expenses: Expense[],
   debts: Debt[],
-  input: WhatIfInput
+  input: WhatIfInput,
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): {
   incomes: Income[];
   expenses: Expense[];
@@ -255,7 +267,13 @@ export function applyWhatIf(
     input.debtPaymentChangePercent,
     input.totalDebtChangePercent
   );
-  const summary = computeDashboardSummary(adjIncomes, adjExpenses, adjDebts);
+  const summary = computeDashboardSummary(
+    adjIncomes,
+    adjExpenses,
+    adjDebts,
+    profileType,
+    profileIncome
+  );
 
   return {
     incomes: adjIncomes,
@@ -284,21 +302,30 @@ export function simulateWhatIf(
   expenses: Expense[],
   debts: Debt[],
   goals: FinancialGoal[],
-  input: WhatIfInput
+  input: WhatIfInput,
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): WhatIfResult {
-  const { summary } = applyWhatIf(incomes, expenses, debts, input);
+  const { summary } = applyWhatIf(
+    incomes,
+    expenses,
+    debts,
+    input,
+    profileType,
+    profileIncome
+  );
   const goal = pickPrimaryGoal(goals);
   const allocation = monthsToGoal(goal, summary.netCashFlow * 0.5);
 
   return {
     financialIndex: summary.financialIndex,
     netCashFlow: summary.netCashFlow,
-    monthlyIncome: summary.totalIncome,
+    monthlyIncome: summary.monthlyIncome,
     monthlyExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
     totalDebt: summary.totalDebt,
     debtLoadPercent: calculateDebtLoadPercent(
-      summary.totalIncome,
+      summary.monthlyIncome,
       summary.debtPayments,
       summary.totalDebt
     ),
@@ -315,6 +342,8 @@ export function simulateTaskImpact(
     incomes?: Income[];
     expenses?: Expense[];
     debts?: Debt[];
+    profileType?: ProfileType;
+    profileIncome?: ProfileIncomeParameters | null;
   }
 ): TaskImpactSimulation {
   if (!hasQuantifiableFinancialEffect(task.title, task.description)) {
@@ -365,11 +394,13 @@ export function simulateTaskImpact(
       options.incomes,
       options.expenses,
       options.debts,
-      adjustments
+      adjustments,
+      options.profileType,
+      options.profileIncome ?? null
     );
 
     const projectedDebtLoad = calculateDebtLoadPercent(
-      summary.totalIncome,
+      summary.monthlyIncome,
       summary.debtPayments,
       summary.totalDebt
     );

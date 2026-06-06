@@ -8,6 +8,8 @@ import type { Debt, Expense, Income } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
 import { hasQuantifiableFinancialEffect } from "@/lib/finance/task-effect-eligibility";
 import type { TaskImpactSimulation } from "@/types/task-impact";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
+import type { ProfileType } from "@/types/profile";
 
 interface InsertedTask extends TaskForSimulation {
   id: string;
@@ -38,6 +40,8 @@ export async function createTaskImpacts(
     expenses: Expense[];
     debts: Debt[];
     goals: FinancialGoal[];
+    profileType?: ProfileType;
+    profileIncome?: ProfileIncomeParameters | null;
   }
 ): Promise<number> {
   if (insertedTasks.length === 0) return 0;
@@ -45,7 +49,9 @@ export async function createTaskImpacts(
   const financeState = buildCurrentFinanceState(
     options.incomes,
     options.expenses,
-    options.debts
+    options.debts,
+    options.profileType,
+    options.profileIncome ?? null
   );
 
   const quantifiableTasks = insertedTasks.filter((task) =>
@@ -59,6 +65,8 @@ export async function createTaskImpacts(
       incomes: options.incomes,
       expenses: options.expenses,
       debts: options.debts,
+      profileType: options.profileType,
+      profileIncome: options.profileIncome ?? null,
     });
     return simulationToImpactRow(task.id, simulation);
   });
@@ -81,6 +89,8 @@ export async function refreshTaskImpacts(
     expenses: Expense[];
     debts: Debt[];
     goals: FinancialGoal[];
+    profileType?: ProfileType;
+    profileIncome?: ProfileIncomeParameters | null;
   }
 ): Promise<void> {
   if (tasks.length === 0) return;

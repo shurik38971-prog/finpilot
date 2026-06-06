@@ -35,6 +35,7 @@ import type {
   NextBestAction,
 } from "@/types/analysis";
 import type { FinancialGoal } from "@/types/goals";
+import { mapProfileIncomeRow } from "@/types/profile-income";
 import { addDays, format } from "date-fns";
 
 const MAX_TASKS_PER_ANALYSIS = 5;
@@ -209,6 +210,7 @@ export async function createTasksFromAnalysis(
     { data: incomes },
     { data: expenses },
     { count: analysisCount },
+    { data: profileRow },
   ] = await Promise.all([
     supabase
       .from("financial_tasks")
@@ -225,26 +227,17 @@ export async function createTasksFromAnalysis(
       .from("analyses")
       .select("*", { count: "exact", head: true })
       .eq("user_id", userId),
+    supabase
+      .from("user_profiles")
+      .select(
+        "average_month_income, bad_month_income, good_month_income, expected_monthly_income, use_actual_income_only, income_average_monthly, income_bad_month, income_good_month"
+      )
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
 
   const profileType = await getProfileTypeForUser(supabase, userId);
-  const dataFlags = buildAnalysisDataFlags({
-    expenses: (expenses ?? []).map((expense) => ({
-      title: expense.title,
-      category: expense.category,
-      amount: expense.amount,
-      is_essential: expense.is_essential,
-    })),
-    goals: (goals ?? []).map((goal) => ({
-      type: goal.type,
-      current_amount: goal.current_amount,
-    })),
-    analysisCount: analysisCount ?? 0,
-    profileType,
-    primaryMonthlyIncome: 0,
-    isPreliminary: parsed.analysis_mode === "preliminary",
-    hasOnboardingBaseline: parsed.data_source === "registration",
-  });
+  const profileIncome = mapProfileIncomeRow(profileRow);
 
   const isPreliminary = parsed.analysis_mode === "preliminary";
 
@@ -268,6 +261,10 @@ export async function createTasksFromAnalysis(
     return true;
   }
 
+  function hasTaskExplanation(candidate: TaskCandidate): boolean {
+    return Boolean(candidate.explanation?.trim());
+  }
+
   const userGoals = (goals ?? []) as FinancialGoal[];
   const debtTitles = (debts ?? []).map((d) => d.title);
   const financeOptions = {
@@ -275,17 +272,38 @@ export async function createTasksFromAnalysis(
     expenses: (expenses ?? []) as Expense[],
     debts: (debts ?? []) as Debt[],
     goals: userGoals,
+    profileType,
+    profileIncome,
   };
 
   const summary = computeDashboardSummary(
     financeOptions.incomes,
     financeOptions.expenses,
     financeOptions.debts,
-    profileType
+    profileType,
+    profileIncome
   );
+
+  const dataFlags = buildAnalysisDataFlags({
+    expenses: (expenses ?? []).map((expense) => ({
+      title: expense.title,
+      category: expense.category,
+      amount: expense.amount,
+      is_essential: expense.is_essential,
+    })),
+    goals: (goals ?? []).map((goal) => ({
+      type: goal.type,
+      current_amount: goal.current_amount,
+    })),
+    analysisCount: analysisCount ?? 0,
+    profileType,
+    primaryMonthlyIncome: summary.primaryIncome,
+    isPreliminary: parsed.analysis_mode === "preliminary",
+    hasOnboardingBaseline: parsed.data_source === "registration",
+  });
   const cushionGoal = userGoals.find((goal) => goal.type === "safety_cushion");
   const explanationContext = {
-    monthlyIncome: summary.totalIncome,
+    monthlyIncome: summary.monthlyIncome,
     monthlyExpenses: summary.totalExpenses,
     netCashFlow: summary.netCashFlow,
     totalDebt: summary.totalDebt,
@@ -376,8 +394,9 @@ export async function createTasksFromAnalysis(
   }
 
   const consolidated = consolidateByCategory(rawCandidates)
-    .slice(0, MAX_TASKS_PER_ANALYSIS)
-    .map(withExplanation);
+    .map(withExplanation)
+    .filter(hasTaskExplanation)
+    .slice(0, MAX_TASKS_PER_ANALYSIS);
 
   const toInsert: TaskCandidate[] = [];
   const toUpdate: Array<{ id: string; candidate: TaskCandidate }> = [];

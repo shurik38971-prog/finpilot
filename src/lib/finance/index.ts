@@ -274,7 +274,7 @@ export function computeDashboardSummary(
     income.primaryIncome || summary.expectedIncome;
 
   return {
-    totalIncome: income.actualAdditionalIncome,
+    totalIncome: income.monthlyIncome,
     expectedIncome,
     displayIncome: income.monthlyIncome,
     primaryIncome: income.primaryIncome,

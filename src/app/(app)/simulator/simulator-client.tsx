@@ -14,6 +14,8 @@ import {
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Debt, Expense, Income } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
+import type { ProfileType } from "@/types/profile";
 import { FlaskConical } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -22,6 +24,8 @@ interface SimulatorPageClientProps {
   expenses: Expense[];
   debts: Debt[];
   goals: FinancialGoal[];
+  profileType: ProfileType;
+  profileIncome: ProfileIncomeParameters | null;
 }
 
 function DeltaBadge({
@@ -60,10 +64,19 @@ export function SimulatorPageClient({
   expenses,
   debts,
   goals,
+  profileType,
+  profileIncome,
 }: SimulatorPageClientProps) {
   const baseline = useMemo(
-    () => buildCurrentFinanceState(incomes, expenses, debts),
-    [incomes, expenses, debts]
+    () =>
+      buildCurrentFinanceState(
+        incomes,
+        expenses,
+        debts,
+        profileType,
+        profileIncome
+      ),
+    [incomes, expenses, debts, profileType, profileIncome]
   );
 
   const [input, setInput] = useState<WhatIfInput>({
@@ -75,18 +88,35 @@ export function SimulatorPageClient({
 
   const current = useMemo(
     () =>
-      simulateWhatIf(incomes, expenses, debts, goals, {
-        incomeChangePercent: 0,
-        expenseChangePercent: 0,
-        debtPaymentChangePercent: 0,
-        totalDebtChangePercent: 0,
-      }),
-    [incomes, expenses, debts, goals]
+      simulateWhatIf(
+        incomes,
+        expenses,
+        debts,
+        goals,
+        {
+          incomeChangePercent: 0,
+          expenseChangePercent: 0,
+          debtPaymentChangePercent: 0,
+          totalDebtChangePercent: 0,
+        },
+        profileType,
+        profileIncome
+      ),
+    [incomes, expenses, debts, goals, profileType, profileIncome]
   );
 
   const projected = useMemo(
-    () => simulateWhatIf(incomes, expenses, debts, goals, input),
-    [incomes, expenses, debts, goals, input]
+    () =>
+      simulateWhatIf(
+        incomes,
+        expenses,
+        debts,
+        goals,
+        input,
+        profileType,
+        profileIncome
+      ),
+    [incomes, expenses, debts, goals, input, profileType, profileIncome]
   );
 
   const indexMeta =

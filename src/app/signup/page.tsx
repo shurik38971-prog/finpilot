@@ -1,7 +1,9 @@
 "use client";
 
+import { PrivacyConsentCheckbox } from "@/components/auth/privacy-consent-checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { recordPrivacyAcceptance } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/logo";
 import Link from "next/link";
@@ -17,6 +19,7 @@ function SignupForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   useEffect(() => {
     const param = searchParams.get("email");
@@ -25,13 +28,26 @@ function SignupForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!privacyAccepted) {
+      setError(
+        "Для регистрации необходимо принять условия обработки персональных данных."
+      );
+      return;
+    }
     setLoading(true);
     setError("");
+    const acceptedAt = new Date().toISOString();
     try {
       const supabase = createClient();
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            privacy_accepted: true,
+            privacy_accepted_at: acceptedAt,
+          },
+        },
       });
       if (authError) {
         if (authError.message.includes("email rate limit exceeded")) {
@@ -48,6 +64,11 @@ function SignupForm() {
         console.error("Failed to track signup event:", eventError);
       }
       if (data.session) {
+        try {
+          await recordPrivacyAcceptance();
+        } catch (profileError) {
+          console.error("Failed to record privacy acceptance:", profileError);
+        }
         router.push("/dashboard");
         router.refresh();
         return;
@@ -97,10 +118,21 @@ function SignupForm() {
               minLength={6}
               placeholder="Минимум 6 символов"
             />
+            <PrivacyConsentCheckbox
+              checked={privacyAccepted}
+              onChange={(value) => {
+                setPrivacyAccepted(value);
+                if (value) setError("");
+              }}
+            />
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || !privacyAccepted}
+            >
               {loading ? "Создание..." : "Создать аккаунт"}
             </Button>
           </form>

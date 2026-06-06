@@ -17,6 +17,7 @@
 | 011 | `011_onboarding_progress.sql` |
 | 012 | `012_product_feedback.sql` |
 | 013 | `013_feedback_v2_reactivation.sql` |
+| 014 | `014_user_profiles_privacy.sql` |
 
 **Важно:** `013` меняет таблицу `feedback` из `012`. Если `012` ещё не выполняли — сначала `012`, затем `013`.
 

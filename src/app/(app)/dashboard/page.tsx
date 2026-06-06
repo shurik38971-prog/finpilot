@@ -57,7 +57,7 @@ export default async function DashboardPage() {
           description="Сводка по вашим деньгам"
         />
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {financialProfile.needsProfileSetup && <ProfileOnboardingCard />}
           {onboarding && <OnboardingChecklist progress={onboarding} />}
           {!financialProfile.needsProfileSetup && (
@@ -66,7 +66,6 @@ export default async function DashboardPage() {
           <EarlyAccessBanner />
           <DemoDataBanner isEmpty={isEmpty} />
           <NextBestActionCard action={nextBestAction} />
-          <GoalFocusCard focus={goalFocus} />
           <SummaryCards
             totalIncome={totalIncome}
             expectedIncome={expectedIncome}
@@ -75,8 +74,9 @@ export default async function DashboardPage() {
             netCashFlow={netCashFlow}
             totalDebt={totalDebt}
           />
+          <GoalFocusCard focus={goalFocus} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <FinancialIndexGauge index={financialIndex} />
             <div className="lg:col-span-2">
               <CashFlowChart

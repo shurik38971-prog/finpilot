@@ -90,7 +90,7 @@ export function FeedbackWidget() {
 
         <Button
           size="sm"
-          className="rounded-full shadow-lg h-11 px-4"
+          className="rounded-full shadow-lg h-11 px-4 md:h-8 md:px-3 md:text-xs md:gap-1.5"
           onClick={() => {
             if (open) {
               setOpen(false);

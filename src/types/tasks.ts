@@ -21,6 +21,7 @@ export interface FinancialTask {
   normalized_title?: string | null;
   task_category?: TaskCategory | string | null;
   description: string | null;
+  explanation?: string | null;
   impact_score: number;
   impact_label: string | null;
   priority_score: number;
@@ -67,6 +68,8 @@ export interface NextBestActionResult {
   id: string;
   title: string;
   description: string | null;
+  explanation: string | null;
+  task_category?: TaskCategory | string | null;
   impact_score: number;
   priority_score: number;
   financial_impact: number;

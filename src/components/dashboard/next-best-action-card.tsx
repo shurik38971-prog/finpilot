@@ -4,6 +4,8 @@ import { completeTask } from "@/lib/actions/tasks";
 import type { TaskProgressStats } from "@/lib/actions/tasks";
 import { TaskRecommendationModal } from "@/components/feedback/task-recommendation-modal";
 import { CompactTaskEffects } from "@/components/tasks/compact-task-effects";
+import { TaskRecommendationContext } from "@/components/tasks/task-recommendation-context";
+import { hasQuantifiableFinancialEffect } from "@/lib/finance/task-effect-eligibility";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -196,6 +198,11 @@ export function NextBestActionCard({
 
   const action = displayAction;
   const { reasons, impact } = action;
+  const quantifiable = hasQuantifiableFinancialEffect(
+    action.title,
+    action.description,
+    action.task_category
+  );
 
   async function handleComplete() {
     setLoading(true);
@@ -215,7 +222,8 @@ export function NextBestActionCard({
   }
 
   if (collapsed) {
-    const hasEffect = impact != null || action.financial_impact > 0;
+    const hasEffect =
+      quantifiable && (impact != null || action.financial_impact > 0);
 
     return (
       <Card
@@ -298,7 +306,7 @@ export function NextBestActionCard({
               <Badge variant="danger" className="text-[11px]">
                 {importanceLabel(action.priority_score)}
               </Badge>
-              {action.financial_impact > 0 && (
+              {quantifiable && action.financial_impact > 0 && (
                 <Badge variant="success" className="text-[11px]">
                   +{formatCurrency(action.financial_impact)}/мес
                 </Badge>
@@ -321,6 +329,12 @@ export function NextBestActionCard({
 
         <div className="px-4 pb-4 pt-2 space-y-2.5">
           {impact && <CompactTaskEffects impact={impact} />}
+          <TaskRecommendationContext
+            title={action.title}
+            description={action.description}
+            explanation={action.explanation}
+            taskCategory={action.task_category}
+          />
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
             {action.due_date && (

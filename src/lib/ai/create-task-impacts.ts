@@ -6,6 +6,7 @@ import {
 } from "@/lib/services/impact-simulator";
 import type { Debt, Expense, Income } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
+import { hasQuantifiableFinancialEffect } from "@/lib/finance/task-effect-eligibility";
 import type { TaskImpactSimulation } from "@/types/task-impact";
 
 interface InsertedTask extends TaskForSimulation {
@@ -47,7 +48,13 @@ export async function createTaskImpacts(
     options.debts
   );
 
-  const rows = insertedTasks.map((task) => {
+  const quantifiableTasks = insertedTasks.filter((task) =>
+    hasQuantifiableFinancialEffect(task.title, task.description)
+  );
+
+  if (quantifiableTasks.length === 0) return 0;
+
+  const rows = quantifiableTasks.map((task) => {
     const simulation = simulateTaskImpact(task, financeState, options.goals, {
       incomes: options.incomes,
       expenses: options.expenses,

@@ -1,4 +1,8 @@
 import { computeDashboardSummary } from "@/lib/finance/index";
+import {
+  hasQuantifiableFinancialEffect,
+  isInformationalFinancialTask,
+} from "@/lib/finance/task-effect-eligibility";
 import { pickPrimaryGoal } from "@/lib/finance/match-task-to-goal";
 import type { Debt, Expense, Income } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
@@ -75,6 +79,10 @@ function containsAny(text: string, keywords: string[]): boolean {
 }
 
 function classifyTask(task: TaskForSimulation): TaskCategory {
+  if (isInformationalFinancialTask(task.title, task.description)) {
+    return "expense";
+  }
+
   const text = taskText(task);
   const flags = {
     debt: containsAny(text, DEBT_KEYWORDS),
@@ -88,6 +96,9 @@ function classifyTask(task: TaskForSimulation): TaskCategory {
   if (flags.expense) return "expense";
   if (flags.income) return "income";
   if (flags.savings) return "savings";
+  if (!hasQuantifiableFinancialEffect(task.title, task.description)) {
+    return "expense";
+  }
   return task.impact_score >= 60 ? "mixed" : "expense";
 }
 
@@ -306,6 +317,28 @@ export function simulateTaskImpact(
     debts?: Debt[];
   }
 ): TaskImpactSimulation {
+  if (!hasQuantifiableFinancialEffect(task.title, task.description)) {
+    return {
+      currentFinancialIndex: currentFinanceState.financialIndex,
+      projectedFinancialIndex: currentFinanceState.financialIndex,
+      currentCashflow: currentFinanceState.netCashFlow,
+      projectedCashflow: currentFinanceState.netCashFlow,
+      currentDebtLoad: calculateDebtLoadPercent(
+        currentFinanceState.monthlyIncome,
+        currentFinanceState.debtPayments,
+        currentFinanceState.totalDebt
+      ),
+      projectedDebtLoad: calculateDebtLoadPercent(
+        currentFinanceState.monthlyIncome,
+        currentFinanceState.debtPayments,
+        currentFinanceState.totalDebt
+      ),
+      currentGoalMonths: null,
+      projectedGoalMonths: null,
+      confidence: 0,
+    };
+  }
+
   const category = classifyTask(task);
   const linkedGoal = resolveLinkedGoal(task, goals);
   const allocationRatio = goalAllocationRatio(category);

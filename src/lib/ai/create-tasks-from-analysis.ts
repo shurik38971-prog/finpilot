@@ -26,6 +26,7 @@ import {
   isMoreSpecificTask,
   pickBetterTask,
 } from "@/lib/finance/pick-better-task";
+import { buildTaskExplanation } from "@/lib/finance/task-effect-eligibility";
 import { calculateTaskPriority } from "@/lib/services/task-priority";
 import type { Debt, Expense, Income } from "@/types/database";
 import type {
@@ -67,6 +68,7 @@ interface TaskCandidate {
   description: string | null;
   impact_score: number;
   impact_label: string | null;
+  explanation: string | null;
   due_date: string | null;
 }
 
@@ -101,13 +103,18 @@ function attachGoal(
 function buildCandidate(
   base: Omit<
     TaskCandidate,
-    "normalized_title" | "task_category"
-  >
+    "normalized_title" | "task_category" | "explanation"
+  >,
+  explanationContext?: Parameters<typeof buildTaskExplanation>[2]
 ): TaskCandidate {
+  const task_category = detectTaskCategory(base.title, base.description);
   return {
     ...base,
     normalized_title: normalizeTaskTitle(base.title),
-    task_category: detectTaskCategory(base.title, base.description),
+    task_category,
+    explanation: explanationContext
+      ? buildTaskExplanation(base.title, base.description, explanationContext)
+      : null,
   };
 }
 
@@ -270,6 +277,34 @@ export async function createTasksFromAnalysis(
     goals: userGoals,
   };
 
+  const summary = computeDashboardSummary(
+    financeOptions.incomes,
+    financeOptions.expenses,
+    financeOptions.debts,
+    profileType
+  );
+  const cushionGoal = userGoals.find((goal) => goal.type === "safety_cushion");
+  const explanationContext = {
+    monthlyIncome: summary.totalIncome,
+    monthlyExpenses: summary.totalExpenses,
+    netCashFlow: summary.netCashFlow,
+    totalDebt: summary.totalDebt,
+    cushionAmount: cushionGoal?.current_amount ?? 0,
+    usesOnboardingBaseline:
+      parsed.data_source === "registration" || isPreliminary,
+  };
+
+  function withExplanation(candidate: TaskCandidate): TaskCandidate {
+    return {
+      ...candidate,
+      explanation: buildTaskExplanation(
+        candidate.title,
+        candidate.description,
+        explanationContext
+      ),
+    };
+  }
+
   const existingByCategory = new Map<TaskCategory, ExistingActiveTask>();
   const existingNormalized = new Set<string>();
 
@@ -340,10 +375,9 @@ export async function createTasksFromAnalysis(
     }
   }
 
-  const consolidated = consolidateByCategory(rawCandidates).slice(
-    0,
-    MAX_TASKS_PER_ANALYSIS
-  );
+  const consolidated = consolidateByCategory(rawCandidates)
+    .slice(0, MAX_TASKS_PER_ANALYSIS)
+    .map(withExplanation);
 
   const toInsert: TaskCandidate[] = [];
   const toUpdate: Array<{ id: string; candidate: TaskCandidate }> = [];
@@ -382,12 +416,6 @@ export async function createTasksFromAnalysis(
     });
   }
 
-  const summary = computeDashboardSummary(
-    financeOptions.incomes,
-    financeOptions.expenses,
-    financeOptions.debts,
-    profileType
-  );
   const priorityOptions = { hasNegativeCashflow: summary.netCashFlow < 0, profileType };
 
   const updatedTasks: Array<{
@@ -427,6 +455,7 @@ export async function createTasksFromAnalysis(
         due_date: candidate.due_date,
         goal_id: candidate.goal_id,
         goal_progress_amount: candidate.goal_progress_amount,
+        explanation: candidate.explanation,
         priority_score,
         financial_impact,
       })

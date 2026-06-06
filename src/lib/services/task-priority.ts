@@ -1,3 +1,4 @@
+import { hasQuantifiableFinancialEffect } from "@/lib/finance/task-effect-eligibility";
 import {
   detectTaskProfileFlags,
   getProfileTaskBoost,
@@ -88,16 +89,31 @@ export function calculateTaskPriority(
   const text = taskText(task);
   const reasons: string[] = [];
   let score = 0;
+  const quantifiable = hasQuantifiableFinancialEffect(
+    task.title,
+    task.description
+  );
 
   const tier = effectTier(task);
-  if (tier === "high") {
-    score += 40;
-    reasons.push("сильно повлияет на ваши деньги");
+  if (quantifiable) {
+    if (tier === "high") {
+      score += 40;
+      reasons.push("сильно повлияет на ваши деньги");
+    } else if (tier === "medium") {
+      score += 20;
+      reasons.push("заметно повлияет на ваши деньги");
+    } else {
+      score += 10;
+    }
+  } else if (tier === "high") {
+    score += 25;
+    reasons.push("важно для точности анализа");
   } else if (tier === "medium") {
-    score += 20;
-    reasons.push("заметно повлияет на ваши деньги");
+    score += 15;
+    reasons.push("повысит точность прогнозов");
   } else {
-    score += 10;
+    score += 8;
+    reasons.push("улучшит качество рекомендаций");
   }
 
   const profileType = options?.profileType ?? DEFAULT_PROFILE_TYPE;
@@ -149,6 +165,7 @@ export function calculateTaskPriority(
   }
 
   if (
+    quantifiable &&
     options?.impact &&
     Number(options.impact.projected_cashflow) >
       Number(options.impact.current_cashflow)
@@ -158,17 +175,20 @@ export function calculateTaskPriority(
     }
   }
 
-  const cashflowDelta = options?.impact
-    ? Math.round(
-        Number(options.impact.projected_cashflow) -
-          Number(options.impact.current_cashflow)
+  const cashflowDelta =
+    quantifiable && options?.impact
+      ? Math.round(
+          Number(options.impact.projected_cashflow) -
+            Number(options.impact.current_cashflow)
+        )
+      : 0;
+
+  const financial_impact = quantifiable
+    ? Math.max(
+        0,
+        cashflowDelta > 0 ? cashflowDelta : Math.round(task.impact_score * 100)
       )
     : 0;
-
-  const financial_impact = Math.max(
-    0,
-    cashflowDelta > 0 ? cashflowDelta : Math.round(task.impact_score * 100)
-  );
 
   const uniqueReasons = [...new Set(reasons)];
 
@@ -182,8 +202,11 @@ export function calculateTaskPriority(
   };
 }
 
-export function buildTaskMotivation(impact: TaskImpact | null) {
-  if (!impact) {
+export function buildTaskMotivation(
+  impact: TaskImpact | null,
+  quantifiable = true
+) {
+  if (!impact || !quantifiable) {
     return {
       indexFrom: null as number | null,
       indexTo: null as number | null,

@@ -7,6 +7,7 @@ import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackServerEvent } from "@/lib/analytics/track-server";
 import { trackProductEvent } from "@/lib/analytics/track-product";
+import { getDisplayableTaskImpact } from "@/lib/finance/task-effect-eligibility";
 import { applyGoalProgressOnTaskComplete } from "@/lib/finance/goal-progress";
 import { pickPrimaryGoal } from "@/lib/finance/match-task-to-goal";
 import {
@@ -112,18 +113,22 @@ function toNextBestActionResult(
     }
   );
 
+  const displayImpact = getDisplayableTaskImpact(task);
+
   return {
     id: task.id,
     title: task.title,
     description: task.description,
+    explanation: task.explanation ?? null,
+    task_category: task.task_category,
     impact_score: task.impact_score,
     priority_score: task.priority_score,
     financial_impact: task.financial_impact,
     due_date: task.due_date,
     goal: task.goal,
-    impact: task.impact,
+    impact: displayImpact,
     reasons,
-    motivation: buildTaskMotivation(task.impact),
+    motivation: buildTaskMotivation(displayImpact),
   };
 }
 
@@ -241,7 +246,7 @@ export async function getPrimaryGoalFocus(): Promise<PrimaryGoalFocus | null> {
     task,
     remaining,
     progressPercent,
-    taskImpact: task?.impact ?? null,
+    taskImpact: task ? getDisplayableTaskImpact(task) : null,
   };
 }
 

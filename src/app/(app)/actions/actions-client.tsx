@@ -25,6 +25,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TaskRecommendationModal } from "@/components/feedback/task-recommendation-modal";
 import { TaskImpactPreview } from "@/components/tasks/task-impact-preview";
+import { TaskRecommendationContext } from "@/components/tasks/task-recommendation-context";
+import { getDisplayableTaskImpact } from "@/lib/finance/task-effect-eligibility";
 import { benefitLabel, importanceLabel } from "@/lib/copy/ui";
 
 function impactVariant(score: number): "danger" | "warning" | "success" | "default" {
@@ -68,6 +70,8 @@ function PrimaryActionCard({
   loadingId: string | null;
   onComplete: (id: string) => void;
 }) {
+  const displayImpact = getDisplayableTaskImpact(task);
+
   return (
     <Card className="border-accent/40 bg-accent/5 mb-6">
       <CardHeader>
@@ -90,11 +94,18 @@ function PrimaryActionCard({
             {task.description}
           </CardDescription>
         )}
-        {task.impact && (
+        {displayImpact && (
           <div className="mt-3">
-            <TaskImpactPreview impact={task.impact} />
+            <TaskImpactPreview impact={displayImpact} />
           </div>
         )}
+        <TaskRecommendationContext
+          title={task.title}
+          description={task.description}
+          explanation={task.explanation}
+          taskCategory={task.task_category}
+          className="mt-3"
+        />
       </CardHeader>
       <div className="px-5 pb-5 flex flex-wrap items-center gap-3">
         <span className="text-xs text-muted">
@@ -137,6 +148,7 @@ function TaskRow({
   onDelete: (id: string) => void;
 }) {
   const isDone = task.status === "done";
+  const displayImpact = getDisplayableTaskImpact(task);
 
   return (
     <div
@@ -168,7 +180,16 @@ function TaskRow({
           <p className="text-sm text-muted leading-relaxed">{task.description}</p>
         )}
         <GoalBadge task={task} />
-        {task.impact && <TaskImpactPreview impact={task.impact} />}
+        {displayImpact && (
+          <TaskImpactPreview impact={displayImpact} compact />
+        )}
+        <TaskRecommendationContext
+          title={task.title}
+          description={task.description}
+          explanation={task.explanation}
+          taskCategory={task.task_category}
+          compact
+        />
         <p className="text-xs text-muted">
           {formatHistoryDate(task.created_at.split("T")[0])}
           {task.due_date && ` · срок ${formatHistoryDate(task.due_date)}`}

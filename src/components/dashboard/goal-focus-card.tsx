@@ -7,6 +7,8 @@ import { HINTS } from "@/lib/copy/ui";
 import { GOAL_TYPE_LABELS } from "@/types/goals";
 import type { PrimaryGoalFocus } from "@/types/tasks";
 import { CompactTaskEffects } from "@/components/tasks/compact-task-effects";
+import { TaskRecommendationContext } from "@/components/tasks/task-recommendation-context";
+import { getDisplayableTaskImpact } from "@/lib/finance/task-effect-eligibility";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { Target } from "lucide-react";
 import Link from "next/link";
@@ -44,7 +46,9 @@ export function GoalFocusCard({ focus }: GoalFocusCardProps) {
   }
 
   const { goal, task, remaining, progressPercent, taskImpact } = focus;
-  const impact = taskImpact ?? task?.impact ?? null;
+  const rawImpact = taskImpact ?? task?.impact ?? null;
+  const impact =
+    task && rawImpact ? getDisplayableTaskImpact({ ...task, impact: rawImpact }) : null;
 
   return (
     <Card className="border-accent/30 bg-accent/5 !p-4">
@@ -91,6 +95,13 @@ export function GoalFocusCard({ focus }: GoalFocusCardProps) {
               <ExpandableText text={task.description} />
             )}
             {impact && <CompactTaskEffects impact={impact} />}
+            <TaskRecommendationContext
+              title={task.title}
+              description={task.description}
+              explanation={task.explanation}
+              taskCategory={task.task_category}
+              compact
+            />
           </div>
         ) : (
           <p className="text-xs text-muted">

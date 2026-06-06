@@ -24,6 +24,7 @@
 | 018 | `018_user_profiles_profile_type.sql` |
 | 019 | `019_quick_feedback.sql` |
 | 020 | `020_analytics_events.sql` |
+| 021 | `021_recommendation_rating_reasons.sql` |
 
 **Важно:** `013` меняет таблицу `feedback` из `012`. Если `012` ещё не выполняли — сначала `012`, затем `013`.
 

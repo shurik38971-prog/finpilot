@@ -277,14 +277,14 @@ export function AdminDashboardClient({
 
       <Card className="border-accent/30 bg-accent/5">
         <CardHeader>
-          <CardTitle className="text-base">Product Insights</CardTitle>
+          <CardTitle className="text-base">Инсайты</CardTitle>
           <CardDescription>
-            Action Success Rate, опросы после анализа и реактивация
+            Воронка, рекомендации, цели и сводка для владельца продукта
           </CardDescription>
         </CardHeader>
         <div className="px-5 pb-5">
           <Link href="/admin/insights">
-            <Button size="sm">Открыть Product Insights →</Button>
+            <Button size="sm">Открыть Инсайты →</Button>
           </Link>
         </div>
       </Card>

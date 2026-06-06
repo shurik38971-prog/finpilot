@@ -1,9 +1,9 @@
-import { getProductInsights } from "@/lib/actions/product-insights";
-import { ProductInsightsClient } from "./product-insights-client";
+import { getOwnerInsights } from "@/lib/actions/owner-insights";
+import { OwnerInsightsClient } from "./owner-insights-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductInsightsPage() {
-  const data = await getProductInsights(90);
-  return <ProductInsightsClient initialData={data} />;
+  const data = await getOwnerInsights(30);
+  return <OwnerInsightsClient initialData={data} />;
 }

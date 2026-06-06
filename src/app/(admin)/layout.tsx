@@ -37,7 +37,7 @@ export default async function AdminLayout({
               href="/admin/insights"
               className="text-muted hover:text-foreground transition-colors"
             >
-              Product Insights
+              Инсайты
             </Link>
           </nav>
           <span className="text-xs text-muted hidden sm:inline">

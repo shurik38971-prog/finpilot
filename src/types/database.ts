@@ -78,12 +78,43 @@ export interface DebtPayoffStep {
   interestPaid: number;
 }
 
+export interface DebtInputSnapshot {
+  id: string;
+  title: string;
+  initialBalance: number;
+  annualRatePercent: number;
+  monthlyRatePercent: number;
+  minimumPayment: number;
+  firstMonthInterest: number;
+}
+
+export interface DebtPayoffLedgerEntry {
+  month: number;
+  debtTitle: string;
+  paymentType: "minimum" | "extra";
+  balanceBefore: number;
+  interestAccrued: number;
+  paymentTotal: number;
+  paymentToInterest: number;
+  paymentToPrincipal: number;
+  balanceAfter: number;
+}
+
+export type DebtPayoffStatus = "complete" | "unpayable" | "max_months_reached";
+
 export interface DebtPayoffPlan {
   strategy: "avalanche" | "snowball";
   monthsToFreedom: number;
   totalInterest: number;
+  totalPaid: number;
   steps: DebtPayoffStep[];
+  ledger: DebtPayoffLedgerEntry[];
+  inputSnapshot: DebtInputSnapshot[];
+  extraPayment: number;
+  warnings: string[];
+  status: DebtPayoffStatus;
 }
+
 
 export interface ScenarioResult {
   name: string;

@@ -84,7 +84,7 @@ async function reconcileFromData(
     supabase
       .from("user_profiles")
       .select(
-        "profile_type, income_average_monthly, income_bad_month, income_good_month"
+        "profile_type, average_month_income, bad_month_income, good_month_income, income_average_monthly, income_bad_month, income_good_month"
       )
       .eq("user_id", userId)
       .maybeSingle(),
@@ -107,7 +107,9 @@ async function reconcileFromData(
       row.income_done ||
       (backfillFromData &&
         ((incomes.count ?? 0) > 0 ||
-          (profile.data?.income_average_monthly ?? 0) > 0)),
+          ((profile.data?.average_month_income ??
+            profile.data?.income_average_monthly ??
+            0) > 0))),
     expenses_done:
       row.expenses_done ||
       (backfillFromData && (expenses.count ?? 0) > 0),

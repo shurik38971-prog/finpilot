@@ -5,6 +5,13 @@ import { Card } from "@/components/ui/card";
 import { TrendingDown, TrendingUp, Wallet, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export interface VariableIncomeSummary {
+  actual: number;
+  expected: number;
+  gap: number;
+  comparisonLabel: string | null;
+}
+
 interface SummaryCardsProps {
   totalIncome: number;
   expectedIncome: number;
@@ -12,6 +19,7 @@ interface SummaryCardsProps {
   totalExpenses: number;
   netCashFlow: number;
   totalDebt: number;
+  variableIncome?: VariableIncomeSummary | null;
 }
 
 const cards = [
@@ -53,6 +61,7 @@ export function SummaryCards(props: SummaryCardsProps) {
         const { key, label, icon: Icon, color, getValue } = card;
         const subtitle = "subtitle" in card ? card.subtitle : undefined;
         const isDebt = key === "debt";
+        const variable = key === "income" ? props.variableIncome : null;
 
         return (
           <Card
@@ -74,33 +83,65 @@ export function SummaryCards(props: SummaryCardsProps) {
                 {subtitle && (
                   <p className="text-[11px] text-muted/80 mt-0.5">{subtitle}</p>
                 )}
-                <p
-                  className={cn(
-                    "font-bold mt-1 tabular-nums",
-                    key === "income" || key === "expenses"
-                      ? "text-xl sm:text-[1.35rem]"
-                      : "text-lg",
-                    key === "net" && getValue(props) < 0 && "text-red-400"
-                  )}
-                >
-                  {formatCurrency(getValue(props))}
-                </p>
-                {key === "income" && props.expectedIncome > 0 && (
-                  <p className="text-[11px] text-muted mt-0.5 truncate">
-                    Ожидалось: {formatCurrency(props.expectedIncome)}
-                  </p>
-                )}
-                {key === "income" && props.incomeComparison && (
-                  <p
-                    className={cn(
-                      "text-[11px] mt-0.5 truncate",
-                      props.incomeComparison.includes("ниже")
-                        ? "text-orange-400"
-                        : "text-emerald-400"
+
+                {variable ? (
+                  <div className="mt-1 space-y-1">
+                    <p className="text-xl sm:text-[1.35rem] font-bold tabular-nums">
+                      {formatCurrency(variable.actual)}
+                      <span className="text-sm font-medium text-muted">
+                        {" "}
+                        из {formatCurrency(variable.expected)}
+                      </span>
+                    </p>
+                    {variable.gap > 0 ? (
+                      <p className="text-[11px] text-muted">
+                        Осталось добрать: {formatCurrency(variable.gap)}
+                      </p>
+                    ) : null}
+                    {variable.comparisonLabel && (
+                      <p
+                        className={cn(
+                          "text-[11px] truncate",
+                          variable.comparisonLabel.includes("ниже")
+                            ? "text-orange-400"
+                            : "text-emerald-400"
+                        )}
+                      >
+                        {variable.comparisonLabel}
+                      </p>
                     )}
-                  >
-                    {props.incomeComparison}
-                  </p>
+                  </div>
+                ) : (
+                  <>
+                    <p
+                      className={cn(
+                        "font-bold mt-1 tabular-nums",
+                        key === "income" || key === "expenses"
+                          ? "text-xl sm:text-[1.35rem]"
+                          : "text-lg",
+                        key === "net" && getValue(props) < 0 && "text-red-400"
+                      )}
+                    >
+                      {formatCurrency(getValue(props))}
+                    </p>
+                    {key === "income" && props.expectedIncome > 0 && (
+                      <p className="text-[11px] text-muted mt-0.5 truncate">
+                        Ожидалось: {formatCurrency(props.expectedIncome)}
+                      </p>
+                    )}
+                    {key === "income" && props.incomeComparison && (
+                      <p
+                        className={cn(
+                          "text-[11px] mt-0.5 truncate",
+                          props.incomeComparison.includes("ниже")
+                            ? "text-orange-400"
+                            : "text-emerald-400"
+                        )}
+                      >
+                        {props.incomeComparison}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
               <div

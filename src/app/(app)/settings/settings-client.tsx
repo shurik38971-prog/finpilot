@@ -1,7 +1,9 @@
 "use client";
 
 import { FinancialProfileSettings } from "@/components/settings/financial-profile-settings";
+import { IncomeExpectationsSettings } from "@/components/settings/income-expectations-settings";
 import { PageHeader } from "@/components/layout/page-header";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
 import type { ProfileType } from "@/types/profile";
 import {
   clearAnalysisHistory,
@@ -35,8 +37,10 @@ const FULL_RESET_CONFIRM_TEXT = "УДАЛИТЬ ВСЁ";
 
 export function SettingsPageClient({
   profileType,
+  profileIncome,
 }: {
   profileType: ProfileType;
+  profileIncome: ProfileIncomeParameters;
 }) {
   const router = useRouter();
   const [modalAction, setModalAction] = useState<ModalAction>(null);
@@ -135,6 +139,11 @@ export function SettingsPageClient({
       />
 
       <FinancialProfileSettings currentProfileType={profileType} />
+
+      <IncomeExpectationsSettings
+        profileType={profileType}
+        initialParams={profileIncome}
+      />
 
       <Card className="mb-6">
         <CardHeader>

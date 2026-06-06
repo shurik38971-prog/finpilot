@@ -8,6 +8,7 @@ import {
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import { PROFILE_INDEX_WEIGHTS } from "@/lib/profile/financial-profile";
 import {
+  getVariableIncomeComparisonLabel,
   hasProfileIncomeParameters,
   type ProfileIncomeParameters,
 } from "@/types/profile-income";
@@ -240,7 +241,7 @@ export function computeDashboardSummary(
   const expectedIncome = profileExpected ?? summary.expectedIncome;
   const incomeComparison =
     profileExpected !== null
-      ? getIncomeComparisonMessage(summary.totalIncome, profileExpected)
+      ? getVariableIncomeComparisonLabel(summary.totalIncome, profileIncome)
       : summary.incomeComparison;
 
   return {

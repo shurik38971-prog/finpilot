@@ -60,9 +60,9 @@ async function resetUserProfileType(
     .from("user_profiles")
     .update({
       profile_type: null,
-      income_average_monthly: null,
-      income_bad_month: null,
-      income_good_month: null,
+      average_month_income: null,
+      bad_month_income: null,
+      good_month_income: null,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);

@@ -47,8 +47,11 @@ function buildAnalysisPrompt(context: Awaited<ReturnType<typeof getAnalysisConte
 Проанализируй финансовые данные пользователя.
 Тип пользователя: ${context.profileTypeLabel}
 Учитывай профиль при рекомендациях, задачах, следующем лучшем действии и оценке финансового здоровья.
-Учти: actualMonthlyIncome — факт за месяц, expectedMonthlyIncome — ожидание,
-averageActualIncome3Months — средний факт за 3 месяца, incomeVsExpectedDelta — разница.
+Учти: actualMonthlyIncome / actual_income_current_month — фактические поступления за месяц.
+expectedMonthlyIncome / average_month_income — ожидаемый средний месяц (не сумма поступлений).
+bad_month_income и good_month_income — сценарии плохого и хорошого месяца.
+income_gap = average_month_income - actual_income_current_month (сколько не хватает до обычного месяца).
+Плановые ожидания дохода — это не доходы. Доходы — только фактические поступления.
 ${JSON.stringify(context, null, 2)}
 
 Ответь строго в JSON формате:

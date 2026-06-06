@@ -38,7 +38,7 @@ export async function getProfileIncomeParameters(): Promise<ProfileIncomeParamet
     const { data, error } = await supabase
       .from("user_profiles")
       .select(
-        "income_average_monthly, income_bad_month, income_good_month"
+        "average_month_income, bad_month_income, good_month_income, income_average_monthly, income_bad_month, income_good_month"
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -59,9 +59,9 @@ export async function saveProfileIncomeParameters(
   const { error } = await supabase.from("user_profiles").upsert(
     {
       user_id: userId,
-      income_average_monthly: params.averageMonthly,
-      income_bad_month: params.badMonth,
-      income_good_month: params.goodMonth,
+      average_month_income: params.averageMonthly,
+      bad_month_income: params.badMonth,
+      good_month_income: params.goodMonth,
       updated_at: now,
     },
     { onConflict: "user_id" }
@@ -76,9 +76,9 @@ export async function clearProfileIncomeParameters(): Promise<void> {
   const { error } = await supabase
     .from("user_profiles")
     .update({
-      income_average_monthly: null,
-      income_bad_month: null,
-      income_good_month: null,
+      average_month_income: null,
+      bad_month_income: null,
+      good_month_income: null,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);

@@ -58,8 +58,8 @@ export function IncomeStep({
     const form = new FormData(e.currentTarget);
     try {
       await saveWizardVariableIncome({
-        average: Number(form.get("average")),
         badMonth: Number(form.get("badMonth")),
+        averageMonth: Number(form.get("averageMonth")),
         goodMonth: Number(form.get("goodMonth")),
       });
       onComplete();
@@ -108,7 +108,7 @@ export function IncomeStep({
           {profileType === PROFILE_TYPES.employee
             ? "Укажите зарплату и как часто приходят выплаты"
             : usesVariableIncome(profileType)
-              ? "Оцените средний доход и разброс по месяцам"
+              ? "Укажите типичный доход в плохой, средний и хороший месяц — это ожидания, не фактические поступления"
               : profileType === PROFILE_TYPES.retiree
                 ? "Укажите размер пенсии"
                 : "Укажите средний месячный доход бизнеса"}
@@ -144,31 +144,31 @@ export function IncomeStep({
       {usesVariableIncome(profileType) && (
         <form onSubmit={handleVariableSubmit} className="space-y-4">
           <Input
-            id="average"
-            name="average"
-            label="Средний доход в месяц (₽)"
-            type="number"
-            min="1"
-            required
-            placeholder="120000"
-          />
-          <Input
             id="badMonth"
             name="badMonth"
-            label="Плохой месяц (₽)"
+            label="Сколько обычно получается в плохой месяц? (₽)"
             type="number"
             min="0"
             required
-            placeholder="60000"
+            placeholder="50000"
+          />
+          <Input
+            id="averageMonth"
+            name="averageMonth"
+            label="Сколько обычно получается в средний месяц? (₽)"
+            type="number"
+            min="1"
+            required
+            placeholder="80000"
           />
           <Input
             id="goodMonth"
             name="goodMonth"
-            label="Хороший месяц (₽)"
+            label="Сколько обычно получается в хороший месяц? (₽)"
             type="number"
             min="1"
             required
-            placeholder="180000"
+            placeholder="120000"
           />
           {error && <p className="text-sm text-red-400">{error}</p>}
           <Button type="submit" className="w-full h-12" disabled={loading}>

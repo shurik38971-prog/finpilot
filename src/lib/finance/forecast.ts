@@ -73,14 +73,15 @@ export function forecastCashFlow(
   let cumulative = 0;
   const baseIncome = incomeModel.baseMonthlyIncome;
   const scenarios = incomeModel.scenarios;
-  const range = incomeModel.incomeRange;
 
-  const conservativeIncome =
-    scenarios?.find((item) => item.label === "Консервативный")?.monthlyIncome ??
-    range?.bad;
-  const optimisticIncome =
-    scenarios?.find((item) => item.label === "Оптимистичный")?.monthlyIncome ??
-    range?.good;
+  const conservativeIncome = scenarios?.find(
+    (item) =>
+      item.label === "Плохой" || item.label === "Консервативный"
+  )?.monthlyIncome;
+  const optimisticIncome = scenarios?.find(
+    (item) =>
+      item.label === "Хороший" || item.label === "Оптимистичный"
+  )?.monthlyIncome;
 
   for (let m = 0; m < months; m += 1) {
     const monthDate = startOfMonth(addMonths(now, m));

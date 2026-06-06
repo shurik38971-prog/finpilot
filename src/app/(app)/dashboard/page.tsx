@@ -17,8 +17,12 @@ import { getOnboardingProgress } from "@/lib/actions/onboarding";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { computeProfileDashboardStats } from "@/lib/profile/dashboard-stats";
 import { computeProfileReadiness } from "@/lib/profile/profile-readiness";
-import { hasProfileIncomeParameters } from "@/types/profile-income";
-import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
+import {
+  getIncomeGap,
+  getVariableIncomeComparisonLabel,
+  hasProfileIncomeParameters,
+} from "@/types/profile-income";
+import { DEFAULT_PROFILE_TYPE, usesVariableIncome } from "@/types/profile";
 import {
   getNextBestAction,
   getPrimaryGoalFocus,
@@ -136,6 +140,19 @@ export default async function DashboardPage() {
         )
       : null;
 
+  const variableIncome =
+    usesVariableIncome(profileType) && hasProfileIncomeParameters(profileIncome)
+      ? {
+          actual: totalIncome,
+          expected: expectedIncome,
+          gap: Math.max(0, getIncomeGap(totalIncome, profileIncome) ?? 0),
+          comparisonLabel: getVariableIncomeComparisonLabel(
+            totalIncome,
+            profileIncome
+          ),
+        }
+      : null;
+
   return (
     <DashboardAutoRefresh>
       <div>
@@ -165,6 +182,7 @@ export default async function DashboardPage() {
             totalExpenses={totalExpenses}
             netCashFlow={netCashFlow}
             totalDebt={totalDebt}
+            variableIncome={variableIncome}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,35fr)_minmax(0,65fr)] gap-4 items-stretch">

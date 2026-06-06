@@ -2,6 +2,7 @@ import type { Income } from "@/types/database";
 
 export const PROFILE_PARAMETER_INCOME_TITLES = new Set([
   "Средний доход",
+  "Средний месяц",
   "Плохой месяц",
   "Хороший месяц",
 ]);

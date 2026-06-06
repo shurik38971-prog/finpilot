@@ -20,18 +20,11 @@ export interface ForecastScenario {
   monthlyIncome: number;
 }
 
-export interface ForecastIncomeRange {
-  bad: number;
-  average: number;
-  good: number;
-}
-
 export interface ForecastIncomeModel {
   insufficientData: boolean;
   basisLabel: string;
   baseMonthlyIncome: number;
   scenarios?: ForecastScenario[];
-  incomeRange?: ForecastIncomeRange;
 }
 
 function recurringExpectedMonthlyTotal(incomes: Income[]): number {
@@ -46,40 +39,17 @@ function variableIncomeFromProfile(
   const average = profileIncome.averageMonthly ?? 0;
   if (average <= 0) return null;
 
-  const range: ForecastIncomeRange = {
-    average,
-    bad: profileIncome.badMonth ?? Math.round(average * 0.7),
-    good: profileIncome.goodMonth ?? Math.round(average * 1.3),
-  };
+  const bad = profileIncome.badMonth ?? Math.round(average * 0.7);
+  const good = profileIncome.goodMonth ?? Math.round(average * 1.3);
 
   return {
     insufficientData: false,
-    basisLabel: `На основании параметров профиля: средний ${formatCurrency(average)}/мес · диапазон ${formatCurrency(range.bad)} – ${formatCurrency(range.good)}`,
+    basisLabel: `Базовый сценарий: ${formatCurrency(average)}/мес · плохой ${formatCurrency(bad)} · хороший ${formatCurrency(good)}`,
     baseMonthlyIncome: average,
-    incomeRange: range,
-  };
-}
-
-function freelancerIncomeFromProfile(
-  profileIncome: ProfileIncomeParameters
-): ForecastIncomeModel | null {
-  const base = profileIncome.averageMonthly ?? 0;
-  if (base <= 0) return null;
-
-  const conservative =
-    profileIncome.badMonth ?? Math.round(base * 0.75);
-  const optimistic =
-    profileIncome.goodMonth ?? Math.round(base * 1.25);
-
-  return {
-    insufficientData: false,
-    basisLabel:
-      "На основании параметров профиля: консервативный, базовый и оптимистичный сценарии",
-    baseMonthlyIncome: base,
     scenarios: [
-      { label: "Консервативный", monthlyIncome: conservative },
-      { label: "Базовый", monthlyIncome: base },
-      { label: "Оптимистичный", monthlyIncome: optimistic },
+      { label: "Плохой", monthlyIncome: bad },
+      { label: "Базовый", monthlyIncome: average },
+      { label: "Хороший", monthlyIncome: good },
     ],
   };
 }
@@ -126,22 +96,10 @@ export function resolveProfileForecastIncome(
       };
     }
 
-    case PROFILE_TYPES.self_employed: {
-      const fromProfile = profileIncome
-        ? variableIncomeFromProfile(profileIncome)
-        : null;
-      if (fromProfile) return fromProfile;
-
-      return {
-        insufficientData: true,
-        basisLabel: FORECAST_INSUFFICIENT_MESSAGE,
-        baseMonthlyIncome: 0,
-      };
-    }
-
+    case PROFILE_TYPES.self_employed:
     case PROFILE_TYPES.freelancer: {
       const fromProfile = profileIncome
-        ? freelancerIncomeFromProfile(profileIncome)
+        ? variableIncomeFromProfile(profileIncome)
         : null;
       if (fromProfile) return fromProfile;
 

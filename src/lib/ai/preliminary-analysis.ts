@@ -1,10 +1,12 @@
 import type { AnalysisDataMaturity } from "@/lib/finance/analysis-data-maturity";
 import type { AiAnalysisResult, NextBestAction } from "@/types/analysis";
-import { isForbiddenRecommendation, type AnalysisDataFlags } from "@/lib/ai/analysis-guardrails";
+import {
+  isForbiddenRecommendation,
+  type AnalysisDataFlags,
+} from "@/lib/ai/analysis-guardrails";
 
 const PRELIMINARY_FORBIDDEN_PATTERNS = [
   /подработк/i,
-  /дополнительн\w*\s+доход/i,
   /увелич\w*\s+доход/i,
   /срочно.*доход/i,
   /найти.*доход/i,
@@ -20,6 +22,10 @@ const PRELIMINARY_FORBIDDEN_PATTERNS = [
   /работодател/i,
   /сч[её]т/i,
   /просроч/i,
+  /добавьте\s+реальн/i,
+  /реальные\s+доходы/i,
+  /реальные\s+финансовые\s+операции/i,
+  /зарплат\w*\s+не\s+получен/i,
 ];
 
 function matchesPreliminaryForbidden(text: string): boolean {
@@ -34,24 +40,11 @@ export function isPreliminaryForbiddenRecommendation(text: string): boolean {
   return matchesPreliminaryForbidden(text);
 }
 
-function pickPreliminaryNextStep(
-  maturity: AnalysisDataMaturity
-): NextBestAction {
-  if (maturity.operationCount < 5) {
-    return {
-      title: "Добавьте реальные доходы и расходы за текущий месяц",
-      description:
-        "Пока в системе только примерные данные из регистрации. Реальные операции помогут точнее оценить ситуацию.",
-      impact_score: 60,
-      impact_label: "Заметно поможет",
-      due_days: 7,
-    };
-  }
-
+function pickPreliminaryNextStep(): NextBestAction {
   return {
     title: "Продолжайте вести учёт финансов для повышения точности анализа",
     description:
-      "Чем больше реальных доходов и расходов вы фиксируете, тем точнее станут рекомендации FinPilot.",
+      "Данные из регистрации уже учтены. Добавляйте новые доходы и расходы по мере их появления — так прогноз станет точнее.",
     impact_score: 55,
     impact_label: "Немного поможет",
     due_days: 14,
@@ -62,12 +55,12 @@ const SOFT_ACTIONS = [
   {
     priority: "medium" as const,
     action: "Следите за расходами в течение месяца",
-    effect: "Поможет увидеть реальную картину трат, а не только примерные суммы.",
+    effect: "Поможет сравнить план из регистрации с реальными тратами.",
   },
   {
     priority: "medium" as const,
-    action: "Регулярно фиксируйте доходы",
-    effect: "Особенно важно при нестабильном доходе — так прогноз станет точнее.",
+    action: "Добавляйте новые доходы и расходы по мере их появления",
+    effect: "FinPilot постепенно перейдёт от данных регистрации к вашей истории.",
   },
   {
     priority: "low" as const,
@@ -84,26 +77,26 @@ const SOFT_ACTIONS = [
 function softenSummary(summary: string | undefined): string {
   const base =
     summary?.trim() ||
-    "По примерным данным из регистрации видна общая картина доходов и расходов.";
+    "По данным из регистрации видна общая картина доходов и расходов.";
 
   if (matchesPreliminaryForbidden(base)) {
-    return "Это предварительная оценка на основе данных, которые вы указали при регистрации. Точность вырастет, когда появится реальная история операций.";
+    return "Это предварительная оценка на основе данных, которые вы указали при регистрации. FinPilot уже использует их в расчётах.";
   }
 
-  return `${base} Это предварительная оценка — рекомендации станут точнее после накопления реальной финансовой истории.`;
+  return `${base} Это предварительная оценка на данных регистрации — точность вырастет по мере ведения учёта.`;
 }
 
 function softenThreat(threat: string | undefined): string {
   if (!threat || matchesPreliminaryForbidden(threat)) {
-    return "Пока в системе мало реальных данных, поэтому выводы носят ориентировочный характер. Сфокусируйтесь на учёте доходов и расходов в ближайшие недели.";
+    return "На основе введённых при регистрации данных можно увидеть общую картину. Для более точных выводов продолжайте фиксировать новые операции.";
   }
 
-  return `${threat} Пока это предварительная оценка — не стоит воспринимать её как срочную директиву.`;
+  return `${threat} Это ориентир по данным регистрации, а не срочная директива.`;
 }
 
 export function applyPreliminaryAnalysis(
   parsed: AiAnalysisResult,
-  maturity: AnalysisDataMaturity,
+  _maturity: AnalysisDataMaturity,
   flags: AnalysisDataFlags
 ): AiAnalysisResult {
   const filterText = (text: string) =>
@@ -132,7 +125,7 @@ export function applyPreliminaryAnalysis(
     !filterText(nextBest.title) ||
     !filterText(nextBest.description ?? "")
   ) {
-    nextBest = pickPreliminaryNextStep(maturity);
+    nextBest = pickPreliminaryNextStep();
   } else {
     nextBest = {
       ...nextBest,
@@ -146,7 +139,7 @@ export function applyPreliminaryAnalysis(
     summary: softenSummary(parsed.summary),
     health_explanation:
       parsed.health_explanation?.trim() ||
-      "Оценка построена на примерных данных. Для точных выводов нужна история реальных операций.",
+      "Оценка построена на данных, которые вы указали при регистрации.",
     main_threat: softenThreat(parsed.main_threat),
     money_leaks: moneyLeaks,
     plan_7_days:
@@ -154,8 +147,9 @@ export function applyPreliminaryAnalysis(
         ? plan7
         : [
             {
-              action: "Добавьте реальные финансовые операции за текущий месяц",
-              why: "Это главный шаг для перехода от предварительной оценки к точному анализу.",
+              action:
+                "Продолжайте вести учёт финансов для повышения точности анализа",
+              why: "Данные регистрации уже учтены — новые операции сделают прогноз точнее.",
             },
           ],
     plan_30_days: plan30,
@@ -182,18 +176,13 @@ export function applyPreliminaryAnalysis(
 
 export const PRELIMINARY_SOFT_TASKS = [
   {
-    title: "Добавьте реальные доходы за текущий месяц",
-    description:
-      "Отметьте фактические поступления — так FinPilot перейдёт от примерной оценки к анализу по реальным данным.",
-  },
-  {
-    title: "Отметьте расходы за текущий месяц",
-    description:
-      "Зафиксируйте все траты, включая мелкие — это повысит точность рекомендаций.",
-  },
-  {
     title: "Продолжайте вести учёт финансов",
     description:
-      "Регулярные записи в течение 3–4 недель заметно улучшают качество анализа.",
+      "Данные из регистрации уже учтены. Добавляйте новые доходы и расходы по мере их появления.",
+  },
+  {
+    title: "Следите за расходами в течение месяца",
+    description:
+      "Сравните плановые траты из регистрации с тем, что происходит на самом деле.",
   },
 ] as const;

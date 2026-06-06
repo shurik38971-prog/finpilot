@@ -1,8 +1,12 @@
 import { isDateInMonth } from "@/lib/finance/date-utils";
-import { actualIncomeInMonth } from "@/lib/finance/income-model";
+import {
+  actualIncomeInMonth,
+  resolveIncomeType,
+} from "@/lib/finance/income-model";
 import {
   filterAdditionalIncomes,
   filterOperationalIncomes,
+  isPrimaryIncome,
 } from "@/lib/finance/operational-incomes";
 import { resolveProfileExpectedIncome } from "@/lib/finance/profile-expected-income";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
@@ -15,6 +19,22 @@ export interface MonthlyIncomeBreakdown {
   additionalIncome: number;
   monthlyIncome: number;
   actualAdditionalIncome: number;
+  actualPrimaryIncome: number;
+  usesOnboardingBaseline: boolean;
+}
+
+function actualPrimaryIncomeInMonth(
+  incomes: Income[],
+  month: Date = new Date()
+): number {
+  return filterOperationalIncomes(incomes)
+    .filter(
+      (income) =>
+        isPrimaryIncome(income) &&
+        resolveIncomeType(income) === "actual" &&
+        isDateInMonth(income.date, month)
+    )
+    .reduce((sum, income) => sum + income.amount, 0);
 }
 
 export function additionalIncomeInMonth(
@@ -58,14 +78,19 @@ export function resolveMonthlyIncome(
   month: Date = new Date()
 ): MonthlyIncomeBreakdown {
   const operational = filterOperationalIncomes(incomes);
-  const primaryIncome =
-    resolveProfileExpectedIncome(profileType, operational, profileIncome, month) ??
-    0;
+  const profilePrimary =
+    resolveProfileExpectedIncome(
+      profileType,
+      operational,
+      profileIncome,
+      month
+    ) ?? 0;
   const additionalIncome = additionalIncomeInMonth(operational, month);
   const actualAdditionalIncome = actualAdditionalIncomeInMonth(
     operational,
     month
   );
+  const loggedPrimaryActual = actualPrimaryIncomeInMonth(operational, month);
 
   if (profileIncome?.useActualIncomeOnly) {
     const actualAll = actualIncomeInMonth(operational, month);
@@ -74,14 +99,22 @@ export function resolveMonthlyIncome(
       additionalIncome: actualAll,
       monthlyIncome: actualAll,
       actualAdditionalIncome: actualAll,
+      actualPrimaryIncome: loggedPrimaryActual,
+      usesOnboardingBaseline: false,
     };
   }
+
+  const hasLoggedPrimary = loggedPrimaryActual > 0;
+  const primaryIncome = hasLoggedPrimary ? loggedPrimaryActual : profilePrimary;
+  const usesOnboardingBaseline = !hasLoggedPrimary && profilePrimary > 0;
 
   return {
     primaryIncome,
     additionalIncome,
     monthlyIncome: primaryIncome + additionalIncome,
     actualAdditionalIncome,
+    actualPrimaryIncome: loggedPrimaryActual,
+    usesOnboardingBaseline,
   };
 }
 

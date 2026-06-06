@@ -15,6 +15,7 @@ import {
   usesVariableIncome,
   type ProfileType,
 } from "@/types/profile";
+import { OnboardingImportantNotice } from "@/components/onboarding/onboarding-important-notice";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
@@ -212,6 +213,8 @@ export function IncomeStep({
 
   return (
     <div className="space-y-5">
+      <OnboardingImportantNotice />
+
       <div>
         <h2 className="text-xl font-semibold">Ваш основной доход</h2>
         <p className="text-sm text-muted mt-1">

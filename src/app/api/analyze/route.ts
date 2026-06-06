@@ -59,10 +59,11 @@ function buildAnalysisPrompt(
 ${guardrailRules}
 Тип пользователя: ${context.profileTypeLabel}
 Учитывай профиль при рекомендациях, задачах, следующем лучшем действии и оценке финансового здоровья.
-Учти: monthlyIncome / planningMonthlyIncome — основной доход из профиля + дополнительные доходы месяца.
-primaryMonthlyIncome — зарплата, пенсия, базовый доход самозанятого или средний доход бизнеса из онбординга.
-additionalMonthlyIncome — подработка, аренда, премии и другие доп. источники.
-actualMonthlyIncome — только дополнительные поступления, уже отмеченные в этом месяце (не уменьшай monthlyIncome, если зарплата указана в профиле).
+currentIncome / monthlyIncome / planningMonthlyIncome — доход месяца для анализа. Если usesOnboardingBaseline=true, это данные из регистрации и они считаются реальными.
+primaryMonthlyIncome — зарплата, пенсия, базовый доход самозанятого или средний доход бизнеса.
+additionalMonthlyIncome — дополнительные источники сверх основного дохода.
+actualMonthlyIncome — фактические поступления, если пользователь их уже отметил; иначе равен currentIncome из регистрации.
+НЕ рекомендуй «добавить реальные доходы», если currentIncome > 0 и usesOnboardingBaseline=true.
 НЕ рекомендуй «связаться с работодателем» или «вы не получили зарплату», если primaryMonthlyIncome > 0.
 expectedMonthlyIncome — то же, что primaryMonthlyIncome.
 average_month_income / expected_monthly_income — базовый сценарий (обычный месяц): среднее между плохим и хорошим месяцем, либо среднее за последние 3 месяца по истории.
@@ -174,6 +175,7 @@ export async function POST(_req: Request) {
       profileType: context.profileType,
       primaryMonthlyIncome: context.primaryMonthlyIncome ?? 0,
       isPreliminary: maturity.isPreliminary,
+      hasOnboardingBaseline: maturity.hasOnboardingBaseline,
     });
     const guardrailRules = buildAnalysisGuardrailRules(dataFlags);
 
@@ -213,6 +215,7 @@ export async function POST(_req: Request) {
       ...parsed,
       analysis_mode: maturity.mode,
       confidence_level: maturity.confidence,
+      data_source: maturity.dataSource,
       next_step_label: maturity.isPreliminary
         ? "Следующий шаг"
         : "Следующее действие",

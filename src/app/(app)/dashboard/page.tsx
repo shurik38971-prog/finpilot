@@ -3,6 +3,7 @@ import { DashboardAutoRefresh } from "@/components/dashboard/dashboard-auto-refr
 import { DemoDataBanner } from "@/components/dashboard/demo-data-banner";
 import { FinancialIndexGauge } from "@/components/dashboard/financial-index-gauge";
 import { GoalFocusCard } from "@/components/dashboard/goal-focus-card";
+import { AnalysisDataSourceBadge } from "@/components/analysis/analysis-confidence-badge";
 import { PreliminaryAnalysisBanner } from "@/components/analysis/preliminary-analysis-banner";
 import { NextBestActionCard } from "@/components/dashboard/next-best-action-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
@@ -159,7 +160,12 @@ export default async function DashboardPage() {
 
           <ProfileReadinessWidget readiness={profileReadiness} />
 
-          {analysisMaturity?.isPreliminary && <PreliminaryAnalysisBanner />}
+          {analysisMaturity?.isPreliminary && (
+            <>
+              <PreliminaryAnalysisBanner />
+              <AnalysisDataSourceBadge dataSource={analysisMaturity.dataSource} />
+            </>
+          )}
 
           <NextBestActionCard
             action={nextBestAction}

@@ -293,17 +293,27 @@ export async function getAnalysisContext() {
     incomes,
     profileIncome
   );
+  const hasLoggedIncomeThisMonth =
+    incomeBreakdown.actualPrimaryIncome > 0 ||
+    incomeBreakdown.actualAdditionalIncome > 0;
 
   return {
     profileType,
     profileTypeLabel: PROFILE_TYPE_LABELS[profileType],
-    actualMonthlyIncome: summary.totalIncome,
+    currentIncome: incomeBreakdown.monthlyIncome,
+    actualMonthlyIncome: hasLoggedIncomeThisMonth
+      ? incomeBreakdown.actualPrimaryIncome +
+        incomeBreakdown.actualAdditionalIncome
+      : incomeBreakdown.monthlyIncome,
     expectedMonthlyIncome: summary.expectedIncome,
     primaryMonthlyIncome: incomeBreakdown.primaryIncome,
     additionalMonthlyIncome: incomeBreakdown.additionalIncome,
     planningMonthlyIncome: incomeBreakdown.monthlyIncome,
+    usesOnboardingBaseline: incomeBreakdown.usesOnboardingBaseline,
     averageActualIncome3Months: summary.averageActualIncome3Months,
-    incomeVsExpectedDelta: summary.totalIncome - summary.expectedIncome,
+    incomeVsExpectedDelta: hasLoggedIncomeThisMonth
+      ? incomeBreakdown.monthlyIncome - summary.expectedIncome
+      : null,
     ...variableIncomeContext,
     monthlyIncome: incomeBreakdown.monthlyIncome,
     monthlyExpenses: summary.totalExpenses,

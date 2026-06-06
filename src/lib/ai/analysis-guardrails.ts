@@ -12,6 +12,7 @@ export interface AnalysisDataFlags {
   hasEmployerSalaryIssues: boolean;
   isFirstAnalysis: boolean;
   isPreliminary: boolean;
+  hasOnboardingBaseline: boolean;
   subscriptionExpensesTotal: number;
   savingsCushionAmount: number;
   expenseBreakdown: Array<{
@@ -66,6 +67,12 @@ export function isForbiddenRecommendation(
 
   if (flags.subscriptionExpensesTotal === 0 && /подписк/i.test(normalized)) {
     return true;
+  }
+
+  if (flags.hasOnboardingBaseline) {
+    if (/добавьте\s+реальн/i.test(normalized)) return true;
+    if (/реальные\s+доходы/i.test(normalized)) return true;
+    if (/зарплат\w*\s+не\s+получен/i.test(normalized)) return true;
   }
 
   return false;
@@ -183,12 +190,19 @@ export function buildAnalysisGuardrailRules(flags: AnalysisDataFlags): string {
     );
   }
 
+  if (flags.hasOnboardingBaseline) {
+    lines.push(
+      "- Данные из регистрации УЖЕ считаются реальными исходными. currentIncome / monthlyIncome — это доход месяца из регистрации.",
+      "- ЗАПРЕЩЕНО просить «добавить реальные доходы» или писать, что доход не указан, если currentIncome > 0."
+    );
+  }
+
   if (flags.isPreliminary) {
     lines.push(
-      "- РЕЖИМ ПРЕДВАРИТЕЛЬНОЙ ОЦЕНКИ. Данных мало — не давай жёстких или срочных советов.",
+      "- РЕЖИМ ПРЕДВАРИТЕЛЬНОЙ ОЦЕНКИ. Не давай жёстких или срочных советов.",
       "- ЗАПРЕЩЕНО: найти подработку, увеличить доход на конкретную сумму, связаться с заказчиком/работодателем, взять кредит, рефинансировать долг.",
-      "- РАЗРЕШЕНО: следить за расходами, фиксировать доходы, формировать подушку, добавлять реальные операции, отмечать обязательные платежи.",
-      "- next_best_action должен быть мягким шагом по учёту данных, а не срочным финансовым решением."
+      "- РАЗРЕШЕНО: следить за расходами, добавлять новые операции по мере появления, формировать подушку, отмечать обязательные платежи.",
+      "- next_best_action: мягкий шаг про продолжение учёта, а не повторный ввод дохода из регистрации."
     );
   }
 
@@ -301,6 +315,7 @@ export function buildAnalysisDataFlags(input: {
   profileType: string;
   primaryMonthlyIncome: number;
   isPreliminary?: boolean;
+  hasOnboardingBaseline?: boolean;
 }): AnalysisDataFlags {
   const expenseBreakdown = input.expenses
     .filter((expense) => expense.amount > 0)
@@ -324,6 +339,7 @@ export function buildAnalysisDataFlags(input: {
     hasEmployerSalaryIssues: false,
     isFirstAnalysis: input.analysisCount <= 1,
     isPreliminary: input.isPreliminary ?? false,
+    hasOnboardingBaseline: input.hasOnboardingBaseline ?? false,
     subscriptionExpensesTotal,
     savingsCushionAmount: cushionGoal?.current_amount ?? 0,
     expenseBreakdown,

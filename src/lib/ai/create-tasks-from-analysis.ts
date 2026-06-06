@@ -236,6 +236,7 @@ export async function createTasksFromAnalysis(
     profileType,
     primaryMonthlyIncome: 0,
     isPreliminary: parsed.analysis_mode === "preliminary",
+    hasOnboardingBaseline: parsed.data_source === "registration",
   });
 
   const isPreliminary = parsed.analysis_mode === "preliminary";

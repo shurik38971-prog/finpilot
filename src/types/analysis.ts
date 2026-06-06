@@ -1,12 +1,13 @@
 import type {
   AnalysisConfidence,
+  AnalysisDataSource,
   AnalysisMode,
 } from "@/lib/finance/analysis-data-maturity";
 
 export type AnalysisLevel = "high" | "medium" | "low";
 export type HealthStatus = "good" | "bad" | "critical";
 
-export type { AnalysisConfidence, AnalysisMode };
+export type { AnalysisConfidence, AnalysisDataSource, AnalysisMode };
 
 export interface AnalysisPlanItem {
   action: string;
@@ -52,6 +53,7 @@ export interface AiAnalysisResult {
   risks?: { level: AnalysisLevel; title: string; description: string }[];
   analysis_mode?: AnalysisMode;
   confidence_level?: AnalysisConfidence;
+  data_source?: AnalysisDataSource;
   next_step_label?: string;
 }
 

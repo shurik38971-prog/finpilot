@@ -15,7 +15,7 @@ import type {
   AnalysisPlanItem,
   HealthStatus,
 } from "@/types/analysis";
-import { AnalysisConfidenceBadge } from "@/components/analysis/analysis-confidence-badge";
+import { AnalysisDataSourceBadge } from "@/components/analysis/analysis-confidence-badge";
 import { PreliminaryAnalysisBanner } from "@/components/analysis/preliminary-analysis-banner";
 import { AnalysisDisclaimer } from "@/components/early-access/analysis-disclaimer";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -191,8 +191,8 @@ export function AnalyzePageClient({
             <PreliminaryAnalysisBanner />
           )}
 
-          {result.confidence_level && (
-            <AnalysisConfidenceBadge confidence={result.confidence_level} />
+          {result.data_source && (
+            <AnalysisDataSourceBadge dataSource={result.data_source} />
           )}
 
           {result.next_best_action?.title && (

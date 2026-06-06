@@ -64,13 +64,13 @@ export function OnboardingChecklist({ progress }: OnboardingChecklistProps) {
 
   if (progress.completed && collapsed) {
     return (
-      <Card className="border-emerald-500/20 bg-emerald-500/5">
+      <Card className="border-emerald-500/20 bg-emerald-500/5 !p-0 max-h-12 overflow-hidden">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          className="flex w-full items-center justify-between gap-3 p-5 text-left"
+          className="flex w-full h-12 items-center justify-between gap-3 px-4 text-left"
         >
-          <span className="flex items-center gap-2 text-sm font-medium text-emerald-400">
+          <span className="flex items-center gap-2 text-sm font-medium text-emerald-400 truncate">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             Настройка завершена
           </span>

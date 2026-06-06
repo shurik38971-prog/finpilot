@@ -93,13 +93,23 @@ async function reconcileFromData(
     supabase.from("analyses").select("id", { count: "exact", head: true }).eq("user_id", userId),
   ]);
 
+  const backfillFromData = row.completed;
+
   const next = {
     profile_done: row.profile_done || Boolean(profile.data?.profile_type),
-    income_done: row.income_done || (incomes.count ?? 0) > 0,
-    expenses_done: row.expenses_done || (expenses.count ?? 0) > 0,
-    debts_done: row.debts_done || (debts.count ?? 0) > 0,
-    goal_done: row.goal_done || (goals.count ?? 0) > 0,
-    analysis_done: row.analysis_done || (analyses.count ?? 0) > 0,
+    income_done:
+      row.income_done ||
+      (backfillFromData && (incomes.count ?? 0) > 0),
+    expenses_done:
+      row.expenses_done ||
+      (backfillFromData && (expenses.count ?? 0) > 0),
+    debts_done:
+      row.debts_done || (backfillFromData && (debts.count ?? 0) > 0),
+    goal_done:
+      row.goal_done || (backfillFromData && (goals.count ?? 0) > 0),
+    analysis_done:
+      row.analysis_done ||
+      (backfillFromData && (analyses.count ?? 0) > 0),
   };
 
   const completed = isAllStepsDone(next);

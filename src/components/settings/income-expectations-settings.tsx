@@ -44,6 +44,7 @@ export function IncomeExpectationsSettings({
       badMonth: bad,
       goodMonth: good,
       storedExpectedMonthly: null,
+      useActualIncomeOnly: false,
     });
   }, [badMonth, goodMonth]);
 
@@ -60,6 +61,7 @@ export function IncomeExpectationsSettings({
         averageMonthly: null,
         goodMonth: Number(goodMonth),
         storedExpectedMonthly: initialParams.storedExpectedMonthly,
+        useActualIncomeOnly: initialParams.useActualIncomeOnly,
       });
       setToastMessage("Ожидания дохода обновлены");
       router.refresh();

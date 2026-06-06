@@ -4,14 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
-import {
-  computeDashboardSummary,
-  resolvePlanningMonthlyIncome,
-} from "@/lib/finance/index";
+import { computeDashboardSummary } from "@/lib/finance/index";
 import { getProfileIncomeParameters } from "@/lib/actions/profile-income";
 import { toAnalysisIncomeFields } from "@/lib/finance/variable-income-scenarios";
 import { usesVariableIncome } from "@/types/profile";
-import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
+import { resolveMonthlyIncome } from "@/lib/finance/monthly-income";
+import {
+  filterAdditionalIncomes,
+  filterOperationalIncomes,
+} from "@/lib/finance/operational-incomes";
 import { DEFAULT_PROFILE_TYPE, PROFILE_TYPE_LABELS } from "@/types/profile";
 import {
   markOnboardingStep,
@@ -54,7 +55,7 @@ async function getUserId() {
 
 // ── Income ──
 
-export async function getIncomes() {
+async function fetchIncomesFromDb() {
   const { supabase, userId } = await getUserId();
   const { data, error } = await supabase
     .from("incomes")
@@ -63,21 +64,31 @@ export async function getIncomes() {
     .eq("is_profile_parameter", false)
     .order("date", { ascending: false });
   if (error) throw error;
-  return filterOperationalIncomes(data ?? []);
+  return data ?? [];
+}
+
+export async function getIncomes() {
+  return filterOperationalIncomes(await fetchIncomesFromDb());
+}
+
+/** Supplementary incomes for the «Доходы» page. */
+export async function getAdditionalIncomes() {
+  return filterAdditionalIncomes(await fetchIncomesFromDb());
 }
 
 function incomePayloadFromForm(formData: FormData) {
-  const incomeType = formData.get("income_type") as IncomeType;
-  const isExpected = incomeType === "expected";
+  const period = formData.get("period") as string;
+  const isRecurring = period === "monthly";
 
   return {
     title: formData.get("title") as string,
     amount: Number(formData.get("amount")),
     category: formData.get("category") as string,
     date: formData.get("date") as string,
-    income_type: incomeType,
-    is_recurring: isExpected,
-    frequency: isExpected ? "monthly" : null,
+    income_type: (isRecurring ? "expected" : "actual") as IncomeType,
+    is_recurring: isRecurring,
+    frequency: (isRecurring ? "monthly" : null) as Frequency | null,
+    is_additional: true,
   };
 }
 
@@ -277,8 +288,7 @@ export async function getAnalysisContext() {
       )
     : null;
 
-  const planningIncome = resolvePlanningMonthlyIncome(
-    summary.totalIncome,
+  const incomeBreakdown = resolveMonthlyIncome(
     profileType,
     incomes,
     profileIncome
@@ -289,11 +299,13 @@ export async function getAnalysisContext() {
     profileTypeLabel: PROFILE_TYPE_LABELS[profileType],
     actualMonthlyIncome: summary.totalIncome,
     expectedMonthlyIncome: summary.expectedIncome,
-    planningMonthlyIncome: planningIncome,
+    primaryMonthlyIncome: incomeBreakdown.primaryIncome,
+    additionalMonthlyIncome: incomeBreakdown.additionalIncome,
+    planningMonthlyIncome: incomeBreakdown.monthlyIncome,
     averageActualIncome3Months: summary.averageActualIncome3Months,
     incomeVsExpectedDelta: summary.totalIncome - summary.expectedIncome,
     ...variableIncomeContext,
-    monthlyIncome: planningIncome,
+    monthlyIncome: incomeBreakdown.monthlyIncome,
     monthlyExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
     netCashFlow: summary.netCashFlow,

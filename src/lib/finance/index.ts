@@ -7,16 +7,12 @@ import {
 } from "@/lib/finance/income-model";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import { PROFILE_INDEX_WEIGHTS } from "@/lib/profile/financial-profile";
-import {
-  resolvePlanningMonthlyIncome,
-  resolveProfileExpectedIncome,
-} from "@/lib/finance/profile-expected-income";
-import { getVariableIncomeComparisonLabel } from "@/lib/finance/variable-income-scenarios";
+import { resolveMonthlyIncome } from "@/lib/finance/monthly-income";
+import { resolveProfileExpectedIncome } from "@/lib/finance/profile-expected-income";
 import {
   hasAnyProfileIncomeExpectation,
   type ProfileIncomeParameters,
 } from "@/types/profile-income";
-import { usesVariableIncome } from "@/types/profile";
 import {
   DEFAULT_PROFILE_TYPE,
   type ProfileType,
@@ -63,8 +59,14 @@ export {
 } from "@/lib/finance/variable-income-scenarios";
 
 export {
-  recurringExpectedMonthlyTotal,
+  additionalIncomeInMonth,
+  resolveMonthlyIncome,
   resolvePlanningMonthlyIncome,
+  type MonthlyIncomeBreakdown,
+} from "@/lib/finance/monthly-income";
+
+export {
+  recurringExpectedMonthlyTotal,
   resolveProfileExpectedIncome,
 } from "@/lib/finance/profile-expected-income";
 
@@ -159,12 +161,11 @@ export function calculateFinancialIndex(
   const weights = PROFILE_INDEX_WEIGHTS[profileType];
   const summary = getMonthlyFinanceSummary(operationalIncomes, expenses, debts);
   const monthlyIncome =
-    resolvePlanningMonthlyIncome(
-      summary.totalIncome,
+    resolveMonthlyIncome(
       profileType,
       operationalIncomes,
       profileIncome
-    ) || incomeForHealthIndex(operationalIncomes);
+    ).monthlyIncome || incomeForHealthIndex(operationalIncomes);
   const monthlyExpenses = summary.totalExpenses;
   const debtPayments = summary.debtPayments;
   const totalDebt = summary.totalDebt;
@@ -230,12 +231,13 @@ export function calculateFinancialIndex(
 }
 
 export interface DashboardSummary {
-  /** Actual income received in the current month. */
+  /** @deprecated use monthlyIncome */
   totalIncome: number;
-  /** Profile-aware expected income (salary, pension, base scenario, etc.). */
   expectedIncome: number;
-  /** Shown on dashboard when actual month is still empty. */
   displayIncome: number;
+  primaryIncome: number;
+  additionalIncome: number;
+  monthlyIncome: number;
   incomeComparison: string | null;
   averageActualIncome3Months: number | null;
   totalExpenses: number;
@@ -263,37 +265,27 @@ export function computeDashboardSummary(
     profileIncome
   );
 
-  const profileExpected =
-    resolveProfileExpectedIncome(
-      profileType,
-      operationalIncomes,
-      profileIncome
-    ) ?? 0;
-  const expectedIncome = profileExpected || summary.expectedIncome;
-  const planningIncome = resolvePlanningMonthlyIncome(
-    summary.totalIncome,
+  const income = resolveMonthlyIncome(
     profileType,
     operationalIncomes,
     profileIncome
   );
-  const incomeComparison = usesVariableIncome(profileType)
-    ? getVariableIncomeComparisonLabel(
-        summary.totalIncome,
-        profileIncome,
-        operationalIncomes
-      )
-    : getIncomeComparisonMessage(summary.totalIncome, expectedIncome);
+  const expectedIncome =
+    income.primaryIncome || summary.expectedIncome;
 
   return {
-    totalIncome: summary.totalIncome,
+    totalIncome: income.actualAdditionalIncome,
     expectedIncome,
-    displayIncome: planningIncome,
-    incomeComparison,
+    displayIncome: income.monthlyIncome,
+    primaryIncome: income.primaryIncome,
+    additionalIncome: income.additionalIncome,
+    monthlyIncome: income.monthlyIncome,
+    incomeComparison: null,
     averageActualIncome3Months: summary.averageActualIncome3Months,
     totalExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
     netCashFlow:
-      planningIncome - summary.totalExpenses - summary.debtPayments,
+      income.monthlyIncome - summary.totalExpenses - summary.debtPayments,
     totalDebt: summary.totalDebt,
     financialIndex,
   };

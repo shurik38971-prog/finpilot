@@ -39,7 +39,7 @@ export async function getProfileIncomeParameters(): Promise<ProfileIncomeParamet
     const { data, error } = await supabase
       .from("user_profiles")
       .select(
-        "average_month_income, bad_month_income, good_month_income, expected_monthly_income, income_average_monthly, income_bad_month, income_good_month"
+        "average_month_income, bad_month_income, good_month_income, expected_monthly_income, use_actual_income_only, income_average_monthly, income_bad_month, income_good_month"
       )
       .eq("user_id", userId)
       .maybeSingle();

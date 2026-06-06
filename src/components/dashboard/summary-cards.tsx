@@ -1,26 +1,22 @@
 import { HintTooltip } from "@/components/ui/hint-tooltip";
-import { COPY, HINTS } from "@/lib/copy/ui";
+import { HINTS } from "@/lib/copy/ui";
 import { formatCurrency } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { TrendingDown, TrendingUp, Wallet, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export interface VariableIncomeSummary {
-  actual: number;
-  expected: number;
-  gap: number;
-  comparisonLabel: string | null;
+export interface IncomeSummary {
+  primaryIncome: number;
+  additionalIncome: number;
+  monthlyIncome: number;
 }
 
 interface SummaryCardsProps {
   totalIncome: number;
-  actualIncome?: number;
-  expectedIncome: number;
-  incomeComparison: string | null;
+  incomeSummary?: IncomeSummary | null;
   totalExpenses: number;
   netCashFlow: number;
   totalDebt: number;
-  variableIncome?: VariableIncomeSummary | null;
 }
 
 const cards = [
@@ -40,7 +36,7 @@ const cards = [
   },
   {
     key: "net",
-    label: COPY.leftPerMonth,
+    label: "Остаток",
     icon: Wallet,
     color: "text-accent",
     getValue: (p: SummaryCardsProps) => p.netCashFlow,
@@ -56,13 +52,14 @@ const cards = [
 ] as const;
 
 export function SummaryCards(props: SummaryCardsProps) {
+  const income = props.incomeSummary;
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {cards.map((card) => {
         const { key, label, icon: Icon, color, getValue } = card;
         const subtitle = "subtitle" in card ? card.subtitle : undefined;
         const isDebt = key === "debt";
-        const variable = key === "income" ? props.variableIncome : null;
 
         return (
           <Card
@@ -85,75 +82,24 @@ export function SummaryCards(props: SummaryCardsProps) {
                   <p className="text-[11px] text-muted/80 mt-0.5">{subtitle}</p>
                 )}
 
-                {variable ? (
-                  <div className="mt-1 space-y-1">
-                    <p className="text-sm text-muted">Факт</p>
-                    <p className="text-xl sm:text-[1.35rem] font-bold tabular-nums leading-tight">
-                      {formatCurrency(variable.actual)}
-                    </p>
-                    <p className="text-[11px] text-muted">
-                      Ожидание: {formatCurrency(variable.expected)}
-                    </p>
-                    {variable.gap > 0 ? (
-                      <p className="text-[11px] text-muted">
-                        Осталось до обычного месяца: {formatCurrency(variable.gap)}
-                      </p>
-                    ) : null}
-                    {variable.comparisonLabel && (
-                      <p
-                        className={cn(
-                          "text-[11px] truncate",
-                          variable.comparisonLabel.includes("ниже")
-                            ? "text-orange-400"
-                            : "text-emerald-400"
-                        )}
-                      >
-                        {variable.comparisonLabel}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <p
-                      className={cn(
-                        "font-bold mt-1 tabular-nums",
-                        key === "income" || key === "expenses"
-                          ? "text-xl sm:text-[1.35rem]"
-                          : "text-lg",
-                        key === "net" && getValue(props) < 0 && "text-red-400"
-                      )}
-                    >
-                      {formatCurrency(getValue(props))}
-                    </p>
-                    {key === "income" &&
-                      props.actualIncome !== undefined &&
-                      props.actualIncome > 0 &&
-                      props.expectedIncome > 0 &&
-                      props.actualIncome !== props.expectedIncome && (
-                      <p className="text-[11px] text-muted mt-0.5 truncate">
-                        Ожидалось: {formatCurrency(props.expectedIncome)}
-                      </p>
-                    )}
-                    {key === "income" &&
-                      props.actualIncome === 0 &&
-                      props.expectedIncome > 0 && (
-                      <p className="text-[11px] text-muted mt-0.5 truncate">
-                        Фактических поступлений в этом месяце пока нет
-                      </p>
-                    )}
-                    {key === "income" && props.incomeComparison && (
-                      <p
-                        className={cn(
-                          "text-[11px] mt-0.5 truncate",
-                          props.incomeComparison.includes("ниже")
-                            ? "text-orange-400"
-                            : "text-emerald-400"
-                        )}
-                      >
-                        {props.incomeComparison}
-                      </p>
-                    )}
-                  </>
+                <p
+                  className={cn(
+                    "font-bold mt-1 tabular-nums",
+                    key === "income" || key === "expenses"
+                      ? "text-xl sm:text-[1.35rem]"
+                      : "text-lg",
+                    key === "net" && getValue(props) < 0 && "text-red-400"
+                  )}
+                >
+                  {formatCurrency(getValue(props))}
+                </p>
+
+                {key === "income" && income && income.primaryIncome > 0 && (
+                  <p className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                    {income.additionalIncome > 0
+                      ? `${formatCurrency(income.primaryIncome)} + ${formatCurrency(income.additionalIncome)} доп.`
+                      : "Основной доход из профиля"}
+                  </p>
                 )}
               </div>
               <div

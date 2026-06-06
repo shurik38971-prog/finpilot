@@ -64,6 +64,7 @@ async function resetUserProfileType(
       bad_month_income: null,
       good_month_income: null,
       expected_monthly_income: null,
+      use_actual_income_only: false,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);

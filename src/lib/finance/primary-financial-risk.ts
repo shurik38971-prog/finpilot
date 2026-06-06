@@ -1,6 +1,6 @@
 import { actualIncomeInMonth, expectedIncomeInMonth } from "@/lib/finance/income-model";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
-import { resolvePlanningMonthlyIncome } from "@/lib/finance/profile-expected-income";
+import { resolveMonthlyIncome } from "@/lib/finance/monthly-income";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
 import {
   DEFAULT_PROFILE_TYPE,
@@ -25,12 +25,11 @@ export function getPrimaryFinancialRisk(
   profileIncome: ProfileIncomeParameters | null = null
 ): string | null {
   const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
-  const monthlyIncome = resolvePlanningMonthlyIncome(
-    summary.totalIncome,
+  const monthlyIncome = resolveMonthlyIncome(
     profileType,
     incomes,
     profileIncome
-  );
+  ).monthlyIncome;
   const freeMoney =
     monthlyIncome - summary.totalExpenses - summary.debtPayments;
   const monthlyBurn = summary.recurringExpenses + summary.debtPayments;

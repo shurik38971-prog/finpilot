@@ -64,6 +64,7 @@ export function resolveVariableIncomeScenarios(
     badMonth: bad,
     goodMonth: good,
     storedExpectedMonthly: null,
+    useActualIncomeOnly: false,
   })!;
 
   return {

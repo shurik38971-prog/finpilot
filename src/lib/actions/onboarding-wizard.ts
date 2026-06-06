@@ -5,6 +5,7 @@ import {
   saveProfileIncomeParameters,
   saveStoredExpectedMonthly,
 } from "@/lib/actions/profile-income";
+import { deriveBaseIncomeFromProfile } from "@/types/profile-income";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
 import { createClient } from "@/lib/supabase/server";
@@ -32,14 +33,13 @@ async function getUserId() {
   return { supabase, userId: user.id };
 }
 
-async function insertIncome(
+async function insertAdditionalIncome(
   userId: string,
   supabase: Awaited<ReturnType<typeof createClient>>,
   payload: {
     title: string;
     amount: number;
     category: string;
-    income_type: "expected" | "actual";
     is_recurring: boolean;
     frequency: "monthly" | null;
   }
@@ -47,6 +47,8 @@ async function insertIncome(
   const { error } = await supabase.from("incomes").insert({
     user_id: userId,
     date: todayIso(),
+    income_type: payload.is_recurring ? "expected" : "actual",
+    is_additional: true,
     ...payload,
   });
   if (error) throw error;
@@ -56,7 +58,7 @@ export async function saveWizardEmployeeIncome(
   amount: number,
   frequency: "monthly" | "twice_monthly" | "weekly"
 ) {
-  const { supabase, userId } = await getUserId();
+  const { userId } = await getUserId();
   const monthlyAmount =
     frequency === "weekly"
       ? Math.round(amount * 4.33)
@@ -64,17 +66,7 @@ export async function saveWizardEmployeeIncome(
         ? amount * 2
         : amount;
 
-  await Promise.all([
-    insertIncome(userId, supabase, {
-      title: "Зарплата",
-      amount: monthlyAmount,
-      category: "other",
-      income_type: "expected",
-      is_recurring: true,
-      frequency: "monthly",
-    }),
-    saveStoredExpectedMonthly(monthlyAmount),
-  ]);
+  await saveStoredExpectedMonthly(monthlyAmount);
 
   await markOnboardingStep("income");
   await trackProductEvent(PRODUCT_EVENTS.INCOME_ADDED, {}, userId);
@@ -86,13 +78,19 @@ export async function saveWizardVariableIncome(data: {
   goodMonth: number;
 }) {
   const { userId } = await getUserId();
-
-  await saveProfileIncomeParameters({
+  const params = {
     badMonth: data.badMonth,
-    averageMonthly: null,
+    averageMonthly: null as number | null,
     goodMonth: data.goodMonth,
-    storedExpectedMonthly: null,
-  });
+    storedExpectedMonthly: null as number | null,
+    useActualIncomeOnly: false,
+  };
+  const base = deriveBaseIncomeFromProfile(params);
+
+  await saveProfileIncomeParameters(params);
+  if (base) {
+    await saveStoredExpectedMonthly(base);
+  }
 
   await markOnboardingStep("income");
   await trackProductEvent(
@@ -104,19 +102,8 @@ export async function saveWizardVariableIncome(data: {
 }
 
 export async function saveWizardBusinessIncome(average: number) {
-  const { supabase, userId } = await getUserId();
-
-  await Promise.all([
-    insertIncome(userId, supabase, {
-      title: "Средний доход бизнеса",
-      amount: average,
-      category: "project",
-      income_type: "expected",
-      is_recurring: true,
-      frequency: "monthly",
-    }),
-    saveStoredExpectedMonthly(average),
-  ]);
+  const { userId } = await getUserId();
+  await saveStoredExpectedMonthly(average);
 
   await markOnboardingStep("income");
   await trackProductEvent(PRODUCT_EVENTS.INCOME_ADDED, {}, userId);
@@ -124,22 +111,35 @@ export async function saveWizardBusinessIncome(average: number) {
 }
 
 export async function saveWizardRetireeIncome(amount: number) {
-  const { supabase, userId } = await getUserId();
-
-  await Promise.all([
-    insertIncome(userId, supabase, {
-      title: "Пенсия",
-      amount,
-      category: "other",
-      income_type: "expected",
-      is_recurring: true,
-      frequency: "monthly",
-    }),
-    saveStoredExpectedMonthly(amount),
-  ]);
+  const { userId } = await getUserId();
+  await saveStoredExpectedMonthly(amount);
 
   await markOnboardingStep("income");
   await trackProductEvent(PRODUCT_EVENTS.INCOME_ADDED, {}, userId);
+  revalidateWizardPaths();
+}
+
+export async function saveWizardAdditionalIncome(data: {
+  title: string;
+  amount: number;
+  frequency: "monthly" | "once";
+}) {
+  const { supabase, userId } = await getUserId();
+  const isRecurring = data.frequency === "monthly";
+
+  await insertAdditionalIncome(userId, supabase, {
+    title: data.title,
+    amount: data.amount,
+    category: "other",
+    is_recurring: isRecurring,
+    frequency: isRecurring ? "monthly" : null,
+  });
+
+  await trackProductEvent(
+    PRODUCT_EVENTS.INCOME_ADDED,
+    { source: "additional" },
+    userId
+  );
   revalidateWizardPaths();
 }
 

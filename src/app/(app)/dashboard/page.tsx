@@ -17,15 +17,8 @@ import { getOnboardingProgress } from "@/lib/actions/onboarding";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { computeProfileDashboardStats } from "@/lib/profile/dashboard-stats";
 import { computeProfileReadiness } from "@/lib/profile/profile-readiness";
-import {
-  getIncomeGap,
-  getVariableIncomeComparisonLabel,
-} from "@/lib/finance/variable-income-scenarios";
-import {
-  hasAnyProfileIncomeExpectation,
-  hasProfileIncomeParameters,
-} from "@/types/profile-income";
-import { DEFAULT_PROFILE_TYPE, usesVariableIncome } from "@/types/profile";
+import { hasAnyProfileIncomeExpectation } from "@/types/profile-income";
+import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
 import {
   getNextBestAction,
   getPrimaryGoalFocus,
@@ -70,10 +63,9 @@ export default async function DashboardPage() {
     financialProfile.profileType ?? DEFAULT_PROFILE_TYPE;
 
   const {
-    totalIncome,
-    displayIncome,
-    expectedIncome,
-    incomeComparison,
+    monthlyIncome,
+    primaryIncome,
+    additionalIncome,
     totalExpenses,
     debtPayments,
     netCashFlow,
@@ -104,7 +96,7 @@ export default async function DashboardPage() {
     forecast: forecast.data,
     insufficientData: forecast.insufficientData,
     netCashFlow,
-    monthlyIncome: displayIncome,
+    monthlyIncome,
     totalDebt,
     debtPayments,
     goals,
@@ -148,21 +140,6 @@ export default async function DashboardPage() {
         )
       : null;
 
-  const variableIncome =
-    usesVariableIncome(profileType) &&
-    (hasProfileIncomeParameters(profileIncome) || expectedIncome > 0)
-      ? {
-          actual: totalIncome,
-          expected: expectedIncome,
-          gap: Math.max(0, getIncomeGap(totalIncome, profileIncome, incomes) ?? 0),
-          comparisonLabel: getVariableIncomeComparisonLabel(
-            totalIncome,
-            profileIncome,
-            incomes
-          ),
-        }
-      : null;
-
   return (
     <DashboardAutoRefresh>
       <div>
@@ -186,14 +163,15 @@ export default async function DashboardPage() {
           />
 
           <SummaryCards
-            totalIncome={displayIncome}
-            actualIncome={totalIncome}
-            expectedIncome={expectedIncome}
-            incomeComparison={incomeComparison}
+            totalIncome={monthlyIncome}
+            incomeSummary={{
+              primaryIncome,
+              additionalIncome,
+              monthlyIncome,
+            }}
             totalExpenses={totalExpenses}
             netCashFlow={netCashFlow}
             totalDebt={totalDebt}
-            variableIncome={variableIncome}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,35fr)_minmax(0,65fr)] gap-4 items-stretch">

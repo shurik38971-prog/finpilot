@@ -3,7 +3,10 @@ import {
   expectedIncomeAmount,
   resolveIncomeType,
 } from "@/lib/finance/income-model";
-import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
+import {
+  filterAdditionalIncomes,
+  filterOperationalIncomes,
+} from "@/lib/finance/operational-incomes";
 import {
   actualIncomeLastThreeMonthsStats,
   getExpectedMonthlyIncome,
@@ -12,9 +15,9 @@ import type { ProfileIncomeParameters } from "@/types/profile-income";
 import { PROFILE_TYPES, type ProfileType } from "@/types/profile";
 import type { Income } from "@/types/database";
 
-/** Recurring expected income (salary, pension, business baseline). */
+/** Recurring expected from supplementary income rows only. */
 export function recurringExpectedMonthlyTotal(incomes: Income[]): number {
-  return filterOperationalIncomes(incomes)
+  return filterAdditionalIncomes(incomes)
     .filter(
       (income) =>
         resolveIncomeType(income) === "expected" &&
@@ -76,8 +79,6 @@ export function resolveProfileExpectedIncome(
   switch (profileType) {
     case PROFILE_TYPES.employee:
     case PROFILE_TYPES.retiree: {
-      const recurring = recurringExpectedMonthlyTotal(operational);
-      if (recurring > 0) return Math.round(recurring);
       if (stored && stored > 0) return Math.round(stored);
       return null;
     }
@@ -98,16 +99,3 @@ export function resolveProfileExpectedIncome(
   }
 }
 
-/** Planning income: actual when recorded, otherwise profile expected. */
-export function resolvePlanningMonthlyIncome(
-  actualCurrentMonth: number,
-  profileType: ProfileType,
-  incomes: Income[],
-  profileIncome: ProfileIncomeParameters | null = null,
-  from?: Date
-): number {
-  if (actualCurrentMonth > 0) return actualCurrentMonth;
-  return (
-    resolveProfileExpectedIncome(profileType, incomes, profileIncome, from) ?? 0
-  );
-}

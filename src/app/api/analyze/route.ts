@@ -47,9 +47,12 @@ function buildAnalysisPrompt(context: Awaited<ReturnType<typeof getAnalysisConte
 Проанализируй финансовые данные пользователя.
 Тип пользователя: ${context.profileTypeLabel}
 Учитывай профиль при рекомендациях, задачах, следующем лучшем действии и оценке финансового здоровья.
-Учти: actualMonthlyIncome / actual_income_current_month — фактические поступления за текущий месяц.
-planningMonthlyIncome / monthlyIncome — доход для планирования: факт, если уже есть, иначе expectedMonthlyIncome профиля (зарплата, пенсия, базовый сценарий).
-expectedMonthlyIncome — ожидаемый доход по профилю: employee = зарплата, retiree = пенсия, freelancer = базовый сценарий, business_owner = средний доход бизнеса.
+Учти: monthlyIncome / planningMonthlyIncome — основной доход из профиля + дополнительные доходы месяца.
+primaryMonthlyIncome — зарплата, пенсия, базовый доход самозанятого или средний доход бизнеса из онбординга.
+additionalMonthlyIncome — подработка, аренда, премии и другие доп. источники.
+actualMonthlyIncome — только дополнительные поступления, уже отмеченные в этом месяце (не уменьшай monthlyIncome, если зарплата указана в профиле).
+НЕ рекомендуй «связаться с работодателем» или «вы не получили зарплату», если primaryMonthlyIncome > 0.
+expectedMonthlyIncome — то же, что primaryMonthlyIncome.
 average_month_income / expected_monthly_income — базовый сценарий (обычный месяц): среднее между плохим и хорошим месяцем, либо среднее за последние 3 месяца по истории.
 bad_month_income и good_month_income — сценарии минимума и максимума.
 income_gap = базовый сценарий - факт текущего месяца (сколько не хватает до обычного месяца).

@@ -5,6 +5,8 @@ export interface ProfileIncomeParameters {
   goodMonth: number | null;
   /** Salary, pension or business average saved on profile during onboarding. */
   storedExpectedMonthly: number | null;
+  /** Advanced: count only received money, not profile baseline. */
+  useActualIncomeOnly: boolean;
 }
 
 export const EMPTY_PROFILE_INCOME_PARAMETERS: ProfileIncomeParameters = {
@@ -12,6 +14,7 @@ export const EMPTY_PROFILE_INCOME_PARAMETERS: ProfileIncomeParameters = {
   badMonth: null,
   goodMonth: null,
   storedExpectedMonthly: null,
+  useActualIncomeOnly: false,
 };
 
 export function deriveBaseIncomeFromProfile(
@@ -50,6 +53,7 @@ type ProfileIncomeRow = {
   bad_month_income?: number | null;
   good_month_income?: number | null;
   expected_monthly_income?: number | null;
+  use_actual_income_only?: boolean | null;
   income_average_monthly?: number | null;
   income_bad_month?: number | null;
   income_good_month?: number | null;
@@ -65,6 +69,7 @@ export function mapProfileIncomeRow(row: ProfileIncomeRow): ProfileIncomeParamet
     badMonth,
     goodMonth,
     storedExpectedMonthly: null,
+    useActualIncomeOnly: false,
   });
   const storedAverage =
     row.average_month_income ?? row.income_average_monthly ?? null;
@@ -74,5 +79,6 @@ export function mapProfileIncomeRow(row: ProfileIncomeRow): ProfileIncomeParamet
     goodMonth,
     averageMonthly: derived ?? storedAverage,
     storedExpectedMonthly: row.expected_monthly_income ?? null,
+    useActualIncomeOnly: row.use_actual_income_only ?? false,
   };
 }

@@ -3,14 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import {
-  INCOME_CATEGORIES,
-  INCOME_TYPE_LABELS,
-  type Income,
-  type IncomeType,
-} from "@/types/database";
+import { INCOME_CATEGORIES, type Income } from "@/types/database";
 import { createIncome, updateIncome } from "@/lib/actions/finance";
-import { resolveIncomeType } from "@/lib/finance/income-model";
 import { useState } from "react";
 
 interface IncomeFormProps {
@@ -23,15 +17,15 @@ const categoryOptions = INCOME_CATEGORIES.map((c) => ({
   label: c.charAt(0).toUpperCase() + c.slice(1),
 }));
 
-const incomeTypeOptions = (Object.keys(INCOME_TYPE_LABELS) as IncomeType[]).map(
-  (type) => ({
-    value: type,
-    label: INCOME_TYPE_LABELS[type],
-  })
-);
+const periodOptions = [
+  { value: "monthly", label: "Каждый месяц" },
+  { value: "once", label: "Разово" },
+];
 
 export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
   const [loading, setLoading] = useState(false);
+  const defaultPeriod =
+    income?.is_recurring && income.frequency ? "monthly" : "once";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,7 +53,7 @@ export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
         label="Название"
         defaultValue={income?.title}
         required
-        placeholder="Проект для клиента X"
+        placeholder="Подработка, аренда, премия"
       />
       <Input
         id="amount"
@@ -72,17 +66,17 @@ export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
         required
       />
       <Select
-        id="income_type"
-        name="income_type"
-        label="Тип дохода"
-        defaultValue={income ? resolveIncomeType(income) : "actual"}
-        options={incomeTypeOptions}
+        id="period"
+        name="period"
+        label="Как часто приходит"
+        defaultValue={defaultPeriod}
+        options={periodOptions}
       />
       <Select
         id="category"
         name="category"
         label="Категория"
-        defaultValue={income?.category ?? "freelance"}
+        defaultValue={income?.category ?? "other"}
         options={categoryOptions}
       />
       <Input
@@ -94,8 +88,8 @@ export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
         required
       />
       <p className="text-xs text-muted leading-relaxed">
-        Ожидаемый доход — план на месяц. Фактическое поступление — деньги, которые
-        уже пришли.
+        Основной доход (зарплата, пенсия и т.д.) настраивается в финансовом
+        профиле. Здесь — только дополнительные поступления.
       </p>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Сохранение..." : income ? "Обновить" : "Добавить"}

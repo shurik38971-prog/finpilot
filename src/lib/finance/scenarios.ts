@@ -47,6 +47,7 @@ function scaleProfileIncome(
     badMonth: Math.round(profileIncome.badMonth * factor),
     goodMonth: Math.round(profileIncome.goodMonth * factor),
     storedExpectedMonthly: profileIncome.storedExpectedMonthly,
+    useActualIncomeOnly: profileIncome.useActualIncomeOnly,
   };
   return {
     ...scaled,

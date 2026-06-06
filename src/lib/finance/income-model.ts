@@ -39,13 +39,57 @@ export function expectedIncomeInMonth(
   incomes: Income[],
   month: Date
 ): number {
-  return incomes
+  const recurringExpected = incomes
     .filter(
       (income) =>
         resolveIncomeType(income) === "expected" &&
-        isDateInMonth(income.date, month)
+        income.is_recurring &&
+        income.frequency
     )
     .reduce((sum, income) => sum + expectedIncomeAmount(income), 0);
+
+  const oneTimeExpected = incomes
+    .filter(
+      (income) =>
+        resolveIncomeType(income) === "expected" &&
+        !income.is_recurring &&
+        isDateInMonth(income.date, month)
+    )
+    .reduce((sum, income) => sum + income.amount, 0);
+
+  return recurringExpected + oneTimeExpected;
+}
+
+export interface ActualIncomeAverage {
+  average: number;
+  monthsWithData: number;
+}
+
+export function averageActualInMonthsWithData(
+  incomes: Income[],
+  months = 3,
+  from: Date = new Date()
+): ActualIncomeAverage | null {
+  let total = 0;
+  let monthsWithData = 0;
+
+  for (let m = 0; m < months; m += 1) {
+    const monthIncome = actualIncomeInMonth(
+      incomes,
+      startOfMonth(subMonths(from, m))
+    );
+    if (monthIncome > 0) {
+      total += monthIncome;
+      monthsWithData += 1;
+    }
+  }
+
+  if (monthsWithData === 0) return null;
+
+  return {
+    average: total / monthsWithData,
+    monthsWithData,
+  };
 }
 
 export function averageActualIncomeLastMonths(
@@ -53,17 +97,7 @@ export function averageActualIncomeLastMonths(
   months = 3,
   from: Date = new Date()
 ): number | null {
-  const hasActual = incomes.some(
-    (income) => resolveIncomeType(income) === "actual"
-  );
-  if (!hasActual) return null;
-
-  let total = 0;
-  for (let m = 0; m < months; m += 1) {
-    total += actualIncomeInMonth(incomes, startOfMonth(subMonths(from, m)));
-  }
-
-  return total / months;
+  return averageActualInMonthsWithData(incomes, months, from)?.average ?? null;
 }
 
 export function getIncomeComparisonMessage(
@@ -90,9 +124,22 @@ export function resolveForecastMonthlyIncome(
   incomes: Income[],
   month: Date = new Date()
 ): number | null {
-  const averageActual = averageActualIncomeLastMonths(incomes, 3, month);
-  if (averageActual !== null && averageActual > 0) {
-    return averageActual;
+  const recurringExpected = incomes
+    .filter(
+      (income) =>
+        resolveIncomeType(income) === "expected" &&
+        income.is_recurring &&
+        income.frequency
+    )
+    .reduce((sum, income) => sum + expectedIncomeAmount(income), 0);
+
+  if (recurringExpected > 0) {
+    return recurringExpected;
+  }
+
+  const averageActual = averageActualInMonthsWithData(incomes, 3, month);
+  if (averageActual && averageActual.monthsWithData >= 2) {
+    return averageActual.average;
   }
 
   const expected = expectedIncomeInMonth(incomes, month);

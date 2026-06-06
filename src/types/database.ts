@@ -58,9 +58,13 @@ export interface FinancialSummary {
 export interface CashFlowForecast {
   month: string;
   income: number;
+  incomeMin?: number;
+  incomeMax?: number;
   expenses: number;
   debtPayments: number;
   net: number;
+  netMin?: number;
+  netMax?: number;
   cumulative: number;
 }
 

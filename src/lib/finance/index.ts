@@ -14,6 +14,7 @@ import { toMonthlyAmount } from "@/lib/utils";
 
 export {
   actualIncomeInMonth,
+  averageActualInMonthsWithData,
   averageActualIncomeLastMonths,
   countIncomesByType,
   expectedIncomeInMonth,
@@ -21,7 +22,15 @@ export {
   incomeForHealthIndex,
   resolveForecastMonthlyIncome,
   resolveIncomeType,
+  type ActualIncomeAverage,
 } from "@/lib/finance/income-model";
+
+export {
+  FORECAST_INSUFFICIENT_MESSAGE,
+  resolveProfileForecastIncome,
+  type ForecastIncomeModel,
+  type ForecastScenario,
+} from "@/lib/finance/forecast-profile-income";
 
 export {
   getMonthlyFinanceSummary,

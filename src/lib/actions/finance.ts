@@ -252,7 +252,7 @@ export async function getAnalysisContext() {
     debts,
     profileType
   );
-  const forecast = forecastCashFlow(incomes, expenses, debts);
+  const forecast = forecastCashFlow(incomes, expenses, debts, 3, profileType);
   const avalanche = calculateDebtPayoff(debts, 0, "avalanche");
 
   return {
@@ -276,6 +276,7 @@ export async function getAnalysisContext() {
     debtCount: debts.length,
     monthsToDebtFree: avalanche.monthsToFreedom,
     forecastInsufficientData: forecast.insufficientData,
+    forecastBasisLabel: forecast.basisLabel,
     threeMonthForecast: forecast.data.map((f) => ({
       month: f.month,
       income: f.income,

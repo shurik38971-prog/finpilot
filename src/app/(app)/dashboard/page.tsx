@@ -77,7 +77,7 @@ export default async function DashboardPage() {
     getNextBestAction(nbaOptions),
     getTaskProgressStats(),
   ]);
-  const forecast = forecastCashFlow(incomes, expenses, debts);
+  const forecast = forecastCashFlow(incomes, expenses, debts, 3, profileType);
   const forecastInterpretation = interpretForecast({
     forecast: forecast.data,
     insufficientData: forecast.insufficientData,
@@ -161,6 +161,8 @@ export default async function DashboardPage() {
             <CashFlowChart
               data={forecast.data}
               insufficientData={forecast.insufficientData}
+              basisLabel={forecast.basisLabel}
+              scenarios={forecast.scenarios}
               interpretation={forecastInterpretation}
             />
           </div>

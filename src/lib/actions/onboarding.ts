@@ -107,9 +107,12 @@ async function reconcileFromData(
       row.income_done ||
       (backfillFromData &&
         ((incomes.count ?? 0) > 0 ||
-          ((profile.data?.average_month_income ??
-            profile.data?.income_average_monthly ??
-            0) > 0))),
+          ((profile.data?.bad_month_income ??
+            profile.data?.income_bad_month ??
+            0) > 0 &&
+            (profile.data?.good_month_income ??
+              profile.data?.income_good_month ??
+              0) > 0))),
     expenses_done:
       row.expenses_done ||
       (backfillFromData && (expenses.count ?? 0) > 0),

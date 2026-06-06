@@ -86,16 +86,16 @@ export function SummaryCards(props: SummaryCardsProps) {
 
                 {variable ? (
                   <div className="mt-1 space-y-1">
-                    <p className="text-xl sm:text-[1.35rem] font-bold tabular-nums">
+                    <p className="text-sm text-muted">Факт</p>
+                    <p className="text-xl sm:text-[1.35rem] font-bold tabular-nums leading-tight">
                       {formatCurrency(variable.actual)}
-                      <span className="text-sm font-medium text-muted">
-                        {" "}
-                        из {formatCurrency(variable.expected)}
-                      </span>
+                    </p>
+                    <p className="text-[11px] text-muted">
+                      Ожидание: {formatCurrency(variable.expected)}
                     </p>
                     {variable.gap > 0 ? (
                       <p className="text-[11px] text-muted">
-                        Осталось добрать: {formatCurrency(variable.gap)}
+                        Осталось до обычного месяца: {formatCurrency(variable.gap)}
                       </p>
                     ) : null}
                     {variable.comparisonLabel && (

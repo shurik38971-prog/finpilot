@@ -28,6 +28,7 @@
 | 022 | `022_self_employed_profile_type.sql` |
 | 023 | `023_profile_income_parameters.sql` |
 | 024 | `024_rename_profile_income_columns.sql` |
+| 025 | `025_derive_base_income_from_range.sql` |
 
 **Важно:** `013` меняет таблицу `feedback` из `012`. Если `012` ещё не выполняли — сначала `012`, затем `013`.
 

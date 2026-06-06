@@ -1,5 +1,6 @@
 import { pickPrimaryGoal } from "@/lib/finance/match-task-to-goal";
 import { formatCurrency } from "@/lib/utils";
+import { usesVariableIncome, type ProfileType } from "@/types/profile";
 import type { CashFlowForecast } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
 
@@ -11,6 +12,8 @@ export interface ForecastInterpretationInput {
   totalDebt: number;
   debtPayments: number;
   goals: FinancialGoal[];
+  profileType?: ProfileType;
+  baseScenarioNet?: number | null;
 }
 
 function monthsLabel(count: number): string {
@@ -30,10 +33,29 @@ function throughMonthsLabel(count: number): string {
   return `Через ${monthsLabel(count)}`;
 }
 
+function buildVariableIncomeInsight(baseNet: number): string {
+  if (baseNet >= 0) {
+    return `При обычном для вас уровне дохода остаётся около ${formatCurrency(baseNet)} свободных денег в месяц.`;
+  }
+
+  return `Даже при обычном доходе остаётся дефицит ${formatCurrency(Math.abs(baseNet))} в месяц.`;
+}
+
 function buildCashFlowInsight(
   forecast: CashFlowForecast[],
-  netCashFlow: number
+  netCashFlow: number,
+  profileType?: ProfileType,
+  baseScenarioNet?: number | null
 ): string | null {
+  if (
+    profileType &&
+    usesVariableIncome(profileType) &&
+    baseScenarioNet !== undefined &&
+    baseScenarioNet !== null
+  ) {
+    return buildVariableIncomeInsight(baseScenarioNet);
+  }
+
   const currentNet = forecast[0]?.net ?? netCashFlow;
 
   if (currentNet < 0) {
@@ -120,10 +142,18 @@ export function interpretForecast(
     return null;
   }
 
+  const baseScenarioNet =
+    input.baseScenarioNet ?? input.forecast[0]?.net ?? input.netCashFlow;
+
   const candidates = [
-    buildCashFlowInsight(input.forecast, input.netCashFlow),
-    buildCushionInsight(input.goals, input.netCashFlow),
-    buildGoalInsight(input.goals, input.netCashFlow),
+    buildCashFlowInsight(
+      input.forecast,
+      input.netCashFlow,
+      input.profileType,
+      baseScenarioNet
+    ),
+    buildCushionInsight(input.goals, baseScenarioNet),
+    buildGoalInsight(input.goals, baseScenarioNet),
     buildDebtInsight(
       input.monthlyIncome,
       input.debtPayments,

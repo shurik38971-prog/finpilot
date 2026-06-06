@@ -8,7 +8,10 @@ import {
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import { PROFILE_INDEX_WEIGHTS } from "@/lib/profile/financial-profile";
 import {
+  getExpectedMonthlyIncome,
   getVariableIncomeComparisonLabel,
+} from "@/lib/finance/variable-income-scenarios";
+import {
   hasProfileIncomeParameters,
   type ProfileIncomeParameters,
 } from "@/types/profile-income";
@@ -49,6 +52,14 @@ export {
 } from "@/lib/finance/monthly-summary";
 
 export { forecastCashFlow, type ForecastCashFlowResult } from "@/lib/finance/forecast";
+
+export {
+  getExpectedMonthlyIncome,
+  getIncomeGap,
+  getVariableIncomeComparisonLabel,
+  resolveVariableIncomeScenarios,
+  toAnalysisIncomeFields,
+} from "@/lib/finance/variable-income-scenarios";
 
 export function monthlyIncomeTotal(incomes: Income[]): number {
   return getMonthlyFinanceSummary(incomes, [], []).totalIncome;
@@ -190,8 +201,8 @@ export function calculateFinancialIndex(
   score += Math.min(weights.diversity, uniqueSources * (weights.diversity / 3));
 
   const profileExpected =
-    usesVariableIncome(profileType) && hasProfileIncomeParameters(profileIncome)
-      ? profileIncome!.averageMonthly
+    usesVariableIncome(profileType)
+      ? getExpectedMonthlyIncome(profileIncome, operationalIncomes)
       : null;
 
   score += incomeStabilityScore(
@@ -234,14 +245,17 @@ export function computeDashboardSummary(
     profileIncome
   );
 
-  const profileExpected =
-    usesVariableIncome(profileType) && hasProfileIncomeParameters(profileIncome)
-      ? profileIncome!.averageMonthly!
-      : null;
+  const profileExpected = usesVariableIncome(profileType)
+    ? getExpectedMonthlyIncome(profileIncome, operationalIncomes)
+    : null;
   const expectedIncome = profileExpected ?? summary.expectedIncome;
   const incomeComparison =
     profileExpected !== null
-      ? getVariableIncomeComparisonLabel(summary.totalIncome, profileIncome)
+      ? getVariableIncomeComparisonLabel(
+          summary.totalIncome,
+          profileIncome,
+          operationalIncomes
+        )
       : summary.incomeComparison;
 
   return {

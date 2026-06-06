@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import {
+  deriveBaseIncomeFromProfile,
   mapProfileIncomeRow,
   type ProfileIncomeParameters,
 } from "@/types/profile-income";
@@ -56,10 +57,12 @@ export async function saveProfileIncomeParameters(
   const { supabase, userId } = await getUserId();
   const now = new Date().toISOString();
 
+  const derivedBase = deriveBaseIncomeFromProfile(params);
+
   const { error } = await supabase.from("user_profiles").upsert(
     {
       user_id: userId,
-      average_month_income: params.averageMonthly,
+      average_month_income: derivedBase,
       bad_month_income: params.badMonth,
       good_month_income: params.goodMonth,
       updated_at: now,

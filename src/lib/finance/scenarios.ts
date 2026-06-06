@@ -5,6 +5,7 @@ import {
 } from "@/lib/finance/index";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
+import { deriveBaseIncomeFromProfile } from "@/types/profile-income";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
 import { DEFAULT_PROFILE_TYPE, type ProfileType } from "@/types/profile";
 
@@ -38,17 +39,17 @@ function scaleProfileIncome(
   profileIncome: ProfileIncomeParameters | null,
   percent: number
 ): ProfileIncomeParameters | null {
-  if (!profileIncome?.averageMonthly) return profileIncome;
+  if (!profileIncome?.badMonth || !profileIncome.goodMonth) return profileIncome;
 
   const factor = 1 + percent / 100;
+  const scaled = {
+    averageMonthly: null as number | null,
+    badMonth: Math.round(profileIncome.badMonth * factor),
+    goodMonth: Math.round(profileIncome.goodMonth * factor),
+  };
   return {
-    averageMonthly: Math.round(profileIncome.averageMonthly * factor),
-    badMonth: profileIncome.badMonth
-      ? Math.round(profileIncome.badMonth * factor)
-      : null,
-    goodMonth: profileIncome.goodMonth
-      ? Math.round(profileIncome.goodMonth * factor)
-      : null,
+    ...scaled,
+    averageMonthly: deriveBaseIncomeFromProfile(scaled),
   };
 }
 

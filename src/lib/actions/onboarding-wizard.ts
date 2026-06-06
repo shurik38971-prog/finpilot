@@ -77,14 +77,13 @@ export async function saveWizardEmployeeIncome(
 
 export async function saveWizardVariableIncome(data: {
   badMonth: number;
-  averageMonth: number;
   goodMonth: number;
 }) {
   const { userId } = await getUserId();
 
   await saveProfileIncomeParameters({
     badMonth: data.badMonth,
-    averageMonthly: data.averageMonth,
+    averageMonthly: null,
     goodMonth: data.goodMonth,
   });
 

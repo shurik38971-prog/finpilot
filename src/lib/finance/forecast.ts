@@ -7,6 +7,7 @@ import {
   type ForecastIncomeModel,
   type ForecastScenario,
 } from "@/lib/finance/forecast-profile-income";
+import { scenarioIncomeByLabel } from "@/lib/finance/variable-income-scenarios";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
 import { DEFAULT_PROFILE_TYPE, type ProfileType } from "@/types/profile";
@@ -74,14 +75,8 @@ export function forecastCashFlow(
   const baseIncome = incomeModel.baseMonthlyIncome;
   const scenarios = incomeModel.scenarios;
 
-  const conservativeIncome = scenarios?.find(
-    (item) =>
-      item.label === "Плохой" || item.label === "Консервативный"
-  )?.monthlyIncome;
-  const optimisticIncome = scenarios?.find(
-    (item) =>
-      item.label === "Хороший" || item.label === "Оптимистичный"
-  )?.monthlyIncome;
+  const conservativeIncome = scenarioIncomeByLabel(scenarios, "bad");
+  const optimisticIncome = scenarioIncomeByLabel(scenarios, "good");
 
   for (let m = 0; m < months; m += 1) {
     const monthDate = startOfMonth(addMonths(now, m));

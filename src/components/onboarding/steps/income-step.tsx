@@ -59,7 +59,6 @@ export function IncomeStep({
     try {
       await saveWizardVariableIncome({
         badMonth: Number(form.get("badMonth")),
-        averageMonth: Number(form.get("averageMonth")),
         goodMonth: Number(form.get("goodMonth")),
       });
       onComplete();
@@ -108,7 +107,7 @@ export function IncomeStep({
           {profileType === PROFILE_TYPES.employee
             ? "Укажите зарплату и как часто приходят выплаты"
             : usesVariableIncome(profileType)
-              ? "Укажите типичный доход в плохой, средний и хороший месяц — это ожидания, не фактические поступления"
+              ? "Укажите минимальный и максимальный доход в месяц — базовый сценарий рассчитается автоматически"
               : profileType === PROFILE_TYPES.retiree
                 ? "Укажите размер пенсии"
                 : "Укажите средний месячный доход бизнеса"}
@@ -146,25 +145,16 @@ export function IncomeStep({
           <Input
             id="badMonth"
             name="badMonth"
-            label="Сколько обычно получается в плохой месяц? (₽)"
+            label="Плохой месяц — минимальный доход, который обычно бывает (₽)"
             type="number"
             min="0"
             required
             placeholder="50000"
           />
           <Input
-            id="averageMonth"
-            name="averageMonth"
-            label="Сколько обычно получается в средний месяц? (₽)"
-            type="number"
-            min="1"
-            required
-            placeholder="80000"
-          />
-          <Input
             id="goodMonth"
             name="goodMonth"
-            label="Сколько обычно получается в хороший месяц? (₽)"
+            label="Хороший месяц — максимальный доход, который обычно бывает (₽)"
             type="number"
             min="1"
             required

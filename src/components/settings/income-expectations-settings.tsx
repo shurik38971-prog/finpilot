@@ -1,6 +1,7 @@
 "use client";
 
 import { saveProfileIncomeParameters } from "@/lib/actions/profile-income";
+import { deriveBaseIncomeFromProfile } from "@/types/profile-income";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,11 +11,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
+import { formatCurrency } from "@/lib/utils";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
 import { usesVariableIncome, type ProfileType } from "@/types/profile";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export function IncomeExpectationsSettings({
   profileType,
@@ -27,14 +29,22 @@ export function IncomeExpectationsSettings({
   const [badMonth, setBadMonth] = useState(
     initialParams.badMonth ? String(initialParams.badMonth) : ""
   );
-  const [averageMonth, setAverageMonth] = useState(
-    initialParams.averageMonthly ? String(initialParams.averageMonthly) : ""
-  );
   const [goodMonth, setGoodMonth] = useState(
     initialParams.goodMonth ? String(initialParams.goodMonth) : ""
   );
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const previewBase = useMemo(() => {
+    const bad = Number(badMonth);
+    const good = Number(goodMonth);
+    if (!bad || !good || good < bad) return null;
+    return deriveBaseIncomeFromProfile({
+      averageMonthly: null,
+      badMonth: bad,
+      goodMonth: good,
+    });
+  }, [badMonth, goodMonth]);
 
   if (!usesVariableIncome(profileType)) {
     return null;
@@ -46,7 +56,7 @@ export function IncomeExpectationsSettings({
     try {
       await saveProfileIncomeParameters({
         badMonth: Number(badMonth),
-        averageMonthly: Number(averageMonth),
+        averageMonthly: null,
         goodMonth: Number(goodMonth),
       });
       setToastMessage("Ожидания дохода обновлены");
@@ -62,14 +72,15 @@ export function IncomeExpectationsSettings({
         <CardHeader>
           <CardTitle className="text-base">Ожидания дохода</CardTitle>
           <CardDescription>
-            Плановые сценарии для прогноза и анализа. Это не фактические
-            поступления — их добавляйте в разделе «Доходы».
+            Укажите типичный минимум и максимум в месяц. Базовый сценарий для
+            прогноза рассчитается автоматически. Это не фактические поступления
+            — их добавляйте в разделе «Доходы».
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSave} className="px-5 pb-5 space-y-4">
           <Input
             id="badMonth"
-            label="Сколько обычно получается в плохой месяц? (₽)"
+            label="Плохой месяц — минимальный доход, который обычно бывает (₽)"
             type="number"
             min="0"
             required
@@ -78,18 +89,8 @@ export function IncomeExpectationsSettings({
             placeholder="50000"
           />
           <Input
-            id="averageMonth"
-            label="Сколько обычно получается в средний месяц? (₽)"
-            type="number"
-            min="1"
-            required
-            value={averageMonth}
-            onChange={(e) => setAverageMonth(e.target.value)}
-            placeholder="80000"
-          />
-          <Input
             id="goodMonth"
-            label="Сколько обычно получается в хороший месяц? (₽)"
+            label="Хороший месяц — максимальный доход, который обычно бывает (₽)"
             type="number"
             min="1"
             required
@@ -97,6 +98,15 @@ export function IncomeExpectationsSettings({
             onChange={(e) => setGoodMonth(e.target.value)}
             placeholder="120000"
           />
+          {previewBase !== null && (
+            <p className="text-sm text-muted rounded-lg border border-border/60 bg-surface-hover/30 px-3 py-2">
+              Базовый сценарий:{" "}
+              <span className="font-medium text-foreground">
+                {formatCurrency(previewBase)}/мес
+              </span>{" "}
+              — среднее между плохим и хорошим месяцем
+            </p>
+          )}
           <Button type="submit" disabled={loading}>
             {loading ? (
               <>

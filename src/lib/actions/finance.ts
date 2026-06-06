@@ -6,7 +6,7 @@ import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { computeDashboardSummary } from "@/lib/finance/index";
 import { getProfileIncomeParameters } from "@/lib/actions/profile-income";
-import { toAnalysisIncomeFields } from "@/types/profile-income";
+import { toAnalysisIncomeFields } from "@/lib/finance/variable-income-scenarios";
 import { usesVariableIncome } from "@/types/profile";
 import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
 import { DEFAULT_PROFILE_TYPE, PROFILE_TYPE_LABELS } from "@/types/profile";
@@ -266,10 +266,13 @@ export async function getAnalysisContext() {
   );
   const avalanche = calculateDebtPayoff(debts, 0, "avalanche");
 
-  const variableIncomeContext =
-    usesVariableIncome(profileType) && profileIncome
-      ? toAnalysisIncomeFields(profileIncome, summary.totalIncome)
-      : null;
+  const variableIncomeContext = usesVariableIncome(profileType)
+    ? toAnalysisIncomeFields(
+        profileIncome,
+        summary.totalIncome,
+        incomes
+      )
+    : null;
 
   return {
     profileType,

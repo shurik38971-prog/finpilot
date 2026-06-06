@@ -37,8 +37,8 @@ export function IncomePageClient({
       {showIncomeExpectationsHint && (
         <div className="mb-6 rounded-xl border border-border/60 bg-surface-hover/30 p-4 space-y-3">
           <p className="text-sm text-muted leading-relaxed">
-            Здесь отображаются фактические поступления. Ожидаемый доход и
-            сценарии плохого, среднего и хорошего месяца настраиваются в
+            Здесь отображаются фактические поступления. Сценарии плохого и
+            хорошего месяца (и автоматический базовый прогноз) настраиваются в
             финансовом профиле.
           </p>
           <Link

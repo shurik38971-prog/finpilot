@@ -1,19 +1,21 @@
 import {
-  averageActualInMonthsWithData,
   expectedIncomeAmount,
   resolveIncomeType,
 } from "@/lib/finance/income-model";
 import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
-import { formatCurrency } from "@/lib/utils";
 import {
-  hasProfileIncomeParameters,
-  type ProfileIncomeParameters,
-} from "@/types/profile-income";
+  resolveVariableIncomeScenarios,
+  toForecastScenarios,
+} from "@/lib/finance/variable-income-scenarios";
+import { formatCurrency } from "@/lib/utils";
+import { hasProfileIncomeParameters } from "@/types/profile-income";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
 import { PROFILE_TYPES, type ProfileType } from "@/types/profile";
 import type { Income } from "@/types/database";
+import { averageActualInMonthsWithData } from "@/lib/finance/income-model";
 
 export const FORECAST_INSUFFICIENT_MESSAGE =
-  "Недостаточно данных для прогноза. Укажите ожидаемый ежемесячный доход.";
+  "Недостаточно данных для прогноза. Укажите доход в плохом и хорошем месяце.";
 
 export interface ForecastScenario {
   label: string;
@@ -33,24 +35,19 @@ function recurringExpectedMonthlyTotal(incomes: Income[]): number {
     .reduce((sum, income) => sum + expectedIncomeAmount(income), 0);
 }
 
-function variableIncomeFromProfile(
-  profileIncome: ProfileIncomeParameters
+function variableIncomeForecast(
+  incomes: Income[],
+  profileIncome: ProfileIncomeParameters | null,
+  from: Date
 ): ForecastIncomeModel | null {
-  const average = profileIncome.averageMonthly ?? 0;
-  if (average <= 0) return null;
-
-  const bad = profileIncome.badMonth ?? Math.round(average * 0.7);
-  const good = profileIncome.goodMonth ?? Math.round(average * 1.3);
+  const scenarios = resolveVariableIncomeScenarios(incomes, profileIncome, from);
+  if (!scenarios) return null;
 
   return {
     insufficientData: false,
-    basisLabel: `Базовый сценарий: ${formatCurrency(average)}/мес · плохой ${formatCurrency(bad)} · хороший ${formatCurrency(good)}`,
-    baseMonthlyIncome: average,
-    scenarios: [
-      { label: "Плохой", monthlyIncome: bad },
-      { label: "Базовый", monthlyIncome: average },
-      { label: "Хороший", monthlyIncome: good },
-    ],
+    basisLabel: scenarios.basisLabel,
+    baseMonthlyIncome: scenarios.base,
+    scenarios: toForecastScenarios(scenarios),
   };
 }
 
@@ -98,10 +95,12 @@ export function resolveProfileForecastIncome(
 
     case PROFILE_TYPES.self_employed:
     case PROFILE_TYPES.freelancer: {
-      const fromProfile = profileIncome
-        ? variableIncomeFromProfile(profileIncome)
-        : null;
-      if (fromProfile) return fromProfile;
+      const fromVariable = variableIncomeForecast(
+        operationalIncomes,
+        profileIncome,
+        from
+      );
+      if (fromVariable) return fromVariable;
 
       return {
         insufficientData: true,
@@ -164,8 +163,12 @@ export function resolveProfileForecastIncome(
       }
 
       if (hasProfileIncomeParameters(profileIncome)) {
-        const fromProfile = variableIncomeFromProfile(profileIncome!);
-        if (fromProfile) return fromProfile;
+        const fromVariable = variableIncomeForecast(
+          operationalIncomes,
+          profileIncome,
+          from
+        );
+        if (fromVariable) return fromVariable;
       }
 
       return {

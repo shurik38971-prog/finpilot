@@ -20,8 +20,8 @@ import { computeProfileReadiness } from "@/lib/profile/profile-readiness";
 import {
   getIncomeGap,
   getVariableIncomeComparisonLabel,
-  hasProfileIncomeParameters,
-} from "@/types/profile-income";
+} from "@/lib/finance/variable-income-scenarios";
+import { hasProfileIncomeParameters } from "@/types/profile-income";
 import { DEFAULT_PROFILE_TYPE, usesVariableIncome } from "@/types/profile";
 import {
   getNextBestAction,
@@ -104,6 +104,8 @@ export default async function DashboardPage() {
     totalDebt,
     debtPayments,
     goals,
+    profileType,
+    baseScenarioNet: forecast.data[0]?.net ?? null,
   });
   const isEmpty =
     incomes.length === 0 && expenses.length === 0 && debts.length === 0;
@@ -141,14 +143,16 @@ export default async function DashboardPage() {
       : null;
 
   const variableIncome =
-    usesVariableIncome(profileType) && hasProfileIncomeParameters(profileIncome)
+    usesVariableIncome(profileType) &&
+    (hasProfileIncomeParameters(profileIncome) || expectedIncome > 0)
       ? {
           actual: totalIncome,
           expected: expectedIncome,
-          gap: Math.max(0, getIncomeGap(totalIncome, profileIncome) ?? 0),
+          gap: Math.max(0, getIncomeGap(totalIncome, profileIncome, incomes) ?? 0),
           comparisonLabel: getVariableIncomeComparisonLabel(
             totalIncome,
-            profileIncome
+            profileIncome,
+            incomes
           ),
         }
       : null;

@@ -5,6 +5,8 @@ import {
 } from "@/lib/finance/index";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
+import { DEFAULT_PROFILE_TYPE, type ProfileType } from "@/types/profile";
 
 export interface ScenarioInput {
   name: string;
@@ -32,13 +34,37 @@ function scaleExpenses(
   return result.map((e) => ({ ...e, amount: e.amount * factor }));
 }
 
+function scaleProfileIncome(
+  profileIncome: ProfileIncomeParameters | null,
+  percent: number
+): ProfileIncomeParameters | null {
+  if (!profileIncome?.averageMonthly) return profileIncome;
+
+  const factor = 1 + percent / 100;
+  return {
+    averageMonthly: Math.round(profileIncome.averageMonthly * factor),
+    badMonth: profileIncome.badMonth
+      ? Math.round(profileIncome.badMonth * factor)
+      : null,
+    goodMonth: profileIncome.goodMonth
+      ? Math.round(profileIncome.goodMonth * factor)
+      : null,
+  };
+}
+
 export function runScenario(
   incomes: Income[],
   expenses: Expense[],
   debts: Debt[],
-  input: ScenarioInput
+  input: ScenarioInput,
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): ScenarioResult {
   const adjIncomes = scaleIncomes(incomes, input.incomeChangePercent);
+  const adjProfileIncome = scaleProfileIncome(
+    profileIncome,
+    input.incomeChangePercent
+  );
   const adjExpenses = scaleExpenses(
     expenses,
     input.expenseChangePercent,
@@ -48,7 +74,14 @@ export function runScenario(
   const summary = getMonthlyFinanceSummary(adjIncomes, adjExpenses, debts);
 
   const plan = calculateDebtPayoff(debts, input.extraDebtPayment, "avalanche");
-  const forecast = forecastCashFlow(adjIncomes, adjExpenses, debts, 3);
+  const forecast = forecastCashFlow(
+    adjIncomes,
+    adjExpenses,
+    debts,
+    3,
+    profileType,
+    adjProfileIncome
+  );
   const threeMonthBalance =
     forecast.data[forecast.data.length - 1]?.cumulative ?? 0;
 
@@ -58,7 +91,13 @@ export function runScenario(
     monthlyExpenses: summary.totalExpenses,
     extraDebtPayment: input.extraDebtPayment,
     monthsToDebtFree: plan.monthsToFreedom,
-    financialIndex: calculateFinancialIndex(adjIncomes, adjExpenses, debts),
+    financialIndex: calculateFinancialIndex(
+      adjIncomes,
+      adjExpenses,
+      debts,
+      profileType,
+      adjProfileIncome
+    ),
     threeMonthBalance: Math.round(threeMonthBalance),
   };
 }

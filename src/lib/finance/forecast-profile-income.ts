@@ -3,7 +3,12 @@ import {
   expectedIncomeAmount,
   resolveIncomeType,
 } from "@/lib/finance/income-model";
+import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
 import { formatCurrency } from "@/lib/utils";
+import {
+  hasProfileIncomeParameters,
+  type ProfileIncomeParameters,
+} from "@/types/profile-income";
 import { PROFILE_TYPES, type ProfileType } from "@/types/profile";
 import type { Income } from "@/types/database";
 
@@ -29,36 +34,64 @@ export interface ForecastIncomeModel {
   incomeRange?: ForecastIncomeRange;
 }
 
-function findByTitleIncludes(
-  incomes: Income[],
-  ...needles: string[]
-): Income | undefined {
-  return incomes.find((income) =>
-    needles.some((needle) =>
-      income.title.toLowerCase().includes(needle.toLowerCase())
-    )
-  );
-}
-
 function recurringExpectedMonthlyTotal(incomes: Income[]): number {
   return incomes
     .filter((income) => resolveIncomeType(income) === "expected")
     .reduce((sum, income) => sum + expectedIncomeAmount(income), 0);
 }
 
-function monthlyAmountForIncome(income: Income): number {
-  if (resolveIncomeType(income) === "expected") {
-    return expectedIncomeAmount(income);
-  }
-  return income.amount;
+function variableIncomeFromProfile(
+  profileIncome: ProfileIncomeParameters
+): ForecastIncomeModel | null {
+  const average = profileIncome.averageMonthly ?? 0;
+  if (average <= 0) return null;
+
+  const range: ForecastIncomeRange = {
+    average,
+    bad: profileIncome.badMonth ?? Math.round(average * 0.7),
+    good: profileIncome.goodMonth ?? Math.round(average * 1.3),
+  };
+
+  return {
+    insufficientData: false,
+    basisLabel: `На основании параметров профиля: средний ${formatCurrency(average)}/мес · диапазон ${formatCurrency(range.bad)} – ${formatCurrency(range.good)}`,
+    baseMonthlyIncome: average,
+    incomeRange: range,
+  };
+}
+
+function freelancerIncomeFromProfile(
+  profileIncome: ProfileIncomeParameters
+): ForecastIncomeModel | null {
+  const base = profileIncome.averageMonthly ?? 0;
+  if (base <= 0) return null;
+
+  const conservative =
+    profileIncome.badMonth ?? Math.round(base * 0.75);
+  const optimistic =
+    profileIncome.goodMonth ?? Math.round(base * 1.25);
+
+  return {
+    insufficientData: false,
+    basisLabel:
+      "На основании параметров профиля: консервативный, базовый и оптимистичный сценарии",
+    baseMonthlyIncome: base,
+    scenarios: [
+      { label: "Консервативный", monthlyIncome: conservative },
+      { label: "Базовый", monthlyIncome: base },
+      { label: "Оптимистичный", monthlyIncome: optimistic },
+    ],
+  };
 }
 
 export function resolveProfileForecastIncome(
   incomes: Income[],
   profileType: ProfileType,
+  profileIncome: ProfileIncomeParameters | null = null,
   from: Date = new Date()
 ): ForecastIncomeModel {
-  const recurring = recurringExpectedMonthlyTotal(incomes);
+  const operationalIncomes = filterOperationalIncomes(incomes);
+  const recurring = recurringExpectedMonthlyTotal(operationalIncomes);
 
   switch (profileType) {
     case PROFILE_TYPES.employee: {
@@ -94,76 +127,45 @@ export function resolveProfileForecastIncome(
     }
 
     case PROFILE_TYPES.self_employed: {
-      const averageIncome = findByTitleIncludes(incomes, "средн");
-      const badIncome = findByTitleIncludes(incomes, "плох");
-      const goodIncome = findByTitleIncludes(incomes, "хорош");
-
-      const average = averageIncome
-        ? monthlyAmountForIncome(averageIncome)
-        : recurring;
-
-      if (average <= 0) {
-        return {
-          insufficientData: true,
-          basisLabel: FORECAST_INSUFFICIENT_MESSAGE,
-          baseMonthlyIncome: 0,
-        };
-      }
-
-      const range: ForecastIncomeRange = {
-        average,
-        bad: badIncome?.amount ?? Math.round(average * 0.7),
-        good: goodIncome?.amount ?? Math.round(average * 1.3),
-      };
+      const fromProfile = profileIncome
+        ? variableIncomeFromProfile(profileIncome)
+        : null;
+      if (fromProfile) return fromProfile;
 
       return {
-        insufficientData: false,
-        basisLabel: `На основании среднего дохода ${formatCurrency(average)}/мес · диапазон ${formatCurrency(range.bad)} – ${formatCurrency(range.good)}`,
-        baseMonthlyIncome: average,
-        incomeRange: range,
+        insufficientData: true,
+        basisLabel: FORECAST_INSUFFICIENT_MESSAGE,
+        baseMonthlyIncome: 0,
       };
     }
 
     case PROFILE_TYPES.freelancer: {
-      const averageIncome = findByTitleIncludes(incomes, "средн");
-      const badIncome = findByTitleIncludes(incomes, "плох");
-      const goodIncome = findByTitleIncludes(incomes, "хорош");
-
-      const base = averageIncome ? monthlyAmountForIncome(averageIncome) : recurring;
-      const conservative = badIncome?.amount ?? Math.round(base * 0.75);
-      const optimistic = goodIncome?.amount ?? Math.round(base * 1.25);
-
-      if (base <= 0) {
-        return {
-          insufficientData: true,
-          basisLabel: FORECAST_INSUFFICIENT_MESSAGE,
-          baseMonthlyIncome: 0,
-        };
-      }
+      const fromProfile = profileIncome
+        ? freelancerIncomeFromProfile(profileIncome)
+        : null;
+      if (fromProfile) return fromProfile;
 
       return {
-        insufficientData: false,
-        basisLabel:
-          "Три сценария дохода: консервативный, базовый и оптимистичный",
-        baseMonthlyIncome: base,
-        scenarios: [
-          { label: "Консервативный", monthlyIncome: conservative },
-          { label: "Базовый", monthlyIncome: base },
-          { label: "Оптимистичный", monthlyIncome: optimistic },
-        ],
+        insufficientData: true,
+        basisLabel: FORECAST_INSUFFICIENT_MESSAGE,
+        baseMonthlyIncome: 0,
       };
     }
 
     case PROFILE_TYPES.business_owner: {
-      const businessIncome = findByTitleIncludes(
-        incomes,
-        "бизнес",
-        "средн"
+      const businessIncome = operationalIncomes.find((income) =>
+        income.title.toLowerCase().includes("бизнес")
       );
       const expectedMonthly = businessIncome
-        ? monthlyAmountForIncome(businessIncome)
+        ? resolveIncomeType(businessIncome) === "expected"
+          ? expectedIncomeAmount(businessIncome)
+          : businessIncome.amount
         : recurring;
-      const actualStats = averageActualInMonthsWithData(incomes, 6, from);
+      const actualStats = averageActualInMonthsWithData(
+        operationalIncomes,
+        6,
+        from
+      );
 
       if (actualStats && actualStats.monthsWithData >= 2) {
         const monthly = Math.round(actualStats.average);
@@ -201,6 +203,11 @@ export function resolveProfileForecastIncome(
           basisLabel: `На основании ожидаемого дохода: ${formatCurrency(recurring)}/мес`,
           baseMonthlyIncome: recurring,
         };
+      }
+
+      if (hasProfileIncomeParameters(profileIncome)) {
+        const fromProfile = variableIncomeFromProfile(profileIncome!);
+        if (fromProfile) return fromProfile;
       }
 
       return {

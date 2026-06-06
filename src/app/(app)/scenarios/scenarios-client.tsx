@@ -11,6 +11,8 @@ import {
 } from "@/lib/finance/scenarios";
 import { formatCurrency } from "@/lib/utils";
 import type { Debt, Expense, Income, ScenarioResult } from "@/types/database";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
+import type { ProfileType } from "@/types/profile";
 import { useMemo, useState } from "react";
 import { COPY } from "@/lib/copy/ui";
 import { getIndexLabel } from "@/lib/finance/index";
@@ -19,10 +21,14 @@ export function ScenariosPageClient({
   incomes,
   expenses,
   debts,
+  profileType,
+  profileIncome,
 }: {
   incomes: Income[];
   expenses: Expense[];
   debts: Debt[];
+  profileType: ProfileType;
+  profileIncome: ProfileIncomeParameters;
 }) {
   const [custom, setCustom] = useState<ScenarioInput>({
     name: "Свой сценарий",
@@ -35,14 +41,22 @@ export function ScenariosPageClient({
   const presetResults = useMemo(
     () =>
       PRESET_SCENARIOS.map((s) =>
-        runScenario(incomes, expenses, debts, s)
+        runScenario(incomes, expenses, debts, s, profileType, profileIncome)
       ),
-    [incomes, expenses, debts]
+    [incomes, expenses, debts, profileType, profileIncome]
   );
 
   const customResult = useMemo(
-    () => runScenario(incomes, expenses, debts, custom),
-    [incomes, expenses, debts, custom]
+    () =>
+      runScenario(
+        incomes,
+        expenses,
+        debts,
+        custom,
+        profileType,
+        profileIncome
+      ),
+    [incomes, expenses, debts, custom, profileType, profileIncome]
   );
 
   return (

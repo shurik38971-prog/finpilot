@@ -1,3 +1,4 @@
+import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
 import type { Income } from "@/types/database";
 import type { IncomeType } from "@/types/database";
 import { toMonthlyAmount } from "@/lib/utils";
@@ -26,7 +27,7 @@ export function actualIncomeInMonth(
   incomes: Income[],
   month: Date
 ): number {
-  return incomes
+  return filterOperationalIncomes(incomes)
     .filter(
       (income) =>
         resolveIncomeType(income) === "actual" &&
@@ -39,7 +40,7 @@ export function expectedIncomeInMonth(
   incomes: Income[],
   month: Date
 ): number {
-  const recurringExpected = incomes
+  const recurringExpected = filterOperationalIncomes(incomes)
     .filter(
       (income) =>
         resolveIncomeType(income) === "expected" &&
@@ -48,7 +49,7 @@ export function expectedIncomeInMonth(
     )
     .reduce((sum, income) => sum + expectedIncomeAmount(income), 0);
 
-  const oneTimeExpected = incomes
+  const oneTimeExpected = filterOperationalIncomes(incomes)
     .filter(
       (income) =>
         resolveIncomeType(income) === "expected" &&
@@ -124,7 +125,8 @@ export function resolveForecastMonthlyIncome(
   incomes: Income[],
   month: Date = new Date()
 ): number | null {
-  const recurringExpected = incomes
+  const operationalIncomes = filterOperationalIncomes(incomes);
+  const recurringExpected = operationalIncomes
     .filter(
       (income) =>
         resolveIncomeType(income) === "expected" &&
@@ -137,12 +139,12 @@ export function resolveForecastMonthlyIncome(
     return recurringExpected;
   }
 
-  const averageActual = averageActualInMonthsWithData(incomes, 3, month);
+  const averageActual = averageActualInMonthsWithData(operationalIncomes, 3, month);
   if (averageActual && averageActual.monthsWithData >= 2) {
     return averageActual.average;
   }
 
-  const expected = expectedIncomeInMonth(incomes, month);
+  const expected = expectedIncomeInMonth(operationalIncomes, month);
   if (expected > 0) return expected;
 
   return null;
@@ -152,5 +154,7 @@ export function countIncomesByType(
   incomes: Income[],
   type: IncomeType
 ): number {
-  return incomes.filter((income) => resolveIncomeType(income) === type).length;
+  return filterOperationalIncomes(incomes).filter(
+    (income) => resolveIncomeType(income) === type
+  ).length;
 }

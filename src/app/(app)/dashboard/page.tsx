@@ -17,6 +17,7 @@ import { getOnboardingProgress } from "@/lib/actions/onboarding";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { computeProfileDashboardStats } from "@/lib/profile/dashboard-stats";
 import { computeProfileReadiness } from "@/lib/profile/profile-readiness";
+import { hasProfileIncomeParameters } from "@/types/profile-income";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
 import {
   getNextBestAction,
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
   }
 
   const [
-    { incomes, expenses, debts },
+    { incomes, expenses, debts, profileIncome },
     goalFocus,
     onboarding,
     financialProfile,
@@ -70,14 +71,27 @@ export default async function DashboardPage() {
     netCashFlow,
     totalDebt,
     financialIndex,
-  } = computeDashboardSummary(incomes, expenses, debts, profileType);
+  } = computeDashboardSummary(
+    incomes,
+    expenses,
+    debts,
+    profileType,
+    profileIncome
+  );
 
   const nbaOptions = { hasNegativeCashflow: netCashFlow < 0 };
   const [nextBestAction, taskProgress] = await Promise.all([
     getNextBestAction(nbaOptions),
     getTaskProgressStats(),
   ]);
-  const forecast = forecastCashFlow(incomes, expenses, debts, 3, profileType);
+  const forecast = forecastCashFlow(
+    incomes,
+    expenses,
+    debts,
+    3,
+    profileType,
+    profileIncome
+  );
   const forecastInterpretation = interpretForecast({
     forecast: forecast.data,
     insufficientData: forecast.insufficientData,
@@ -101,7 +115,7 @@ export default async function DashboardPage() {
     : null;
 
   const profileReadiness = computeProfileReadiness({
-    hasIncome: incomes.length > 0,
+    hasIncome: incomes.length > 0 || hasProfileIncomeParameters(profileIncome),
     hasExpenses: expenses.length > 0,
     hasGoal: goals.length > 0,
     hasAnalysis: onboarding?.analysis_done ?? false,

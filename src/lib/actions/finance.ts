@@ -5,6 +5,8 @@ import { forecastCashFlow } from "@/lib/finance/forecast";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { computeDashboardSummary } from "@/lib/finance/index";
+import { getProfileIncomeParameters } from "@/lib/actions/profile-income";
+import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
 import { DEFAULT_PROFILE_TYPE, PROFILE_TYPE_LABELS } from "@/types/profile";
 import {
   markOnboardingStep,
@@ -53,9 +55,10 @@ export async function getIncomes() {
     .from("incomes")
     .select("*")
     .eq("user_id", userId)
+    .eq("is_profile_parameter", false)
     .order("date", { ascending: false });
   if (error) throw error;
-  return data;
+  return filterOperationalIncomes(data ?? []);
 }
 
 function incomePayloadFromForm(formData: FormData) {
@@ -219,40 +222,46 @@ export async function deleteDebt(id: string) {
 // ── Aggregated data ──
 
 export async function getFinancialData() {
-  const [incomes, expenses, debts] = await Promise.all([
+  const [incomes, expenses, debts, profileIncome] = await Promise.all([
     getIncomes(),
     getExpenses(),
     getDebts(),
+    getProfileIncomeParameters(),
   ]);
-  return { incomes, expenses, debts };
+  return { incomes, expenses, debts, profileIncome };
 }
 
 export async function getDashboardSummary() {
-  const [{ incomes, expenses, debts }, profile] = await Promise.all([
-    getFinancialData(),
-    getUserFinancialProfile(),
-  ]);
+  const [{ incomes, expenses, debts, profileIncome }, profile] =
+    await Promise.all([getFinancialData(), getUserFinancialProfile()]);
   return computeDashboardSummary(
     incomes,
     expenses,
     debts,
-    profile.profileType ?? DEFAULT_PROFILE_TYPE
+    profile.profileType ?? DEFAULT_PROFILE_TYPE,
+    profileIncome
   );
 }
 
 export async function getAnalysisContext() {
-  const [{ incomes, expenses, debts }, profile] = await Promise.all([
-    getFinancialData(),
-    getUserFinancialProfile(),
-  ]);
+  const [{ incomes, expenses, debts, profileIncome }, profile] =
+    await Promise.all([getFinancialData(), getUserFinancialProfile()]);
   const profileType = profile.profileType ?? DEFAULT_PROFILE_TYPE;
   const summary = computeDashboardSummary(
     incomes,
     expenses,
     debts,
-    profileType
+    profileType,
+    profileIncome
   );
-  const forecast = forecastCashFlow(incomes, expenses, debts, 3, profileType);
+  const forecast = forecastCashFlow(
+    incomes,
+    expenses,
+    debts,
+    3,
+    profileType,
+    profileIncome
+  );
   const avalanche = calculateDebtPayoff(debts, 0, "avalanche");
 
   return {

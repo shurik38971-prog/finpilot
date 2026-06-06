@@ -8,6 +8,7 @@ import {
   type ForecastScenario,
 } from "@/lib/finance/forecast-profile-income";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
+import type { ProfileIncomeParameters } from "@/types/profile-income";
 import { DEFAULT_PROFILE_TYPE, type ProfileType } from "@/types/profile";
 
 export interface ForecastCashFlowResult {
@@ -48,10 +49,16 @@ export function forecastCashFlow(
   expenses: Expense[],
   debts: Debt[],
   months = 3,
-  profileType: ProfileType = DEFAULT_PROFILE_TYPE
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): ForecastCashFlowResult {
   const now = new Date();
-  const incomeModel = resolveProfileForecastIncome(incomes, profileType, now);
+  const incomeModel = resolveProfileForecastIncome(
+    incomes,
+    profileType,
+    profileIncome,
+    now
+  );
 
   if (incomeModel.insufficientData) {
     return {

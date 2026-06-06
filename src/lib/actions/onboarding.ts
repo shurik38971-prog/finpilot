@@ -83,10 +83,16 @@ async function reconcileFromData(
   const [profile, incomes, expenses, debts, goals, analyses] = await Promise.all([
     supabase
       .from("user_profiles")
-      .select("profile_type")
+      .select(
+        "profile_type, income_average_monthly, income_bad_month, income_good_month"
+      )
       .eq("user_id", userId)
       .maybeSingle(),
-    supabase.from("incomes").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    supabase
+      .from("incomes")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_profile_parameter", false),
     supabase.from("expenses").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("debts").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("financial_goals").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -99,7 +105,9 @@ async function reconcileFromData(
     profile_done: row.profile_done || Boolean(profile.data?.profile_type),
     income_done:
       row.income_done ||
-      (backfillFromData && (incomes.count ?? 0) > 0),
+      (backfillFromData &&
+        ((incomes.count ?? 0) > 0 ||
+          (profile.data?.income_average_monthly ?? 0) > 0)),
     expenses_done:
       row.expenses_done ||
       (backfillFromData && (expenses.count ?? 0) > 0),

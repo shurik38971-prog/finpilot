@@ -2,14 +2,21 @@ import type { Debt, Expense, Income } from "@/types/database";
 import {
   actualIncomeInMonth,
   expectedIncomeInMonth,
+  getIncomeComparisonMessage,
   incomeForHealthIndex,
 } from "@/lib/finance/income-model";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import { PROFILE_INDEX_WEIGHTS } from "@/lib/profile/financial-profile";
 import {
+  hasProfileIncomeParameters,
+  type ProfileIncomeParameters,
+} from "@/types/profile-income";
+import { usesVariableIncome } from "@/types/profile";
+import {
   DEFAULT_PROFILE_TYPE,
   type ProfileType,
 } from "@/types/profile";
+import { filterOperationalIncomes } from "@/lib/finance/operational-incomes";
 import { toMonthlyAmount } from "@/lib/utils";
 
 export {
@@ -85,19 +92,22 @@ export function hasFinancialData(
 function incomeStabilityScore(
   incomes: Income[],
   maxPoints: number,
-  month: Date = new Date()
+  month: Date = new Date(),
+  profileExpectedMonthly: number | null = null
 ): number {
   if (maxPoints <= 0) return 0;
 
-  const expected = expectedIncomeInMonth(incomes, month);
-  const actual = actualIncomeInMonth(incomes, month);
+  const operationalIncomes = filterOperationalIncomes(incomes);
+  const expected =
+    profileExpectedMonthly ?? expectedIncomeInMonth(operationalIncomes, month);
+  const actual = actualIncomeInMonth(operationalIncomes, month);
 
   if (expected > 0) {
     const ratio = Math.min(1.2, actual / expected);
     return Math.min(maxPoints, Math.max(0, ratio * maxPoints));
   }
 
-  const avg = incomeForHealthIndex(incomes, month);
+  const avg = incomeForHealthIndex(operationalIncomes, month);
   if (avg > 0 && actual > 0) {
     const ratio = Math.min(1.2, actual / avg);
     return Math.min(maxPoints, Math.max(0, ratio * maxPoints));
@@ -110,15 +120,20 @@ export function calculateFinancialIndex(
   incomes: Income[],
   expenses: Expense[],
   debts: Debt[],
-  profileType: ProfileType = DEFAULT_PROFILE_TYPE
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): number | null {
-  if (!hasFinancialData(incomes, expenses, debts)) {
-    return null;
+  const operationalIncomes = filterOperationalIncomes(incomes);
+
+  if (!hasFinancialData(operationalIncomes, expenses, debts)) {
+    if (!hasProfileIncomeParameters(profileIncome)) {
+      return null;
+    }
   }
 
   const weights = PROFILE_INDEX_WEIGHTS[profileType];
-  const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
-  const monthlyIncome = incomeForHealthIndex(incomes);
+  const summary = getMonthlyFinanceSummary(operationalIncomes, expenses, debts);
+  const monthlyIncome = incomeForHealthIndex(operationalIncomes);
   const monthlyExpenses = summary.totalExpenses;
   const debtPayments = summary.debtPayments;
   const totalDebt = summary.totalDebt;
@@ -170,10 +185,20 @@ export function calculateFinancialIndex(
     score += Math.round(weights.essential * 0.45);
   }
 
-  const uniqueSources = new Set(incomes.map((i) => i.category)).size;
+  const uniqueSources = new Set(operationalIncomes.map((i) => i.category)).size;
   score += Math.min(weights.diversity, uniqueSources * (weights.diversity / 3));
 
-  score += incomeStabilityScore(incomes, weights.stability);
+  const profileExpected =
+    usesVariableIncome(profileType) && hasProfileIncomeParameters(profileIncome)
+      ? profileIncome!.averageMonthly
+      : null;
+
+  score += incomeStabilityScore(
+    operationalIncomes,
+    weights.stability,
+    new Date(),
+    profileExpected
+  );
 
   return Math.round(Math.min(100, Math.max(0, score)));
 }
@@ -195,20 +220,33 @@ export function computeDashboardSummary(
   incomes: Income[],
   expenses: Expense[],
   debts: Debt[],
-  profileType: ProfileType = DEFAULT_PROFILE_TYPE
+  profileType: ProfileType = DEFAULT_PROFILE_TYPE,
+  profileIncome: ProfileIncomeParameters | null = null
 ): DashboardSummary {
-  const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
+  const operationalIncomes = filterOperationalIncomes(incomes);
+  const summary = getMonthlyFinanceSummary(operationalIncomes, expenses, debts);
   const financialIndex = calculateFinancialIndex(
-    incomes,
+    operationalIncomes,
     expenses,
     debts,
-    profileType
+    profileType,
+    profileIncome
   );
+
+  const profileExpected =
+    usesVariableIncome(profileType) && hasProfileIncomeParameters(profileIncome)
+      ? profileIncome!.averageMonthly!
+      : null;
+  const expectedIncome = profileExpected ?? summary.expectedIncome;
+  const incomeComparison =
+    profileExpected !== null
+      ? getIncomeComparisonMessage(summary.totalIncome, profileExpected)
+      : summary.incomeComparison;
 
   return {
     totalIncome: summary.totalIncome,
-    expectedIncome: summary.expectedIncome,
-    incomeComparison: summary.incomeComparison,
+    expectedIncome,
+    incomeComparison,
     averageActualIncome3Months: summary.averageActualIncome3Months,
     totalExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,

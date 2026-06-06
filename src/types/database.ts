@@ -16,6 +16,7 @@ export interface Income {
   income_type?: IncomeType | null;
   is_recurring: boolean;
   frequency: Frequency | null;
+  is_profile_parameter?: boolean;
   created_at: string;
 }
 

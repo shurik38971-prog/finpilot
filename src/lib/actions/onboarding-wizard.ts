@@ -1,6 +1,7 @@
 "use server";
 
 import { markOnboardingStep } from "@/lib/actions/onboarding";
+import { saveProfileIncomeParameters } from "@/lib/actions/profile-income";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
 import { createClient } from "@/lib/supabase/server";
@@ -79,35 +80,20 @@ export async function saveWizardVariableIncome(data: {
   badMonth: number;
   goodMonth: number;
 }) {
-  const { supabase, userId } = await getUserId();
+  const { userId } = await getUserId();
 
-  await insertIncome(userId, supabase, {
-    title: "Средний доход",
-    amount: data.average,
-    category: "freelance",
-    income_type: "expected",
-    is_recurring: true,
-    frequency: "monthly",
-  });
-  await insertIncome(userId, supabase, {
-    title: "Плохой месяц",
-    amount: data.badMonth,
-    category: "freelance",
-    income_type: "actual",
-    is_recurring: false,
-    frequency: null,
-  });
-  await insertIncome(userId, supabase, {
-    title: "Хороший месяц",
-    amount: data.goodMonth,
-    category: "freelance",
-    income_type: "actual",
-    is_recurring: false,
-    frequency: null,
+  await saveProfileIncomeParameters({
+    averageMonthly: data.average,
+    badMonth: data.badMonth,
+    goodMonth: data.goodMonth,
   });
 
   await markOnboardingStep("income");
-  await trackProductEvent(PRODUCT_EVENTS.INCOME_ADDED, {}, userId);
+  await trackProductEvent(
+    PRODUCT_EVENTS.INCOME_ADDED,
+    { source: "profile_parameters" },
+    userId
+  );
   revalidateWizardPaths();
 }
 

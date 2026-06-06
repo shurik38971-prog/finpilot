@@ -1,6 +1,11 @@
 "use server";
 
 import { isAdminUser } from "@/lib/admin/is-admin";
+import {
+  computeUserActivityMetrics,
+  type UserActivityMetrics,
+} from "@/lib/admin/user-activity";
+import { cutoffDaysAgo } from "@/lib/admin/user-registrations";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,6 +35,7 @@ export interface ProductAnalyticsDashboard {
     completedTasks: number;
     returnedDay7: number;
   };
+  activity: UserActivityMetrics;
 }
 
 async function requireAdmin() {
@@ -172,8 +178,11 @@ export async function getProductAnalytics(
   const supabase = await requireAdmin();
   const since = sinceDate(days);
 
+  const activitySince = cutoffDaysAgo(7).toISOString();
+
   const [
     { data: events, error: eventsError },
+    { data: activityEvents, error: activityEventsError },
     { data: analysisRatings, error: analysisError },
     { data: recommendationRatings, error: recommendationError },
   ] = await Promise.all([
@@ -183,6 +192,11 @@ export async function getProductAnalytics(
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(20000),
+    supabase
+      .from("analytics_events")
+      .select("user_id, event_name, created_at")
+      .gte("created_at", activitySince)
+      .limit(50000),
     supabase
       .from("analysis_ratings")
       .select("rating")
@@ -194,6 +208,7 @@ export async function getProductAnalytics(
   ]);
 
   if (eventsError) throw eventsError;
+  if (activityEventsError) throw activityEventsError;
   if (analysisError) throw analysisError;
   if (recommendationError) throw recommendationError;
 
@@ -233,8 +248,11 @@ export async function getProductAnalytics(
         ) / 10
       : null;
 
+  const activity = computeUserActivityMetrics(activityEvents ?? []);
+
   return {
     periodDays: days,
+    activity,
     funnel: {
       registrations: uniqueUsersWithEvent(
         allEvents,

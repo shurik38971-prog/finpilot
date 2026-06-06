@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatHistoryDate } from "@/lib/utils";
 import {
+  Activity,
   BarChart3,
   HelpCircle,
+  LayoutDashboard,
   Loader2,
   MessageCircle,
   MousePointerClick,
@@ -156,6 +158,24 @@ export function AdminDashboardClient({
           ))}
           {pending && <Loader2 className="h-4 w-4 animate-spin text-muted" />}
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          label="Active users 24h"
+          value={productData.activity.activeUsers24h}
+          icon={Activity}
+        />
+        <StatCard
+          label="Active users 7d"
+          value={productData.activity.activeUsers7d}
+          icon={Users}
+        />
+        <StatCard
+          label="Dashboard opens 7d"
+          value={productData.activity.dashboardOpens7d}
+          icon={LayoutDashboard}
+        />
       </div>
 
       <Card className="border-accent/30 bg-accent/5">

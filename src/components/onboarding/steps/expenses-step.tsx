@@ -6,8 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
-const EXPENSE_PRESETS = [
-  { key: "housing", title: "Жильё", category: "housing", placeholder: "35000" },
+const MANDATORY_EXPENSE_PRESETS = [
+  {
+    key: "housing",
+    title: "Жильё / аренда",
+    category: "housing",
+    placeholder: "35000",
+  },
   { key: "food", title: "Продукты", category: "food", placeholder: "20000" },
   {
     key: "transport",
@@ -21,11 +26,15 @@ const EXPENSE_PRESETS = [
     category: "utilities",
     placeholder: "6000",
   },
+] as const;
+
+const OPTIONAL_EXPENSE_PRESETS = [
   {
     key: "subscriptions",
     title: "Подписки",
     category: "subscriptions",
     placeholder: "3000",
+    hint: "Spotify, Netflix, VPN и другие — необязательные траты",
   },
 ] as const;
 
@@ -43,11 +52,15 @@ export function ExpensesStep({ onComplete }: { onComplete: () => void }) {
     setLoading(true);
     setError("");
 
-    const items = EXPENSE_PRESETS.map((preset) => ({
-      title: preset.title,
-      category: preset.category,
-      amount: Number(amounts[preset.key] || 0),
-    })).filter((item) => item.amount > 0);
+    const allPresets = [...MANDATORY_EXPENSE_PRESETS, ...OPTIONAL_EXPENSE_PRESETS];
+    const items = allPresets
+      .map((preset) => ({
+        title: preset.title,
+        category: preset.category,
+        amount: Number(amounts[preset.key] || 0),
+        is_essential: preset.category !== "subscriptions",
+      }))
+      .filter((item) => item.amount > 0);
 
     if (items.length === 0) {
       setError("Укажите хотя бы один расход");
@@ -75,7 +88,30 @@ export function ExpensesStep({ onComplete }: { onComplete: () => void }) {
       </div>
 
       <div className="space-y-3">
-        {EXPENSE_PRESETS.map((preset) => (
+        {MANDATORY_EXPENSE_PRESETS.map((preset) => (
+          <Input
+            key={preset.key}
+            id={preset.key}
+            label={preset.title}
+            type="number"
+            min="0"
+            step="1"
+            inputMode="numeric"
+            placeholder={preset.placeholder}
+            value={amounts[preset.key] ?? ""}
+            onChange={(e) => updateAmount(preset.key, e.target.value)}
+          />
+        ))}
+      </div>
+
+      <div className="space-y-3 pt-2 border-t border-border">
+        <div>
+          <h3 className="text-sm font-medium">Необязательные расходы</h3>
+          <p className="text-xs text-muted mt-1">
+            Подписки и сервисы — их можно сократить при необходимости
+          </p>
+        </div>
+        {OPTIONAL_EXPENSE_PRESETS.map((preset) => (
           <Input
             key={preset.key}
             id={preset.key}

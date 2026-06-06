@@ -83,7 +83,6 @@ export function resolveProfileExpectedIncome(
       return null;
     }
 
-    case PROFILE_TYPES.self_employed:
     case PROFILE_TYPES.freelancer:
       return getExpectedMonthlyIncome(profileIncome, operational, from);
 

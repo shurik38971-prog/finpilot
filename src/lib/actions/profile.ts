@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_PROFILE_TYPE,
   isProfileType,
+  resolveProfileType,
   type ProfileType,
 } from "@/types/profile";
 import { revalidatePath } from "next/cache";
@@ -46,10 +47,9 @@ export async function getUserFinancialProfile(): Promise<{
 
     if (error) throw error;
 
-    const profileType =
-      data?.profile_type && isProfileType(data.profile_type)
-        ? data.profile_type
-        : null;
+    const profileType = data?.profile_type
+      ? resolveProfileType(data.profile_type)
+      : null;
 
     return {
       profileType,
@@ -73,8 +73,8 @@ export async function getProfileTypeForUser(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (data?.profile_type && isProfileType(data.profile_type)) {
-    return data.profile_type;
+  if (data?.profile_type) {
+    return resolveProfileType(data.profile_type);
   }
 
   return DEFAULT_PROFILE_TYPE;

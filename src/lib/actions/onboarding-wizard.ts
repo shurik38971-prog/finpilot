@@ -144,7 +144,12 @@ export async function saveWizardAdditionalIncome(data: {
 }
 
 export async function saveWizardExpenses(
-  items: { title: string; category: string; amount: number }[]
+  items: {
+    title: string;
+    category: string;
+    amount: number;
+    is_essential?: boolean;
+  }[]
 ) {
   const { supabase, userId } = await getUserId();
   const valid = items.filter((item) => item.amount > 0);
@@ -162,7 +167,7 @@ export async function saveWizardExpenses(
       date: todayIso(),
       is_recurring: true,
       frequency: "monthly",
-      is_essential: true,
+      is_essential: item.is_essential ?? item.category !== "subscriptions",
     }))
   );
 

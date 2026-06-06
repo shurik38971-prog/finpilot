@@ -43,6 +43,10 @@ export function IncomeStep({
   const [error, setError] = useState("");
 
   async function afterMainIncomeSaved() {
+    if (usesVariableIncome(profileType)) {
+      onComplete();
+      return;
+    }
     setPhase("additional-ask");
     setError("");
   }

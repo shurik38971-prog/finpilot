@@ -112,3 +112,17 @@ export const EXPENSE_CATEGORIES = [
   "business",
   "other",
 ] as const;
+
+export const EXPENSE_CATEGORY_LABELS: Record<
+  (typeof EXPENSE_CATEGORIES)[number],
+  string
+> = {
+  housing: "Жильё / аренда",
+  food: "Продукты",
+  transport: "Транспорт",
+  utilities: "Коммунальные",
+  health: "Здоровье",
+  subscriptions: "Подписки",
+  business: "Бизнес",
+  other: "Другое",
+};

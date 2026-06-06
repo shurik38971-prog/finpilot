@@ -96,7 +96,6 @@ export function resolveProfileForecastIncome(
       };
     }
 
-    case PROFILE_TYPES.self_employed:
     case PROFILE_TYPES.freelancer: {
       const fromVariable = variableIncomeForecast(
         operationalIncomes,

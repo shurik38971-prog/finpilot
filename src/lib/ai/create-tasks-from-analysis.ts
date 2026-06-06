@@ -1,3 +1,7 @@
+import {
+  buildAnalysisDataFlags,
+  isForbiddenRecommendation,
+} from "@/lib/ai/analysis-guardrails";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createTaskImpacts,
@@ -193,6 +197,7 @@ export async function createTasksFromAnalysis(
     { data: debts },
     { data: incomes },
     { data: expenses },
+    { count: analysisCount },
   ] = await Promise.all([
     supabase
       .from("financial_tasks")
@@ -205,7 +210,35 @@ export async function createTasksFromAnalysis(
     supabase.from("debts").select("*").eq("user_id", userId),
     supabase.from("incomes").select("*").eq("user_id", userId),
     supabase.from("expenses").select("*").eq("user_id", userId),
+    supabase
+      .from("analyses")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId),
   ]);
+
+  const profileType = await getProfileTypeForUser(supabase, userId);
+  const dataFlags = buildAnalysisDataFlags({
+    expenses: (expenses ?? []).map((expense) => ({
+      title: expense.title,
+      category: expense.category,
+      amount: expense.amount,
+      is_essential: expense.is_essential,
+    })),
+    goals: (goals ?? []).map((goal) => ({
+      type: goal.type,
+      current_amount: goal.current_amount,
+    })),
+    analysisCount: analysisCount ?? 0,
+    profileType,
+    primaryMonthlyIncome: 0,
+  });
+
+  function isAllowedTask(title: string, description: string | null): boolean {
+    return (
+      !isForbiddenRecommendation(title, dataFlags) &&
+      !isForbiddenRecommendation(description ?? "", dataFlags)
+    );
+  }
 
   const userGoals = (goals ?? []) as FinancialGoal[];
   const debtTitles = (debts ?? []).map((d) => d.title);
@@ -237,19 +270,26 @@ export async function createTasksFromAnalysis(
   const rawCandidates: TaskCandidate[] = [];
 
   if (parsed.next_best_action?.title) {
-    rawCandidates.push(
-      mapNextBestAction(
-        parsed.next_best_action,
-        userId,
-        analysisId,
-        userGoals,
-        debtTitles
-      )
-    );
+    const title = parsed.next_best_action.title.trim();
+    const description = parsed.next_best_action.description?.trim() ?? null;
+    if (isAllowedTask(title, description)) {
+      rawCandidates.push(
+        mapNextBestAction(
+          parsed.next_best_action,
+          userId,
+          analysisId,
+          userGoals,
+          debtTitles
+        )
+      );
+    }
   }
 
   for (const action of parsed.actions_30_days ?? []) {
     if (!action.action?.trim()) continue;
+    const title = action.action.trim();
+    const description = action.effect?.trim() ?? null;
+    if (!isAllowedTask(title, description)) continue;
     rawCandidates.push(
       mapAction30Day(action, userId, analysisId, userGoals, debtTitles)
     );
@@ -297,7 +337,6 @@ export async function createTasksFromAnalysis(
     });
   }
 
-  const profileType = await getProfileTypeForUser(supabase, userId);
   const summary = computeDashboardSummary(
     financeOptions.incomes,
     financeOptions.expenses,

@@ -45,7 +45,7 @@ export function computeProfileDashboardStats(
   const monthsCovered = burnBase > 0 ? cushionAmount / burnBase : null;
 
   const reserveMonths =
-    profileType === "freelancer" || profileType === "self_employed"
+    profileType === "freelancer"
       ? 6
       : profileType === "business_owner"
         ? 4
@@ -55,7 +55,6 @@ export function computeProfileDashboardStats(
   const liquidity = cushionAmount + Math.max(0, summary.freeMoney);
 
   switch (profileType) {
-    case "self_employed":
     case "freelancer":
       return {
         title: PROFILE_TYPE_LABELS[profileType],

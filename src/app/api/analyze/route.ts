@@ -8,6 +8,12 @@ import {
   computeIndexDelta,
   generateComparisonComment,
 } from "@/lib/ai/generate-comparison";
+import {
+  buildAnalysisDataFlags,
+  buildAnalysisGuardrailRules,
+  buildAnalysisSystemPrompt,
+  sanitizeAnalysisResult,
+} from "@/lib/ai/analysis-guardrails";
 import { createTasksFromAnalysis } from "@/lib/ai/create-tasks-from-analysis";
 import { getGptunnelConfig, gptunnelChat } from "@/lib/ai/gptunnel";
 import { PROBLEM_LABELS, resolveProblemLabel } from "@/lib/finance/problem-labels";
@@ -40,11 +46,15 @@ function extractJsonFromText(text: string) {
   }
 }
 
-function buildAnalysisPrompt(context: Awaited<ReturnType<typeof getAnalysisContext>>) {
+function buildAnalysisPrompt(
+  context: Awaited<ReturnType<typeof getAnalysisContext>>,
+  guardrailRules: string
+) {
   const labels = PROBLEM_LABELS.join(" | ");
 
   return `
 Проанализируй финансовые данные пользователя.
+${guardrailRules}
 Тип пользователя: ${context.profileTypeLabel}
 Учитывай профиль при рекомендациях, задачах, следующем лучшем действии и оценке финансового здоровья.
 Учти: monthlyIncome / planningMonthlyIncome — основной доход из профиля + дополнительные доходы месяца.
@@ -137,22 +147,38 @@ export async function POST(_req: Request) {
     const context = await getAnalysisContext();
     const today = getTodayDateString();
 
+    const [{ count: analysisCount }, { data: goals }, { data: expenses }] =
+      await Promise.all([
+        supabase
+          .from("analyses")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id),
+        supabase.from("financial_goals").select("type, current_amount").eq("user_id", user.id),
+        supabase
+          .from("expenses")
+          .select("title, category, amount, is_essential")
+          .eq("user_id", user.id),
+      ]);
+
+    const dataFlags = buildAnalysisDataFlags({
+      expenses: expenses ?? [],
+      goals: goals ?? [],
+      analysisCount: analysisCount ?? 0,
+      profileType: context.profileType,
+      primaryMonthlyIncome: context.primaryMonthlyIncome ?? 0,
+    });
+    const guardrailRules = buildAnalysisGuardrailRules(dataFlags);
+
     const chatResult = await gptunnelChat(
       [
         {
           role: "system",
-          content: `Ты помогаешь самозанятому разобраться с деньгами. Пиши простым языком — без слов «денежный поток», «ликвидность», «долговая нагрузка», «финансовая устойчивость».
-Твоя задача:
-- найти главную угрозу;
-- найти утечки денег;
-- оценить, хватит ли денег до следующего дохода;
-- дать план на 7, 30 и 90 дней;
-- выбрать next_best_action — одно самое важное дело;
-- дать actions_30_days — конкретные шаги и чем они помогут.
-Если с деньгами всё неплохо — объясни почему. Если плохо — не смягчай.
-Отвечай только валидным JSON без markdown.`,
+          content: buildAnalysisSystemPrompt(
+            context.profileTypeLabel,
+            dataFlags
+          ),
         },
-        { role: "user", content: buildAnalysisPrompt(context) },
+        { role: "user", content: buildAnalysisPrompt(context, guardrailRules) },
       ],
       0.3
     );
@@ -169,7 +195,8 @@ export async function POST(_req: Request) {
       );
     }
 
-    const parsed = extractJsonFromText(chatResult.content) as AiAnalysisResult;
+    const rawParsed = extractJsonFromText(chatResult.content) as AiAnalysisResult;
+    const parsed = sanitizeAnalysisResult(rawParsed, dataFlags);
     console.log("Model used:", chatResult.model);
 
     const mainThreat =

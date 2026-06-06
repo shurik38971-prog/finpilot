@@ -3,7 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { EXPENSE_CATEGORIES, type Expense } from "@/types/database";
+import {
+  EXPENSE_CATEGORIES,
+  EXPENSE_CATEGORY_LABELS,
+  type Expense,
+} from "@/types/database";
 import { createExpense, updateExpense } from "@/lib/actions/finance";
 import { useState } from "react";
 
@@ -14,7 +18,7 @@ interface ExpenseFormProps {
 
 const categoryOptions = EXPENSE_CATEGORIES.map((c) => ({
   value: c,
-  label: c.charAt(0).toUpperCase() + c.slice(1),
+  label: EXPENSE_CATEGORY_LABELS[c],
 }));
 
 const frequencyOptions = [

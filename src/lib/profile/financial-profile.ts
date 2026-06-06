@@ -28,14 +28,6 @@ export const PROFILE_INDEX_WEIGHTS: Record<ProfileType, IndexWeights> = {
     diversity: 10,
     stability: 5,
   },
-  self_employed: {
-    cashFlow: 20,
-    debt: 15,
-    buffer: 30,
-    essential: 10,
-    diversity: 5,
-    stability: 20,
-  },
   freelancer: {
     cashFlow: 20,
     debt: 15,
@@ -89,7 +81,6 @@ export function getProfileTaskBoost(
       if (flags.cushionRelated) return 18;
       if (flags.expenseCutRelated) return 10;
       return 0;
-    case "self_employed":
     case "freelancer":
       if (flags.cushionRelated) return 30;
       if (flags.incomeStabilityRelated) return 25;

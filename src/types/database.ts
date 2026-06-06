@@ -1,4 +1,10 @@
 export type Frequency = "weekly" | "monthly" | "quarterly" | "yearly";
+export type IncomeType = "expected" | "actual";
+
+export const INCOME_TYPE_LABELS: Record<IncomeType, string> = {
+  expected: "Ожидаемый доход",
+  actual: "Фактическое поступление",
+};
 
 export interface Income {
   id: string;
@@ -7,6 +13,7 @@ export interface Income {
   amount: number;
   category: string;
   date: string;
+  income_type?: IncomeType | null;
   is_recurring: boolean;
   frequency: Frequency | null;
   created_at: string;

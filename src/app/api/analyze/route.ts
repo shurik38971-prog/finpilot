@@ -42,7 +42,9 @@ function buildAnalysisPrompt(context: Awaited<ReturnType<typeof getAnalysisConte
   const labels = PROBLEM_LABELS.join(" | ");
 
   return `
-Проанализируй финансовые данные самозанятого:
+Проанализируй финансовые данные самозанятого.
+Учти: actualMonthlyIncome — факт за месяц, expectedMonthlyIncome — ожидание,
+averageActualIncome3Months — средний факт за 3 месяца, incomeVsExpectedDelta — разница.
 ${JSON.stringify(context, null, 2)}
 
 Ответь строго в JSON формате:

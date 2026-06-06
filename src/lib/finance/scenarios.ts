@@ -49,7 +49,8 @@ export function runScenario(
 
   const plan = calculateDebtPayoff(debts, input.extraDebtPayment, "avalanche");
   const forecast = forecastCashFlow(adjIncomes, adjExpenses, debts, 3);
-  const threeMonthBalance = forecast[forecast.length - 1]?.cumulative ?? 0;
+  const threeMonthBalance =
+    forecast.data[forecast.data.length - 1]?.cumulative ?? 0;
 
   return {
     name: input.name,

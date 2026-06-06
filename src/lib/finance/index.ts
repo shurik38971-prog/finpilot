@@ -1,6 +1,18 @@
 import type { Debt, Expense, Income } from "@/types/database";
+import { incomeForHealthIndex } from "@/lib/finance/income-model";
 import { getMonthlyFinanceSummary } from "@/lib/finance/monthly-summary";
 import { toMonthlyAmount } from "@/lib/utils";
+
+export {
+  actualIncomeInMonth,
+  averageActualIncomeLastMonths,
+  countIncomesByType,
+  expectedIncomeInMonth,
+  getIncomeComparisonMessage,
+  incomeForHealthIndex,
+  resolveForecastMonthlyIncome,
+  resolveIncomeType,
+} from "@/lib/finance/income-model";
 
 export {
   getMonthlyFinanceSummary,
@@ -10,13 +22,10 @@ export {
   type MonthlyFinanceSummary,
 } from "@/lib/finance/monthly-summary";
 
+export { forecastCashFlow, type ForecastCashFlowResult } from "@/lib/finance/forecast";
+
 export function monthlyIncomeTotal(incomes: Income[]): number {
-  return incomes
-    .filter((i) => i.is_recurring)
-    .reduce(
-      (sum, i) => sum + toMonthlyAmount(i.amount, i.frequency, true),
-      0
-    );
+  return getMonthlyFinanceSummary(incomes, [], []).totalIncome;
 }
 
 export function monthlyExpenseTotal(expenses: Expense[]): number {
@@ -65,11 +74,11 @@ export function calculateFinancialIndex(
   }
 
   const summary = getMonthlyFinanceSummary(incomes, expenses, debts);
-  const monthlyIncome = summary.totalIncome;
+  const monthlyIncome = incomeForHealthIndex(incomes);
   const monthlyExpenses = summary.totalExpenses;
   const debtPayments = summary.debtPayments;
   const totalDebt = summary.totalDebt;
-  const netCashFlow = summary.freeMoney;
+  const netCashFlow = monthlyIncome - monthlyExpenses - debtPayments;
 
   let score = 0;
 
@@ -118,6 +127,9 @@ export function calculateFinancialIndex(
 
 export interface DashboardSummary {
   totalIncome: number;
+  expectedIncome: number;
+  incomeComparison: string | null;
+  averageActualIncome3Months: number | null;
   totalExpenses: number;
   debtPayments: number;
   netCashFlow: number;
@@ -125,7 +137,7 @@ export interface DashboardSummary {
   financialIndex: number | null;
 }
 
-/** Сводка дашборда: регулярные и разовые операции текущего месяца. */
+/** Сводка дашборда: фактические доходы и расходы текущего месяца. */
 export function computeDashboardSummary(
   incomes: Income[],
   expenses: Expense[],
@@ -136,6 +148,9 @@ export function computeDashboardSummary(
 
   return {
     totalIncome: summary.totalIncome,
+    expectedIncome: summary.expectedIncome,
+    incomeComparison: summary.incomeComparison,
+    averageActualIncome3Months: summary.averageActualIncome3Months,
     totalExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
     netCashFlow: summary.freeMoney,

@@ -3,9 +3,12 @@ import { COPY, HINTS } from "@/lib/copy/ui";
 import { formatCurrency } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { TrendingDown, TrendingUp, Wallet, CreditCard } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SummaryCardsProps {
   totalIncome: number;
+  expectedIncome: number;
+  incomeComparison: string | null;
   totalExpenses: number;
   netCashFlow: number;
   totalDebt: number;
@@ -55,19 +58,41 @@ export function SummaryCards(props: SummaryCardsProps) {
                   {key === "net" && <HintTooltip hint={HINTS.freeMoney} />}
                 </p>
                 <p
-                  className={`text-xl font-bold mt-1 ${key === "net" && getValue(props) < 0 ? "text-red-400" : ""}`}
+                  className={cn(
+                    "text-xl font-bold mt-1",
+                    key === "net" && getValue(props) < 0 && "text-red-400"
+                  )}
                 >
                   {formatCurrency(getValue(props))}
                 </p>
+                {key === "income" && props.expectedIncome > 0 && (
+                  <p className="text-xs text-muted mt-1">
+                    Ожидалось: {formatCurrency(props.expectedIncome)}
+                  </p>
+                )}
+                {key === "income" && props.incomeComparison && (
+                  <p
+                    className={cn(
+                      "text-xs mt-1",
+                      props.incomeComparison.includes("ниже")
+                        ? "text-orange-400"
+                        : "text-emerald-400"
+                    )}
+                  >
+                    {props.incomeComparison}
+                  </p>
+                )}
               </div>
               <Icon className={`h-5 w-5 ${color}`} />
             </div>
           </Card>
         ))}
       </div>
-      <p className="text-xs text-muted px-1">
-        В карточках учитываются регулярные платежи и разовые операции текущего
-        месяца.
+      <p className="text-xs text-muted px-1 leading-relaxed">
+        Для самозанятых доход может быть нестабильным, поэтому FinPilot сравнивает
+        фактические поступления с ожидаемым доходом и средним доходом за прошлые
+        месяцы. В расходах учитываются регулярные платежи и разовые операции
+        текущего месяца.
       </p>
     </div>
   );

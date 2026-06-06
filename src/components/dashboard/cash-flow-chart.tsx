@@ -18,9 +18,13 @@ import { formatCurrency } from "@/lib/utils";
 
 interface CashFlowChartProps {
   data: CashFlowForecast[];
+  insufficientData?: boolean;
 }
 
-export function CashFlowChart({ data }: CashFlowChartProps) {
+export function CashFlowChart({
+  data,
+  insufficientData = false,
+}: CashFlowChartProps) {
   return (
     <Card>
       <CardHeader>
@@ -33,10 +37,20 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             <HintTooltip hint={HINTS.safetyBuffer} />
           </span>
           <span className="text-muted/70">·</span>
-          <span>Сколько останется каждый месяц</span>
+          <span>
+            {insufficientData
+              ? "Недостаточно данных для прогноза"
+              : "Сколько останется каждый месяц"}
+          </span>
         </CardDescription>
       </CardHeader>
       <div className="h-72">
+        {insufficientData ? (
+          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">
+            Недостаточно данных для прогноза. Добавьте фактические поступления или
+            ожидаемый доход.
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
@@ -88,6 +102,7 @@ export function CashFlowChart({ data }: CashFlowChartProps) {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </Card>
   );

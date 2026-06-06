@@ -9,7 +9,8 @@ import {
   markOnboardingSteps,
 } from "@/lib/actions/onboarding";
 import { revalidatePath } from "next/cache";
-import type { Frequency } from "@/types/database";
+import type { Frequency, IncomeType } from "@/types/database";
+import { countIncomesByType } from "@/lib/finance/income-model";
 
 const FINANCIAL_PATHS = [
   "/dashboard",
@@ -53,17 +54,26 @@ export async function getIncomes() {
   return data;
 }
 
-export async function createIncome(formData: FormData) {
-  const { supabase, userId } = await getUserId();
-  const isRecurring = formData.get("is_recurring") === "on";
-  const { error } = await supabase.from("incomes").insert({
-    user_id: userId,
+function incomePayloadFromForm(formData: FormData) {
+  const incomeType = formData.get("income_type") as IncomeType;
+  const isExpected = incomeType === "expected";
+
+  return {
     title: formData.get("title") as string,
     amount: Number(formData.get("amount")),
     category: formData.get("category") as string,
     date: formData.get("date") as string,
-    is_recurring: isRecurring,
-    frequency: isRecurring ? (formData.get("frequency") as Frequency) : null,
+    income_type: incomeType,
+    is_recurring: isExpected,
+    frequency: isExpected ? "monthly" : null,
+  };
+}
+
+export async function createIncome(formData: FormData) {
+  const { supabase, userId } = await getUserId();
+  const { error } = await supabase.from("incomes").insert({
+    user_id: userId,
+    ...incomePayloadFromForm(formData),
   });
   if (error) throw error;
   await markOnboardingStep("income");
@@ -72,17 +82,9 @@ export async function createIncome(formData: FormData) {
 
 export async function updateIncome(id: string, formData: FormData) {
   const { supabase } = await getUserId();
-  const isRecurring = formData.get("is_recurring") === "on";
   const { error } = await supabase
     .from("incomes")
-    .update({
-      title: formData.get("title") as string,
-      amount: Number(formData.get("amount")),
-      category: formData.get("category") as string,
-      date: formData.get("date") as string,
-      is_recurring: isRecurring,
-      frequency: isRecurring ? (formData.get("frequency") as Frequency) : null,
-    })
+    .update(incomePayloadFromForm(formData))
     .eq("id", id);
   if (error) throw error;
   revalidateFinancialPages();
@@ -230,6 +232,10 @@ export async function getAnalysisContext() {
   const avalanche = calculateDebtPayoff(debts, 0, "avalanche");
 
   return {
+    actualMonthlyIncome: summary.totalIncome,
+    expectedMonthlyIncome: summary.expectedIncome,
+    averageActualIncome3Months: summary.averageActualIncome3Months,
+    incomeVsExpectedDelta: summary.totalIncome - summary.expectedIncome,
     monthlyIncome: summary.totalIncome,
     monthlyExpenses: summary.totalExpenses,
     debtPayments: summary.debtPayments,
@@ -237,12 +243,14 @@ export async function getAnalysisContext() {
     totalDebt: summary.totalDebt,
     financialIndex: summary.financialIndex,
     incomeSources: incomes.length,
-    recurringIncomes: incomes.filter((i) => i.is_recurring).length,
+    expectedIncomes: countIncomesByType(incomes, "expected"),
+    actualIncomes: countIncomesByType(incomes, "actual"),
     essentialExpenses: expenses.filter((e) => e.is_essential).length,
     nonEssentialExpenses: expenses.filter((e) => !e.is_essential).length,
     debtCount: debts.length,
     monthsToDebtFree: avalanche.monthsToFreedom,
-    threeMonthForecast: forecast.map((f) => ({
+    forecastInsufficientData: forecast.insufficientData,
+    threeMonthForecast: forecast.data.map((f) => ({
       month: f.month,
       income: f.income,
       expenses: f.expenses,

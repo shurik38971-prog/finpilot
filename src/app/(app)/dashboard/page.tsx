@@ -26,6 +26,8 @@ export default async function DashboardPage() {
 
   const {
     totalIncome,
+    expectedIncome,
+    incomeComparison,
     totalExpenses,
     netCashFlow,
     totalDebt,
@@ -55,6 +57,8 @@ export default async function DashboardPage() {
           <GoalFocusCard focus={goalFocus} />
           <SummaryCards
             totalIncome={totalIncome}
+            expectedIncome={expectedIncome}
+            incomeComparison={incomeComparison}
             totalExpenses={totalExpenses}
             netCashFlow={netCashFlow}
             totalDebt={totalDebt}
@@ -63,7 +67,10 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <FinancialIndexGauge index={financialIndex} />
             <div className="lg:col-span-2">
-              <CashFlowChart data={forecast} />
+              <CashFlowChart
+                data={forecast.data}
+                insufficientData={forecast.insufficientData}
+              />
             </div>
           </div>
         </div>

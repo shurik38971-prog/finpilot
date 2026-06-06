@@ -3,8 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { INCOME_CATEGORIES, type Income } from "@/types/database";
+import {
+  INCOME_CATEGORIES,
+  INCOME_TYPE_LABELS,
+  type Income,
+  type IncomeType,
+} from "@/types/database";
 import { createIncome, updateIncome } from "@/lib/actions/finance";
+import { resolveIncomeType } from "@/lib/finance/income-model";
 import { useState } from "react";
 
 interface IncomeFormProps {
@@ -17,15 +23,14 @@ const categoryOptions = INCOME_CATEGORIES.map((c) => ({
   label: c.charAt(0).toUpperCase() + c.slice(1),
 }));
 
-const frequencyOptions = [
-  { value: "weekly", label: "Еженедельно" },
-  { value: "monthly", label: "Ежемесячно" },
-  { value: "quarterly", label: "Ежеквартально" },
-  { value: "yearly", label: "Ежегодно" },
-];
+const incomeTypeOptions = (Object.keys(INCOME_TYPE_LABELS) as IncomeType[]).map(
+  (type) => ({
+    value: type,
+    label: INCOME_TYPE_LABELS[type],
+  })
+);
 
 export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
-  const [isRecurring, setIsRecurring] = useState(income?.is_recurring ?? false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -67,6 +72,13 @@ export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
         required
       />
       <Select
+        id="income_type"
+        name="income_type"
+        label="Тип дохода"
+        defaultValue={income ? resolveIncomeType(income) : "actual"}
+        options={incomeTypeOptions}
+      />
+      <Select
         id="category"
         name="category"
         label="Категория"
@@ -81,25 +93,10 @@ export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
         defaultValue={income?.date ?? new Date().toISOString().split("T")[0]}
         required
       />
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="is_recurring"
-          checked={isRecurring}
-          onChange={(e) => setIsRecurring(e.target.checked)}
-          className="rounded border-border"
-        />
-        Повторяющийся доход
-      </label>
-      {isRecurring && (
-        <Select
-          id="frequency"
-          name="frequency"
-          label="Частота"
-          defaultValue={income?.frequency ?? "monthly"}
-          options={frequencyOptions}
-        />
-      )}
+      <p className="text-xs text-muted leading-relaxed">
+        Ожидаемый доход — план на месяц. Фактическое поступление — деньги, которые
+        уже пришли.
+      </p>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Сохранение..." : income ? "Обновить" : "Добавить"}
       </Button>

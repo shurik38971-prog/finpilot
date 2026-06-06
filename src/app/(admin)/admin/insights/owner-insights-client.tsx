@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
+  Activity,
   AlertTriangle,
   BarChart3,
+  LayoutDashboard,
   Lightbulb,
   Loader2,
   Target,
@@ -43,6 +45,17 @@ function StatCard({
       </div>
     </Card>
   );
+}
+
+function formatAdminDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function RankList({
@@ -168,6 +181,89 @@ export function OwnerInsightsClient({
           highlight
         />
       </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          label="Active users 24h"
+          value={data.activity.activeUsers24h}
+          icon={Activity}
+          highlight
+        />
+        <StatCard
+          label="Active users 7d"
+          value={data.activity.activeUsers7d}
+          icon={Users}
+          highlight
+        />
+        <StatCard
+          label="Dashboard opens 7d"
+          value={data.activity.dashboardOpens7d}
+          icon={LayoutDashboard}
+        />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Пользователи</CardTitle>
+          <CardDescription>
+            Новые — зарегистрировались за 7 дней. Активные — были события за 7
+            дней. Вернувшийся старый пользователь попадает только в активные.
+          </CardDescription>
+        </CardHeader>
+        <div className="overflow-x-auto px-5 pb-5">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-muted border-b border-border/50">
+                <th className="pb-2 pr-4 font-medium">Пользователь</th>
+                <th className="pb-2 pr-4 font-medium">Регистрация</th>
+                <th className="pb-2 pr-4 font-medium">Последняя активность</th>
+                <th className="pb-2 font-medium">Статус</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.users.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-4 text-muted">
+                    Пока нет пользователей
+                  </td>
+                </tr>
+              ) : (
+                data.users.map((user) => (
+                  <tr
+                    key={user.userId}
+                    className="border-b border-border/30 last:border-0"
+                  >
+                    <td className="py-3 pr-4">
+                      <div className="font-medium truncate max-w-[220px]">
+                        {user.email ?? `${user.userId.slice(0, 8)}…`}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-4 text-muted whitespace-nowrap">
+                      {formatAdminDate(user.registeredAt)}
+                    </td>
+                    <td className="py-3 pr-4 whitespace-nowrap">
+                      {formatAdminDate(user.lastActivityAt)}
+                    </td>
+                    <td className="py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {user.isNew7d && (
+                          <Badge variant="default">Новый</Badge>
+                        )}
+                        {user.isActive7d && (
+                          <Badge variant="success">Активный</Badge>
+                        )}
+                        {!user.isNew7d && !user.isActive7d && (
+                          <span className="text-xs text-muted">Неактивный</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RankList

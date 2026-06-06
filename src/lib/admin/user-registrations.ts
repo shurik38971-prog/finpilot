@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export interface UserRegistrationRecord {
   id: string;
   created_at: string;
+  email?: string | null;
 }
 
 export interface UserRegistrationStats {
@@ -63,6 +64,7 @@ async function loadFromAuthUsers(): Promise<UserRegistrationRecord[]> {
       users.push({
         id: user.id,
         created_at: user.created_at,
+        email: user.email ?? null,
       });
     }
 

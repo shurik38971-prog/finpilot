@@ -2,6 +2,13 @@
 
 import { isAdminUser } from "@/lib/admin/is-admin";
 import {
+  buildAdminUserActivityRows,
+  computeLastActivityByUser,
+  computeUserActivityMetrics,
+  type AdminUserActivityRow,
+  type UserActivityMetrics,
+} from "@/lib/admin/user-activity";
+import {
   cutoffDaysAgo,
   getUserRegistrationStats,
   newUserIdsSince,
@@ -26,6 +33,8 @@ export interface OwnerInsightsDashboard {
     activatedUsers: number;
     activationRatePercent: number;
   };
+  activity: UserActivityMetrics;
+  users: AdminUserActivityRow[];
   topRecommendations: { title: string; count: number }[];
   lowRatedRecommendations: {
     title: string;
@@ -345,6 +354,14 @@ export async function getOwnerInsights(
     biggestDrop: biggestFunnelDrop,
   });
 
+  const activity = computeUserActivityMetrics(eventsAll);
+  const lastActivityByUser = computeLastActivityByUser(eventsAll);
+  const users = buildAdminUserActivityRows(
+    registrationStats.users,
+    lastActivityByUser,
+    cutoffDaysAgo(7)
+  );
+
   return {
     periodDays,
     overview: {
@@ -353,6 +370,8 @@ export async function getOwnerInsights(
       activatedUsers: activatedAll,
       activationRatePercent,
     },
+    activity,
+    users,
     topRecommendations,
     lowRatedRecommendations,
     lowRatingReasons,

@@ -240,7 +240,10 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
     ? activeTasks
     : activeTasks.slice(0, VISIBLE_ACTIVE_TASKS);
 
-  async function runAction(id: string, action: (id: string) => Promise<void>) {
+  async function runAction(
+    id: string,
+    action: (id: string) => Promise<unknown>
+  ) {
     setLoadingId(id);
     try {
       await action(id);

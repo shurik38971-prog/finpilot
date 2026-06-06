@@ -125,6 +125,26 @@ function toNextBestActionResult(
   };
 }
 
+export interface TaskProgressStats {
+  completed: number;
+  total: number;
+  percent: number;
+}
+
+export async function getTaskProgressStats(): Promise<TaskProgressStats> {
+  const tasks = await getFinancialTasks();
+  const total = tasks.filter(
+    (t) =>
+      t.status === "pending" ||
+      t.status === "done" ||
+      t.status === "postponed"
+  ).length;
+  const completed = tasks.filter((t) => t.status === "done").length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return { completed, total, percent };
+}
+
 export async function getNextBestAction(
   options?: { hasNegativeCashflow?: boolean }
 ): Promise<NextBestActionResult | null> {
@@ -223,7 +243,13 @@ export async function getPrimaryGoalFocus(): Promise<PrimaryGoalFocus | null> {
   };
 }
 
-export async function completeTask(id: string) {
+export async function completeTask(
+  id: string,
+  options?: { hasNegativeCashflow?: boolean }
+): Promise<{
+  nextAction: NextBestActionResult | null;
+  taskProgress: TaskProgressStats;
+}> {
   const { supabase, userId } = await getUserId();
 
   const { data: taskRow, error: fetchError } = await supabase
@@ -265,7 +291,11 @@ export async function completeTask(id: string) {
     }
   }
 
-  await syncPendingTaskPriorities(supabase, userId);
+  const profileType = await getProfileTypeForUser(supabase, userId);
+  await syncPendingTaskPriorities(supabase, userId, {
+    ...options,
+    profileType,
+  });
   await trackServerEvent({
     event_name: ANALYTICS_EVENTS.TASK_COMPLETED,
     user_id: userId,
@@ -274,6 +304,13 @@ export async function completeTask(id: string) {
     properties: { title: task.title },
   });
   revalidateTaskPages();
+
+  const [nextAction, taskProgress] = await Promise.all([
+    getNextBestAction(options),
+    getTaskProgressStats(),
+  ]);
+
+  return { nextAction, taskProgress };
 }
 
 export async function postponeTask(id: string) {

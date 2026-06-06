@@ -14,7 +14,11 @@ import { getOnboardingProgress } from "@/lib/actions/onboarding";
 import { ProfileDashboardHints } from "@/components/profile/profile-dashboard-hints";
 import { ProfileOnboardingCard } from "@/components/profile/profile-onboarding-card";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
-import { getNextBestAction, getPrimaryGoalFocus } from "@/lib/actions/tasks";
+import {
+  getNextBestAction,
+  getPrimaryGoalFocus,
+  getTaskProgressStats,
+} from "@/lib/actions/tasks";
 import { computeDashboardSummary } from "@/lib/finance/index";
 import { forecastCashFlow } from "@/lib/finance/forecast";
 
@@ -42,9 +46,11 @@ export default async function DashboardPage() {
     financialIndex,
   } = computeDashboardSummary(incomes, expenses, debts, profileType);
 
-  const nextBestAction = await getNextBestAction({
-    hasNegativeCashflow: netCashFlow < 0,
-  });
+  const nbaOptions = { hasNegativeCashflow: netCashFlow < 0 };
+  const [nextBestAction, taskProgress] = await Promise.all([
+    getNextBestAction(nbaOptions),
+    getTaskProgressStats(),
+  ]);
   const forecast = forecastCashFlow(incomes, expenses, debts);
   const isEmpty =
     incomes.length === 0 && expenses.length === 0 && debts.length === 0;
@@ -65,7 +71,11 @@ export default async function DashboardPage() {
           )}
           <EarlyAccessBanner />
           <DemoDataBanner isEmpty={isEmpty} />
-          <NextBestActionCard action={nextBestAction} />
+          <NextBestActionCard
+            action={nextBestAction}
+            taskProgress={taskProgress}
+            hasNegativeCashflow={netCashFlow < 0}
+          />
           <SummaryCards
             totalIncome={totalIncome}
             expectedIncome={expectedIncome}

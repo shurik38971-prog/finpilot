@@ -1,6 +1,7 @@
 "use client";
 
 import { completeTask } from "@/lib/actions/tasks";
+import type { TaskProgressStats } from "@/lib/actions/tasks";
 import { CompactTaskEffects } from "@/components/tasks/compact-task-effects";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,18 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Modal } from "@/components/ui/modal";
 import { trackButtonClick } from "@/lib/analytics/client";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
-import { HINTS, importanceLabel } from "@/lib/copy/ui";
+import {
+  benefitLabel,
+  HINTS,
+  importanceLabel,
+} from "@/lib/copy/ui";
 import { cn, formatCurrency, formatHistoryDate } from "@/lib/utils";
 import { GOAL_TYPE_LABELS } from "@/types/goals";
 import type { NextBestActionResult } from "@/types/tasks";
 import {
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   HelpCircle,
   Loader2,
   Sparkles,
@@ -22,59 +29,232 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+const COLLAPSED_STORAGE_KEY = "dashboard_next_action_collapsed";
+const TRANSITION_MS = "duration-300";
 
 interface NextBestActionCardProps {
   action: NextBestActionResult | null;
+  taskProgress: TaskProgressStats;
+  hasNegativeCashflow?: boolean;
 }
 
-export function NextBestActionCard({ action }: NextBestActionCardProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [whyOpen, setWhyOpen] = useState(false);
+type CardPhase = "active" | "completed" | "no-more";
 
-  if (!action) {
-    return (
-      <Card className="border-accent/30 bg-gradient-to-br from-accent/10 to-transparent !p-4">
-        <CardHeader className="mb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-accent" />
-            Следующее лучшее действие
-          </CardTitle>
-          <CardDescription className="text-xs leading-snug">
-            Запустите ИИ-анализ или создайте цель — FinPilot подскажет одно
-            самое полезное дело.
-          </CardDescription>
-        </CardHeader>
-        <div className="px-4 pb-4 pt-0 flex gap-2">
-          <Link href="/analyze">
-            <Button size="sm">ИИ-анализ</Button>
-          </Link>
+function readCollapsedPreference(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
+}
+
+function persistCollapsedPreference(collapsed: boolean) {
+  localStorage.setItem(COLLAPSED_STORAGE_KEY, collapsed ? "true" : "false");
+}
+
+function EmptyActionCard({ analyzeOnly = false }: { analyzeOnly?: boolean }) {
+  return (
+    <Card
+      className={cn(
+        "border-accent/30 bg-gradient-to-br from-accent/10 to-transparent !p-4",
+        TRANSITION_MS,
+        "transition-all ease-in-out"
+      )}
+    >
+      <CardHeader className="mb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-accent" />
+          {analyzeOnly ? "Нет активных действий" : "Следующее лучшее действие"}
+        </CardTitle>
+        <CardDescription className="text-xs leading-snug">
+          {analyzeOnly
+            ? "Сейчас у вас нет важных активных действий. Запустите новый ИИ-анализ."
+            : "Запустите ИИ-анализ или создайте цель — FinPilot подскажет одно самое полезное дело."}
+        </CardDescription>
+      </CardHeader>
+      <div className="px-4 pb-4 pt-0 flex gap-2">
+        <Link href="/analyze">
+          <Button size="sm">
+            {analyzeOnly ? "Запустить анализ" : "ИИ-анализ"}
+          </Button>
+        </Link>
+        {!analyzeOnly && (
           <Link href="/actions">
             <Button variant="secondary" size="sm">
               Все действия
             </Button>
           </Link>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+export function NextBestActionCard({
+  action: serverAction,
+  taskProgress: initialProgress,
+  hasNegativeCashflow,
+}: NextBestActionCardProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedReady, setCollapsedReady] = useState(false);
+  const [phase, setPhase] = useState<CardPhase>("active");
+  const [displayAction, setDisplayAction] = useState(serverAction);
+  const [queuedNext, setQueuedNext] = useState<NextBestActionResult | null>(
+    null
+  );
+  const [taskProgress, setTaskProgress] =
+    useState<TaskProgressStats>(initialProgress);
+
+  useEffect(() => {
+    setCollapsed(readCollapsedPreference());
+    setCollapsedReady(true);
+  }, []);
+
+  useEffect(() => {
+    setTaskProgress(initialProgress);
+  }, [initialProgress]);
+
+  useEffect(() => {
+    if (phase === "active" || phase === "no-more") {
+      setDisplayAction(serverAction);
+      if (serverAction) {
+        setPhase("active");
+      } else if (phase === "active") {
+        setPhase("no-more");
+      }
+    }
+  }, [serverAction, phase]);
+
+  const setCollapsedState = useCallback((value: boolean) => {
+    setCollapsed(value);
+    persistCollapsedPreference(value);
+  }, []);
+
+  if (!collapsedReady && serverAction) {
+    return (
+      <Card className="border-accent/40 !p-4 min-h-[72px] animate-pulse">
+        <div className="h-4 w-40 rounded bg-surface-hover" />
+      </Card>
+    );
+  }
+
+  if (phase === "completed") {
+    return (
+      <Card
+        className={cn(
+          "border-emerald-500/25 bg-emerald-500/5 !p-4",
+          TRANSITION_MS,
+          "transition-all ease-in-out"
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <p className="text-sm font-medium">Главное действие выполнено</p>
+            <p className="text-xs text-muted leading-snug">
+              Отличная работа. Это действие уже учтено в вашем финансовом
+              плане.
+            </p>
+            {taskProgress.total > 0 && (
+              <p className="text-xs text-muted">
+                Выполнено задач:{" "}
+                <span className="text-foreground font-medium">
+                  {taskProgress.completed} из {taskProgress.total}
+                </span>
+                <span className="text-muted"> · {taskProgress.percent}%</span>
+              </p>
+            )}
+            <Button
+              size="sm"
+              onClick={() => {
+                if (queuedNext) {
+                  setDisplayAction(queuedNext);
+                  setQueuedNext(null);
+                  setPhase("active");
+                  setCollapsedState(false);
+                } else {
+                  setPhase("no-more");
+                }
+                router.refresh();
+              }}
+            >
+              Показать следующее действие
+            </Button>
+          </div>
         </div>
       </Card>
     );
   }
 
+  if (phase === "no-more" || !displayAction) {
+    return <EmptyActionCard analyzeOnly={phase === "no-more"} />;
+  }
+
+  const action = displayAction;
   const { reasons, impact } = action;
 
   async function handleComplete() {
     setLoading(true);
     try {
-      await completeTask(action!.id);
+      const { nextAction, taskProgress: progress } = await completeTask(
+        action.id,
+        { hasNegativeCashflow }
+      );
+      setTaskProgress(progress);
+      setQueuedNext(nextAction);
+      setPhase("completed");
       router.refresh();
     } finally {
       setLoading(false);
     }
   }
 
+  if (collapsed) {
+    return (
+      <Card
+        className={cn(
+          "border-accent/30 bg-accent/5 !py-2.5 !px-3 max-h-[80px] overflow-hidden",
+          TRANSITION_MS,
+          "transition-all ease-in-out"
+        )}
+      >
+        <div className="flex items-center justify-between gap-3 h-full">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-muted leading-none">
+              Следующее действие:
+            </p>
+            <p className="text-sm font-medium truncate leading-tight mt-0.5">
+              {action.title}
+            </p>
+            <Badge variant="default" className="text-[10px] mt-1 h-5">
+              {benefitLabel(action.impact_score)}
+            </Badge>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shrink-0 h-8"
+            onClick={() => setCollapsedState(false)}
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            Развернуть
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <>
-      <Card className="border-accent/40 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent shadow-lg shadow-accent/5 !p-4">
+      <Card
+        className={cn(
+          "border-accent/40 bg-gradient-to-br from-accent/15 via-accent/5 to-transparent shadow-lg shadow-accent/5 !p-4",
+          TRANSITION_MS,
+          "transition-all ease-in-out"
+        )}
+      >
         <CardHeader className="mb-2 pb-0">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -86,7 +266,17 @@ export function NextBestActionCard({ action }: NextBestActionCardProps) {
                 {action.title}
               </CardTitle>
             </div>
-            <div className="flex flex-wrap gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted"
+                onClick={() => setCollapsedState(true)}
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+                Свернуть
+              </Button>
               <Badge variant="danger" className="text-[11px]">
                 {importanceLabel(action.priority_score)}
               </Badge>
@@ -103,10 +293,10 @@ export function NextBestActionCard({ action }: NextBestActionCardProps) {
           )}
 
           {action.goal && (
-            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted">
-              <Target className="h-3 w-3" />
+            <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted max-w-full">
+              <Target className="h-3 w-3 shrink-0" />
               <span className="truncate">{action.goal.title}</span>
-              <span>· {GOAL_TYPE_LABELS[action.goal.type]}</span>
+              <span className="shrink-0">· {GOAL_TYPE_LABELS[action.goal.type]}</span>
             </div>
           )}
         </CardHeader>

@@ -35,6 +35,7 @@ interface NextBestActionCardProps {
   action: NextBestActionResult | null;
   taskProgress: TaskProgressStats;
   hasNegativeCashflow?: boolean;
+  isPreliminary?: boolean;
 }
 
 type CardPhase = "active" | "completed" | "no-more";
@@ -90,7 +91,10 @@ export function NextBestActionCard({
   action: serverAction,
   taskProgress: initialProgress,
   hasNegativeCashflow,
+  isPreliminary = false,
 }: NextBestActionCardProps) {
+  const stepLabel = isPreliminary ? "Следующий шаг" : "Следующее действие";
+  const mainActionLabel = isPreliminary ? "Следующий шаг" : "Главное действие";
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [whyOpen, setWhyOpen] = useState(false);
@@ -224,7 +228,7 @@ export function NextBestActionCard({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-muted leading-none">
-              Следующее действие:
+              {stepLabel}:
             </p>
             <p className="text-sm font-medium truncate leading-tight mt-0.5">
               {action.title}
@@ -273,7 +277,7 @@ export function NextBestActionCard({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-[11px] uppercase tracking-wide text-accent mb-0.5 flex items-center gap-1">
-                Главное действие
+                {mainActionLabel}
                 <HintTooltip hint={HINTS.mainAction} />
               </p>
               <CardTitle className="text-base md:text-lg leading-snug">

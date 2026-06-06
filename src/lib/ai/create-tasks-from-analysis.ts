@@ -2,6 +2,10 @@ import {
   buildAnalysisDataFlags,
   isForbiddenRecommendation,
 } from "@/lib/ai/analysis-guardrails";
+import {
+  isPreliminaryForbiddenRecommendation,
+  PRELIMINARY_SOFT_TASKS,
+} from "@/lib/ai/preliminary-analysis";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createTaskImpacts,
@@ -231,13 +235,29 @@ export async function createTasksFromAnalysis(
     analysisCount: analysisCount ?? 0,
     profileType,
     primaryMonthlyIncome: 0,
+    isPreliminary: parsed.analysis_mode === "preliminary",
   });
 
+  const isPreliminary = parsed.analysis_mode === "preliminary";
+
   function isAllowedTask(title: string, description: string | null): boolean {
-    return (
-      !isForbiddenRecommendation(title, dataFlags) &&
-      !isForbiddenRecommendation(description ?? "", dataFlags)
-    );
+    if (
+      isForbiddenRecommendation(title, dataFlags) ||
+      isForbiddenRecommendation(description ?? "", dataFlags)
+    ) {
+      return false;
+    }
+    if (isPreliminary && isPreliminaryForbiddenRecommendation(title)) {
+      return false;
+    }
+    if (
+      isPreliminary &&
+      description &&
+      isPreliminaryForbiddenRecommendation(description)
+    ) {
+      return false;
+    }
+    return true;
   }
 
   const userGoals = (goals ?? []) as FinancialGoal[];
@@ -269,7 +289,29 @@ export async function createTasksFromAnalysis(
 
   const rawCandidates: TaskCandidate[] = [];
 
-  if (parsed.next_best_action?.title) {
+  if (isPreliminary) {
+    for (const softTask of PRELIMINARY_SOFT_TASKS.slice(0, 2)) {
+      if (!isAllowedTask(softTask.title, softTask.description)) continue;
+      const goalLink = attachGoal(
+        softTask.title,
+        softTask.description,
+        userGoals,
+        debtTitles
+      );
+      rawCandidates.push(
+        buildCandidate({
+          user_id: userId,
+          analysis_id: analysisId,
+          ...goalLink,
+          title: softTask.title,
+          description: softTask.description,
+          impact_score: 55,
+          impact_label: BENEFIT_LABELS.medium,
+          due_date: dueDateFromDays(14),
+        })
+      );
+    }
+  } else if (parsed.next_best_action?.title) {
     const title = parsed.next_best_action.title.trim();
     const description = parsed.next_best_action.description?.trim() ?? null;
     if (isAllowedTask(title, description)) {
@@ -285,14 +327,16 @@ export async function createTasksFromAnalysis(
     }
   }
 
-  for (const action of parsed.actions_30_days ?? []) {
-    if (!action.action?.trim()) continue;
-    const title = action.action.trim();
-    const description = action.effect?.trim() ?? null;
-    if (!isAllowedTask(title, description)) continue;
-    rawCandidates.push(
-      mapAction30Day(action, userId, analysisId, userGoals, debtTitles)
-    );
+  if (!isPreliminary) {
+    for (const action of parsed.actions_30_days ?? []) {
+      if (!action.action?.trim()) continue;
+      const title = action.action.trim();
+      const description = action.effect?.trim() ?? null;
+      if (!isAllowedTask(title, description)) continue;
+      rawCandidates.push(
+        mapAction30Day(action, userId, analysisId, userGoals, debtTitles)
+      );
+    }
   }
 
   const consolidated = consolidateByCategory(rawCandidates).slice(

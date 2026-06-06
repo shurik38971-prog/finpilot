@@ -15,6 +15,8 @@ import type {
   AnalysisPlanItem,
   HealthStatus,
 } from "@/types/analysis";
+import { AnalysisConfidenceBadge } from "@/components/analysis/analysis-confidence-badge";
+import { PreliminaryAnalysisBanner } from "@/components/analysis/preliminary-analysis-banner";
 import { AnalysisDisclaimer } from "@/components/early-access/analysis-disclaimer";
 import { EmptyState } from "@/components/ui/empty-state";
 import { trackButtonClick } from "@/lib/analytics/client";
@@ -185,6 +187,32 @@ export function AnalyzePageClient({
 
       {result && (
         <div className="space-y-6">
+          {result.analysis_mode === "preliminary" && (
+            <PreliminaryAnalysisBanner />
+          )}
+
+          {result.confidence_level && (
+            <AnalysisConfidenceBadge confidence={result.confidence_level} />
+          )}
+
+          {result.next_best_action?.title && (
+            <Card className="border-accent/30 bg-accent/5">
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {result.next_step_label ?? "Следующий шаг"}
+                </CardTitle>
+                <CardDescription className="text-sm text-foreground">
+                  {result.next_best_action.title}
+                </CardDescription>
+              </CardHeader>
+              {result.next_best_action.description && (
+                <p className="px-5 pb-5 text-sm text-muted leading-relaxed">
+                  {result.next_best_action.description}
+                </p>
+              )}
+            </Card>
+          )}
+
           <Card className="border-emerald-500/30 bg-emerald-500/5">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2 text-emerald-400">
@@ -244,7 +272,9 @@ export function AnalyzePageClient({
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-400" />
-                {result.main_problem_label || "Главная угроза"}
+                {result.analysis_mode === "preliminary"
+                  ? "На что обратить внимание"
+                  : result.main_problem_label || "Главная угроза"}
               </CardTitle>
             </CardHeader>
             <p className="px-5 pb-5 text-sm leading-relaxed">

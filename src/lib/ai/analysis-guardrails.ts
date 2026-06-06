@@ -11,6 +11,7 @@ export interface AnalysisDataFlags {
   hasOverdueReceivables: boolean;
   hasEmployerSalaryIssues: boolean;
   isFirstAnalysis: boolean;
+  isPreliminary: boolean;
   subscriptionExpensesTotal: number;
   savingsCushionAmount: number;
   expenseBreakdown: Array<{
@@ -182,6 +183,15 @@ export function buildAnalysisGuardrailRules(flags: AnalysisDataFlags): string {
     );
   }
 
+  if (flags.isPreliminary) {
+    lines.push(
+      "- РЕЖИМ ПРЕДВАРИТЕЛЬНОЙ ОЦЕНКИ. Данных мало — не давай жёстких или срочных советов.",
+      "- ЗАПРЕЩЕНО: найти подработку, увеличить доход на конкретную сумму, связаться с заказчиком/работодателем, взять кредит, рефинансировать долг.",
+      "- РАЗРЕШЕНО: следить за расходами, фиксировать доходы, формировать подушку, добавлять реальные операции, отмечать обязательные платежи.",
+      "- next_best_action должен быть мягким шагом по учёту данных, а не срочным финансовым решением."
+    );
+  }
+
   if (flags.expenseBreakdown.length > 0) {
     lines.push(
       "- Расходы по категориям:",
@@ -199,9 +209,11 @@ export function buildAnalysisSystemPrompt(
   profileTypeLabel: string,
   flags: AnalysisDataFlags
 ): string {
-  const conservative = flags.isFirstAnalysis
-    ? " Это первый анализ — только консервативные выводы по фактам."
-    : "";
+  const conservative = flags.isPreliminary
+    ? " Это предварительная оценка по примерным данным — только мягкие ориентиры, без срочных финансовых директив."
+    : flags.isFirstAnalysis
+      ? " Это первый анализ — только консервативные выводы по фактам."
+      : "";
 
   return `Ты помогаешь пользователю FinPilot (${profileTypeLabel}) разобраться с деньгами. Пиши простым языком — без слов «денежный поток», «ликвидность», «долговая нагрузка», «финансовая устойчивость».${conservative}
 Твоя задача:
@@ -288,6 +300,7 @@ export function buildAnalysisDataFlags(input: {
   analysisCount: number;
   profileType: string;
   primaryMonthlyIncome: number;
+  isPreliminary?: boolean;
 }): AnalysisDataFlags {
   const expenseBreakdown = input.expenses
     .filter((expense) => expense.amount > 0)
@@ -310,6 +323,7 @@ export function buildAnalysisDataFlags(input: {
     hasOverdueReceivables: false,
     hasEmployerSalaryIssues: false,
     isFirstAnalysis: input.analysisCount <= 1,
+    isPreliminary: input.isPreliminary ?? false,
     subscriptionExpensesTotal,
     savingsCushionAmount: cushionGoal?.current_amount ?? 0,
     expenseBreakdown,

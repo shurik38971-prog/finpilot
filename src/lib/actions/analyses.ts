@@ -1,6 +1,10 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  fetchAnalysisDataMaturity,
+  type AnalysisDataMaturity,
+} from "@/lib/finance/analysis-data-maturity";
 import { dedupeAnalysesByDay } from "@/lib/finance/history-groups";
 import { revalidatePath } from "next/cache";
 import type { AnalysisRecord } from "@/types/analysis";
@@ -15,6 +19,19 @@ async function getUserId() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   return { supabase, userId: user.id };
+}
+
+export async function getAnalysisDataMaturity(): Promise<AnalysisDataMaturity | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+    return fetchAnalysisDataMaturity(supabase, user.id, user.created_at);
+  } catch {
+    return null;
+  }
 }
 
 export async function getAnalysesHistory(): Promise<AnalysisRecord[]> {

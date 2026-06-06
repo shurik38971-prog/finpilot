@@ -3,6 +3,7 @@ import { DashboardAutoRefresh } from "@/components/dashboard/dashboard-auto-refr
 import { DemoDataBanner } from "@/components/dashboard/demo-data-banner";
 import { FinancialIndexGauge } from "@/components/dashboard/financial-index-gauge";
 import { GoalFocusCard } from "@/components/dashboard/goal-focus-card";
+import { PreliminaryAnalysisBanner } from "@/components/analysis/preliminary-analysis-banner";
 import { NextBestActionCard } from "@/components/dashboard/next-best-action-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { ProfileReadinessWidget } from "@/components/dashboard/profile-readiness-widget";
@@ -31,6 +32,7 @@ import { getPrimaryFinancialRisk } from "@/lib/finance/primary-financial-risk";
 import { shouldShowOnboardingChecklist } from "@/lib/onboarding/visibility";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
+import { getAnalysisDataMaturity } from "@/lib/actions/analyses";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -80,9 +82,10 @@ export default async function DashboardPage() {
   );
 
   const nbaOptions = { hasNegativeCashflow: netCashFlow < 0 };
-  const [nextBestAction, taskProgress] = await Promise.all([
+  const [nextBestAction, taskProgress, analysisMaturity] = await Promise.all([
     getNextBestAction(nbaOptions),
     getTaskProgressStats(),
+    getAnalysisDataMaturity(),
   ]);
   const forecast = forecastCashFlow(
     incomes,
@@ -156,10 +159,13 @@ export default async function DashboardPage() {
 
           <ProfileReadinessWidget readiness={profileReadiness} />
 
+          {analysisMaturity?.isPreliminary && <PreliminaryAnalysisBanner />}
+
           <NextBestActionCard
             action={nextBestAction}
             taskProgress={taskProgress}
             hasNegativeCashflow={netCashFlow < 0}
+            isPreliminary={analysisMaturity?.isPreliminary ?? false}
           />
 
           <SummaryCards

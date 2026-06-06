@@ -145,6 +145,16 @@ export function GoalStep() {
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm leading-relaxed">
+        <p className="font-medium text-amber-200">Важно</p>
+        <p className="text-muted mt-1">
+          Первый анализ строится на приблизительных данных. Он поможет увидеть
+          общую картину, но наиболее точные рекомендации появятся после
+          накопления реальной финансовой истории. FinPilot становится полезнее с
+          каждой добавленной операцией.
+        </p>
+      </div>
+
       <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />

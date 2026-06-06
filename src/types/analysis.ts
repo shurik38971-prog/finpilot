@@ -1,5 +1,12 @@
+import type {
+  AnalysisConfidence,
+  AnalysisMode,
+} from "@/lib/finance/analysis-data-maturity";
+
 export type AnalysisLevel = "high" | "medium" | "low";
 export type HealthStatus = "good" | "bad" | "critical";
+
+export type { AnalysisConfidence, AnalysisMode };
 
 export interface AnalysisPlanItem {
   action: string;
@@ -43,6 +50,9 @@ export interface AiAnalysisResult {
   debt_recommendation?: string;
   cashflow_forecast_comment?: string;
   risks?: { level: AnalysisLevel; title: string; description: string }[];
+  analysis_mode?: AnalysisMode;
+  confidence_level?: AnalysisConfidence;
+  next_step_label?: string;
 }
 
 export interface AnalysisApiResponse extends AiAnalysisResult {

@@ -14,7 +14,9 @@ import {
   buildAnalysisSystemPrompt,
   sanitizeAnalysisResult,
 } from "@/lib/ai/analysis-guardrails";
+import { applyPreliminaryAnalysis } from "@/lib/ai/preliminary-analysis";
 import { createTasksFromAnalysis } from "@/lib/ai/create-tasks-from-analysis";
+import { fetchAnalysisDataMaturity } from "@/lib/finance/analysis-data-maturity";
 import { getGptunnelConfig, gptunnelChat } from "@/lib/ai/gptunnel";
 import { PROBLEM_LABELS, resolveProblemLabel } from "@/lib/finance/problem-labels";
 import { createClient } from "@/lib/supabase/server";
@@ -147,18 +149,23 @@ export async function POST(_req: Request) {
     const context = await getAnalysisContext();
     const today = getTodayDateString();
 
-    const [{ count: analysisCount }, { data: goals }, { data: expenses }] =
-      await Promise.all([
-        supabase
-          .from("analyses")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id),
-        supabase.from("financial_goals").select("type, current_amount").eq("user_id", user.id),
-        supabase
-          .from("expenses")
-          .select("title, category, amount, is_essential")
-          .eq("user_id", user.id),
-      ]);
+    const [
+      { count: analysisCount },
+      { data: goals },
+      { data: expenses },
+      maturity,
+    ] = await Promise.all([
+      supabase
+        .from("analyses")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id),
+      supabase.from("financial_goals").select("type, current_amount").eq("user_id", user.id),
+      supabase
+        .from("expenses")
+        .select("title, category, amount, is_essential")
+        .eq("user_id", user.id),
+      fetchAnalysisDataMaturity(supabase, user.id, user.created_at),
+    ]);
 
     const dataFlags = buildAnalysisDataFlags({
       expenses: expenses ?? [],
@@ -166,6 +173,7 @@ export async function POST(_req: Request) {
       analysisCount: analysisCount ?? 0,
       profileType: context.profileType,
       primaryMonthlyIncome: context.primaryMonthlyIncome ?? 0,
+      isPreliminary: maturity.isPreliminary,
     });
     const guardrailRules = buildAnalysisGuardrailRules(dataFlags);
 
@@ -196,21 +204,34 @@ export async function POST(_req: Request) {
     }
 
     const rawParsed = extractJsonFromText(chatResult.content) as AiAnalysisResult;
-    const parsed = sanitizeAnalysisResult(rawParsed, dataFlags);
+    const sanitized = sanitizeAnalysisResult(rawParsed, dataFlags);
+    const parsed = maturity.isPreliminary
+      ? applyPreliminaryAnalysis(sanitized, maturity, dataFlags)
+      : sanitized;
+
+    const enriched: AiAnalysisResult = {
+      ...parsed,
+      analysis_mode: maturity.mode,
+      confidence_level: maturity.confidence,
+      next_step_label: maturity.isPreliminary
+        ? "Следующий шаг"
+        : "Следующее действие",
+    };
+
     console.log("Model used:", chatResult.model);
 
     const mainThreat =
-      parsed.main_threat?.trim() ||
-      parsed.main_problem?.trim() ||
-      parsed.summary?.trim() ||
+      enriched.main_threat?.trim() ||
+      enriched.main_problem?.trim() ||
+      enriched.summary?.trim() ||
       "Не определена";
     const mainProblemShort = resolveProblemLabel(
-      parsed.main_problem_label,
+      enriched.main_problem_label,
       mainThreat
     );
     const nextStep =
-      parsed.next_best_action?.title?.trim() ??
-      parsed.plan_7_days?.[0]?.action?.trim() ??
+      enriched.next_best_action?.title?.trim() ??
+      enriched.plan_7_days?.[0]?.action?.trim() ??
       null;
 
     await supabase
@@ -244,7 +265,7 @@ export async function POST(_req: Request) {
         main_problem_short: mainProblemShort,
         next_step: nextStep,
         analysis_date: today,
-        recommendations: parsed,
+        recommendations: enriched,
         model_used: chatResult.model,
         index_delta: indexDelta,
       })
@@ -253,7 +274,7 @@ export async function POST(_req: Request) {
 
     if (saveError || !saved) {
       console.error("Failed to save analysis:", saveError);
-      return NextResponse.json(parsed);
+      return NextResponse.json(enriched);
     }
 
     if (previousAnalysis) {
@@ -280,7 +301,7 @@ export async function POST(_req: Request) {
       supabase,
       user.id,
       saved.id,
-      parsed
+      enriched
     );
 
     await markOnboardingStep("analysis");
@@ -313,7 +334,7 @@ export async function POST(_req: Request) {
     );
 
     return NextResponse.json({
-      ...parsed,
+      ...enriched,
       created_tasks_count: taskResult.created_tasks_count,
       updated_tasks_count: taskResult.updated_tasks_count,
       skipped_duplicate_tasks_count: taskResult.skipped_duplicate_tasks_count,

@@ -4,6 +4,7 @@ import {
   type UsefulFeatureId,
   USEFUL_FEATURES,
 } from "@/lib/feedback/constants";
+import { shouldShowQuickFeedback } from "@/lib/feedback/quick-feedback";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -17,6 +18,78 @@ async function getUserId() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   return { supabase, userId: user.id };
+}
+
+async function patchFeedbackRow(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  fields: Record<string, unknown>
+) {
+  const { data: existing } = await supabase
+    .from("feedback")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("feedback")
+      .update(fields)
+      .eq("user_id", userId);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await supabase
+    .from("feedback")
+    .insert({ user_id: userId, ...fields });
+  if (error) throw error;
+}
+
+export async function getQuickFeedbackEligibility(): Promise<{
+  shouldShow: boolean;
+}> {
+  try {
+    const { supabase, userId } = await getUserId();
+    const shouldShow = await shouldShowQuickFeedback(supabase, userId);
+    return { shouldShow };
+  } catch {
+    return { shouldShow: false };
+  }
+}
+
+export async function submitQuickFeedback(input: {
+  rating: number;
+  usefulText: string;
+}) {
+  const { supabase, userId } = await getUserId();
+  const rating = Math.round(input.rating);
+
+  if (rating < 1 || rating > 5) {
+    throw new Error("Invalid rating");
+  }
+
+  const usefulText = input.usefulText.trim();
+  if (usefulText.length > 2000) {
+    throw new Error("Text too long");
+  }
+
+  await patchFeedbackRow(supabase, userId, {
+    rating_score: rating,
+    quick_useful_text: usefulText || null,
+    quick_feedback_at: new Date().toISOString(),
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/insights");
+}
+
+export async function dismissQuickFeedback() {
+  const { supabase, userId } = await getUserId();
+
+  await patchFeedbackRow(supabase, userId, {
+    quick_feedback_at: new Date().toISOString(),
+  });
 }
 
 export async function hasProductFeedback(): Promise<boolean> {

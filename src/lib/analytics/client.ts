@@ -1,6 +1,9 @@
 "use client";
 
-import { ANALYTICS_EVENTS, type AnalyticsEventPayload } from "@/lib/analytics/events";
+import {
+  ANALYTICS_EVENTS,
+  type AnalyticsEventPayload,
+} from "@/lib/analytics/events";
 
 const SESSION_KEY = "finpilot:session_id";
 const FIRST_CLICK_KEY = "finpilot:first_click_sent";
@@ -17,6 +20,26 @@ export function getAnalyticsSessionId(): string {
 
 const eventQueue: AnalyticsEventPayload[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+export async function flushAnalyticsNow() {
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  await flushEvents();
+}
+
+const APP_SESSION_KEY = "finpilot:app_session_started";
+
+export async function trackAppSessionStarted(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (sessionStorage.getItem(APP_SESSION_KEY)) return false;
+
+  sessionStorage.setItem(APP_SESSION_KEY, "1");
+  trackClientEvent(ANALYTICS_EVENTS.APP_SESSION_STARTED);
+  await flushAnalyticsNow();
+  return true;
+}
 
 async function flushEvents() {
   if (eventQueue.length === 0) return;

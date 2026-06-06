@@ -25,6 +25,7 @@ import {
 } from "@/lib/actions/tasks";
 import { computeDashboardSummary } from "@/lib/finance/index";
 import { forecastCashFlow } from "@/lib/finance/forecast";
+import { interpretForecast } from "@/lib/finance/forecast-interpretation";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function DashboardPage() {
     expectedIncome,
     incomeComparison,
     totalExpenses,
+    debtPayments,
     netCashFlow,
     totalDebt,
     financialIndex,
@@ -62,6 +64,15 @@ export default async function DashboardPage() {
     getTaskProgressStats(),
   ]);
   const forecast = forecastCashFlow(incomes, expenses, debts);
+  const forecastInterpretation = interpretForecast({
+    forecast: forecast.data,
+    insufficientData: forecast.insufficientData,
+    netCashFlow,
+    monthlyIncome: totalIncome,
+    totalDebt,
+    debtPayments,
+    goals,
+  });
   const isEmpty =
     incomes.length === 0 && expenses.length === 0 && debts.length === 0;
 
@@ -125,6 +136,7 @@ export default async function DashboardPage() {
           <CashFlowChart
             data={forecast.data}
             insufficientData={forecast.insufficientData}
+            interpretation={forecastInterpretation}
           />
 
           <GoalFocusCard focus={goalFocus} />

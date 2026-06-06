@@ -19,11 +19,13 @@ import { formatCurrency } from "@/lib/utils";
 interface CashFlowChartProps {
   data: CashFlowForecast[];
   insufficientData?: boolean;
+  interpretation?: string | null;
 }
 
 export function CashFlowChart({
   data,
   insufficientData = false,
+  interpretation = null,
 }: CashFlowChartProps) {
   return (
     <Card>
@@ -44,6 +46,11 @@ export function CashFlowChart({
           </span>
         </CardDescription>
       </CardHeader>
+      {interpretation && !insufficientData && (
+        <div className="mx-5 mb-4 rounded-lg border border-accent/20 bg-accent/5 px-4 py-3 text-sm leading-relaxed text-foreground">
+          {interpretation}
+        </div>
+      )}
       <div className="h-72">
         {insufficientData ? (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">

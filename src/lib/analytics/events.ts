@@ -11,6 +11,7 @@ export const ANALYTICS_EVENTS = {
   DEMO_LOADED: "demo_loaded",
   SIGNUP: "signup_completed",
   LOGIN: "login_completed",
+  APP_SESSION_STARTED: "app_session_started",
   FEEDBACK_SENT: "feedback_sent",
 } as const;
 

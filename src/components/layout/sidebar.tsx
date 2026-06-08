@@ -27,6 +27,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { createClient } from "@/lib/supabase/client";
+import { isNavHiddenInCleanup } from "@/lib/feature-flags";
 
 const navItems = [
   { href: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
@@ -91,7 +92,9 @@ export function Sidebar({
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon }) => (
+        {navItems
+          .filter(({ href }) => !isNavHiddenInCleanup(href))
+          .map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

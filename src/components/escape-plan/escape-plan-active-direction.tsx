@@ -37,14 +37,15 @@ export function EscapePlanActiveDirection({
     <Card className="border-accent/40 bg-accent/5">
       <CardHeader className="space-y-4">
         <div>
-          <p className="text-xs text-muted mb-1">Выбранное направление</p>
+          <p className="text-xs text-muted mb-1">Активное направление</p>
+          <p className="text-sm text-muted">Вы выбрали</p>
           <CardTitle className="text-lg">{activePlan.option_title}</CardTitle>
           <CardDescription className="mt-1">Статус: активен</CardDescription>
         </div>
 
         {pendingSteps.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium">Ваши шаги</p>
+            <p className="text-sm font-medium">План действий</p>
             <ol className="space-y-2">
               {pendingSteps.map((step, index) => (
                 <li

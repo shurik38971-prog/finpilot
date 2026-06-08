@@ -1,4 +1,6 @@
+import { sortEscapePlanOptions } from "@/lib/escape-plan/sort-options";
 import type {
+  EscapePlanConfidence,
   EscapePlanDifficulty,
   EscapePlanOptionType,
   EscapePlanResult,
@@ -11,6 +13,7 @@ const OPTION_TYPES: EscapePlanOptionType[] = [
 ];
 
 const DIFFICULTIES: EscapePlanDifficulty[] = ["low", "medium", "high"];
+const CONFIDENCES: EscapePlanConfidence[] = ["high", "medium", "low"];
 
 export function buildEscapePlanSystemPrompt(): string {
   return `Ты — спокойный финансовый советник FinPilot. Помогаешь найти реалистичные варианты улучшения ситуации.
@@ -19,7 +22,7 @@ export function buildEscapePlanSystemPrompt(): string {
 Пиши: «По вашим данным есть N реалистичных направления».
 
 ЗАПРЕЩЕНО:
-- обещать гарантированный заработок или фиксированный доход
+- обещать гарантированный заработок или точную сумму дохода
 - советовать новый кредит или микрозайм как основной выход
 - придумывать навыки, которых нет в анкете
 - советовать физическую работу при ограничении «Не могу работать физически»
@@ -29,12 +32,12 @@ export function buildEscapePlanSystemPrompt(): string {
 - абстрактное «найдите подработку» без конкретики
 
 ОБЯЗАТЕЛЬНО:
-- объяснять, почему вариант подходит именно этому человеку (навыки, время, ограничения)
-- давать первый конкретный шаг на ближайшие дни
-- указывать примерный финансовый эффект в рублях в месяц (число, не диапазон «от-до» без оснований)
-- честно указывать сложность и риск
-- предложить 3–5 вариантов максимум
-- учитывать свободный остаток, долги и цель пользователя
+- why_chosen: 3–5 коротких причин с привязкой к навыкам, ограничениям и времени пользователя
+- income_min и income_max: реалистичная вилка в рублях в месяц, не одна точная цифра
+- confidence: high если навык есть и нет конфликтов; medium если нужна подготовка; low если долгий старт или высокая конкуренция
+- priority_rank: 1 = самый вероятный и быстрый результат для этого человека (не самый большой доход)
+- not_recommended: явная причина, привязанная к данным пользователя
+- 3–5 вариантов, отсортированных по priority_rank
 
 Ответ — только валидный JSON без markdown.`;
 }
@@ -80,6 +83,11 @@ function asNumber(value: unknown, fallback = 0): number {
   return fallback;
 }
 
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => asString(item)).filter(Boolean).slice(0, 6);
+}
+
 function asOptionType(value: unknown): EscapePlanOptionType {
   if (OPTION_TYPES.includes(value as EscapePlanOptionType)) {
     return value as EscapePlanOptionType;
@@ -94,6 +102,34 @@ function asDifficulty(value: unknown): EscapePlanDifficulty {
   return "medium";
 }
 
+function asConfidence(value: unknown): EscapePlanConfidence {
+  if (CONFIDENCES.includes(value as EscapePlanConfidence)) {
+    return value as EscapePlanConfidence;
+  }
+  return "medium";
+}
+
+function parseIncomeRange(o: Record<string, unknown>) {
+  let incomeMin = asNumber(o.income_min);
+  let incomeMax = asNumber(o.income_max);
+  const legacy = asNumber(o.expected_effect);
+
+  if (incomeMin <= 0 && incomeMax <= 0 && legacy > 0) {
+    incomeMin = Math.round(legacy * 0.5);
+    incomeMax = Math.round(legacy * 1.5);
+  }
+
+  if (incomeMin > incomeMax && incomeMax > 0) {
+    [incomeMin, incomeMax] = [incomeMax, incomeMin];
+  }
+
+  if (incomeMin > 0 && incomeMax === 0) {
+    incomeMax = Math.round(incomeMin * 1.5);
+  }
+
+  return { incomeMin, incomeMax };
+}
+
 export function sanitizeEscapePlanResult(
   raw: unknown,
   fallbackNeededAmount: number
@@ -101,28 +137,43 @@ export function sanitizeEscapePlanResult(
   const data = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
 
   const optionsRaw = Array.isArray(data.options) ? data.options : [];
-  const options = optionsRaw.slice(0, 5).map((item) => {
-    const o = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
-    return {
-      title: asString(o.title, "Вариант"),
-      type: asOptionType(o.type),
-      why_fits: asString(o.why_fits),
-      first_step: asString(o.first_step),
-      expected_effect: asNumber(o.expected_effect),
-      difficulty: asDifficulty(o.difficulty),
-      time_required: asString(o.time_required),
-      risk: asString(o.risk),
-    };
-  });
+  const options = sortEscapePlanOptions(
+    optionsRaw.slice(0, 5).map((item, index) => {
+      const o = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+      const { incomeMin, incomeMax } = parseIncomeRange(o);
+      const whyChosen = asStringArray(o.why_chosen);
+      return {
+        title: asString(o.title, "Вариант"),
+        type: asOptionType(o.type),
+        why_fits: asString(o.why_fits),
+        why_chosen:
+          whyChosen.length > 0
+            ? whyChosen
+            : [asString(o.why_fits)].filter(Boolean),
+        first_step: asString(o.first_step),
+        income_min: incomeMin,
+        income_max: incomeMax,
+        confidence: asConfidence(o.confidence),
+        difficulty: asDifficulty(o.difficulty),
+        time_required: asString(o.time_required),
+        risk: asString(o.risk),
+        priority_rank: asNumber(o.priority_rank, index + 1) || index + 1,
+      };
+    })
+  );
 
   const notRecommendedRaw = Array.isArray(data.not_recommended)
     ? data.not_recommended
     : [];
   const not_recommended = notRecommendedRaw.slice(0, 4).map((item) => {
     const o = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+    const reason = asString(o.why_not) || asString(o.reason);
+    const reasonType = o.reason_type === "not_suitable" ? "not_suitable" as const : "not_worth" as const;
     return {
       title: asString(o.title),
-      reason: asString(o.reason),
+      reason,
+      why_not: reason,
+      reason_type: reasonType,
     };
   }).filter((item) => item.title && item.reason);
 

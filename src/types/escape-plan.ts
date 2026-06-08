@@ -77,21 +77,60 @@ export type EscapePlanOptionType =
   | "debt_action";
 
 export type EscapePlanDifficulty = "low" | "medium" | "high";
+export type EscapePlanConfidence = "high" | "medium" | "low";
+export type EscapePlanStatus = "planned" | "active" | "completed" | "abandoned";
+export type EscapeFollowUpAnswer = "yes" | "partial" | "no";
+
+export const ESCAPE_CONFIDENCE_LABELS: Record<EscapePlanConfidence, string> = {
+  high: "Высокая",
+  medium: "Средняя",
+  low: "Низкая",
+};
 
 export interface EscapePlanOption {
   title: string;
   type: EscapePlanOptionType;
   why_fits: string;
+  why_chosen: string[];
   first_step: string;
-  expected_effect: number;
+  income_min: number;
+  income_max: number;
+  /** @deprecated use income_min / income_max */
+  expected_effect?: number;
+  confidence: EscapePlanConfidence;
   difficulty: EscapePlanDifficulty;
   time_required: string;
   risk: string;
+  priority_rank?: number;
 }
+
+export type EscapeNotRecommendedReasonType = "not_worth" | "not_suitable";
 
 export interface EscapePlanNotRecommended {
   title: string;
   reason: string;
+  why_not?: string;
+  reason_type?: EscapeNotRecommendedReasonType;
+}
+
+export function escapeNotRecommendedLabel(
+  item: EscapePlanNotRecommended
+): string {
+  if (item.reason_type === "not_suitable") return "Почему не подходит";
+  return "Почему не стоит";
+}
+
+export interface UserEscapePlan {
+  id: string;
+  user_id: string;
+  option_title: string;
+  option_snapshot: EscapePlanOption;
+  status: EscapePlanStatus;
+  follow_up_due_at: string | null;
+  follow_up_answer: EscapeFollowUpAnswer | null;
+  follow_up_answered_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface EscapePlanResult {
@@ -159,6 +198,20 @@ export function buildGoalsFocusText(
     return "Поэтому рекомендации согласованы с вашими целями.";
   }
   return `Поэтому рекомендации в первую очередь направлены на ${phrase}.`;
+}
+
+export function formatEscapeIncomeRange(option: EscapePlanOption): string | null {
+  const min = option.income_min;
+  const max = option.income_max;
+  if (min > 0 && max > 0) {
+    return `${min.toLocaleString("ru-RU")}–${max.toLocaleString("ru-RU")} ₽ / мес`;
+  }
+  if (option.expected_effect && option.expected_effect > 0) {
+    const legacyMin = Math.round(option.expected_effect * 0.5);
+    const legacyMax = Math.round(option.expected_effect * 1.5);
+    return `${legacyMin.toLocaleString("ru-RU")}–${legacyMax.toLocaleString("ru-RU")} ₽ / мес`;
+  }
+  return null;
 }
 
 export function normalizeSecondaryGoals(

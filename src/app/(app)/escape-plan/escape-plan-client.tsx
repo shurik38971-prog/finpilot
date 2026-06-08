@@ -5,15 +5,24 @@ import { EscapePlanResults } from "@/components/escape-plan/escape-plan-results"
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { saveUserCapabilities } from "@/lib/actions/capabilities";
-import type { CapabilitiesFormInput, EscapePlanResult, UserCapabilities } from "@/types/escape-plan";
+import type {
+  CapabilitiesFormInput,
+  EscapePlanResult,
+  UserCapabilities,
+  UserEscapePlan,
+} from "@/types/escape-plan";
 import { useState } from "react";
 
 interface EscapePlanPageClientProps {
   initialCapabilities: UserCapabilities | null;
+  initialEscapePlans?: UserEscapePlan[];
+  initialPendingFollowUp?: UserEscapePlan | null;
 }
 
 export function EscapePlanPageClient({
   initialCapabilities,
+  initialEscapePlans = [],
+  initialPendingFollowUp = null,
 }: EscapePlanPageClientProps) {
   const [capabilities, setCapabilities] = useState(initialCapabilities);
   const [plan, setPlan] = useState<EscapePlanResult | null>(
@@ -70,7 +79,12 @@ export function EscapePlanPageClient({
         </Card>
 
         {plan && (
-          <EscapePlanResults plan={plan} capabilities={capabilities} />
+          <EscapePlanResults
+            plan={plan}
+            capabilities={capabilities}
+            initialEscapePlans={initialEscapePlans}
+            initialPendingFollowUp={initialPendingFollowUp}
+          />
         )}
       </div>
     </div>

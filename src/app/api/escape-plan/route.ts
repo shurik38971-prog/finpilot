@@ -88,21 +88,34 @@ ${mainProblem ?? "не определена"}
     {
       "title": "название",
       "type": "increase_income | reduce_expenses | debt_action",
-      "why_fits": "почему подходит с учётом навыков и ограничений",
-      "first_step": "конкретный шаг на ближайшие 1-3 дня",
-      "expected_effect": 5000,
+      "why_fits": "краткое описание в 1-2 предложения",
+      "why_chosen": [
+        "Уже есть нужный навык",
+        "Не требует вложений",
+        "Подходит под удалённый формат"
+      ],
+      "first_step": "конкретный шаг на сегодня или ближайшие 1-3 дня",
+      "income_min": 5000,
+      "income_max": 15000,
+      "confidence": "high | medium | low",
       "difficulty": "low | medium | high",
       "time_required": "например: 5 ч/нед первый месяц",
-      "risk": "честный риск без запугивания"
+      "risk": "честный риск без запугивания",
+      "priority_rank": 1
     }
   ],
   "not_recommended": [
-    { "title": "что не делать", "reason": "почему" }
+    {
+      "title": "что не делать",
+      "why_not": "явная причина с привязкой к данным пользователя",
+      "reason_type": "not_worth | not_suitable (not_suitable — если конфликт с ограничениями пользователя)"
+    }
   ],
   "plan_7_days": ["шаг 1", "шаг 2"]
 }
 
-options — от 3 до 5 штук. expected_effect — число в рублях в месяц.
+options — от 3 до 5 штук, отсортированы по priority_rank (1 = самый вероятный и быстрый).
+income_min/income_max — реалистичная вилка в рублях в месяц, не точная цифра.
 Не добавляй markdown.`;
 }
 

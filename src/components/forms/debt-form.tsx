@@ -2,9 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { type Debt } from "@/types/database";
+import { Select } from "@/components/ui/select";
 import { createDebt, updateDebt } from "@/lib/actions/finance";
-import { useState } from "react";
+import {
+  calculateAnnuityPayment,
+  DEBT_TERM_MISSING_WARNING,
+} from "@/lib/finance/debt-payment";
+import { formatCurrency } from "@/lib/utils";
+import {
+  DEBT_PAYMENT_TYPE_LABELS,
+  type Debt,
+  type DebtPaymentType,
+} from "@/types/database";
+import { useMemo, useState } from "react";
 
 interface DebtFormProps {
   debt?: Debt;
@@ -13,6 +23,45 @@ interface DebtFormProps {
 
 export function DebtForm({ debt, onSuccess }: DebtFormProps) {
   const [loading, setLoading] = useState(false);
+  const [paymentType, setPaymentType] = useState<DebtPaymentType>(
+    debt?.payment_type ?? "annuity"
+  );
+  const [remainingAmount, setRemainingAmount] = useState(
+    debt?.remaining_amount ?? 0
+  );
+  const [interestRate, setInterestRate] = useState(debt?.interest_rate ?? 0);
+  const [termMonths, setTermMonths] = useState(
+    debt?.term_months ? String(debt.term_months) : ""
+  );
+  const [manualPayment, setManualPayment] = useState(
+    debt?.minimum_payment ?? 0
+  );
+
+  const parsedTerm = termMonths ? Number(termMonths) : null;
+
+  const annuityPayment = useMemo(() => {
+    if (paymentType !== "annuity" || !parsedTerm || parsedTerm <= 0) {
+      return null;
+    }
+    return Math.round(
+      calculateAnnuityPayment(remainingAmount, interestRate, parsedTerm)
+    );
+  }, [paymentType, remainingAmount, interestRate, parsedTerm]);
+
+  const previewOverpayment = useMemo(() => {
+    if (!parsedTerm || parsedTerm <= 0 || remainingAmount <= 0) return null;
+    const payment =
+      paymentType === "annuity"
+        ? annuityPayment
+        : manualPayment;
+    if (!payment || payment <= 0) return null;
+    return Math.round(payment * parsedTerm - remainingAmount);
+  }, [paymentType, annuityPayment, manualPayment, parsedTerm, remainingAmount]);
+
+  const termWarning =
+    paymentType === "annuity" && (!parsedTerm || parsedTerm <= 0)
+      ? DEBT_TERM_MISSING_WARNING
+      : null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,6 +111,7 @@ export function DebtForm({ debt, onSuccess }: DebtFormProps) {
           step="0.01"
           defaultValue={debt?.remaining_amount}
           required
+          onChange={(e) => setRemainingAmount(Number(e.target.value))}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -74,18 +124,66 @@ export function DebtForm({ debt, onSuccess }: DebtFormProps) {
           step="0.01"
           defaultValue={debt?.interest_rate ?? 0}
           required
+          onChange={(e) => setInterestRate(Number(e.target.value))}
         />
+        <Input
+          id="term_months"
+          name="term_months"
+          label="Срок долга, месяцев"
+          type="number"
+          min="1"
+          step="1"
+          value={termMonths}
+          onChange={(e) => setTermMonths(e.target.value)}
+          placeholder="36"
+        />
+      </div>
+      <Select
+        id="payment_type"
+        name="payment_type"
+        label="Тип расчёта платежа"
+        value={paymentType}
+        onChange={(e) => setPaymentType(e.target.value as DebtPaymentType)}
+        options={(
+          Object.entries(DEBT_PAYMENT_TYPE_LABELS) as [DebtPaymentType, string][]
+        ).map(([value, label]) => ({ value, label }))}
+      />
+      {paymentType === "manual" ? (
         <Input
           id="minimum_payment"
           name="minimum_payment"
-          label="Мин. платёж (₽)"
+          label="Ежемесячный платёж (₽)"
           type="number"
           min="0"
           step="0.01"
-          defaultValue={debt?.minimum_payment ?? 0}
+          value={manualPayment}
+          onChange={(e) => setManualPayment(Number(e.target.value))}
           required
         />
-      </div>
+      ) : (
+        <>
+          <input type="hidden" name="minimum_payment" value={annuityPayment ?? 0} />
+          <div className="rounded-lg border border-border/60 bg-surface-hover/20 p-3 text-sm space-y-1">
+            <p className="text-muted">Ежемесячный платёж (аннуитет)</p>
+            <p className="text-lg font-semibold text-foreground">
+              {annuityPayment !== null
+                ? formatCurrency(annuityPayment)
+                : "—"}
+            </p>
+            {termWarning && (
+              <p className="text-xs text-amber-400">{termWarning}</p>
+            )}
+          </div>
+        </>
+      )}
+      {previewOverpayment !== null && previewOverpayment >= 0 && (
+        <p className="text-sm text-muted">
+          Примерная переплата:{" "}
+          <span className="text-foreground font-medium">
+            {formatCurrency(previewOverpayment)}
+          </span>
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <Input
           id="due_day"

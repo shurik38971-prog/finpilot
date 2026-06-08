@@ -21,6 +21,10 @@ import {
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
 import { revalidatePath } from "next/cache";
+import {
+  parseDebtPaymentType,
+  resolveDebtMinimumPayment,
+} from "@/lib/finance/debt-payment";
 import type { Frequency, IncomeType } from "@/types/database";
 import { countIncomesByType } from "@/lib/finance/income-model";
 
@@ -192,17 +196,39 @@ export async function getDebts() {
   return data;
 }
 
-export async function createDebt(formData: FormData) {
-  const { supabase, userId } = await getUserId();
-  const { error } = await supabase.from("debts").insert({
-    user_id: userId,
+function parseDebtFormFields(formData: FormData) {
+  const payment_type = parseDebtPaymentType(formData.get("payment_type"));
+  const termRaw = formData.get("term_months");
+  const term_months = termRaw ? Number(termRaw) : null;
+  const remaining_amount = Number(formData.get("remaining_amount"));
+  const interest_rate = Number(formData.get("interest_rate"));
+  const manual_payment = Number(formData.get("minimum_payment") || 0);
+
+  return {
     title: formData.get("title") as string,
     total_amount: Number(formData.get("total_amount")),
-    remaining_amount: Number(formData.get("remaining_amount")),
-    interest_rate: Number(formData.get("interest_rate")),
-    minimum_payment: Number(formData.get("minimum_payment")),
+    remaining_amount,
+    interest_rate,
+    term_months: term_months && term_months > 0 ? term_months : null,
+    payment_type,
+    minimum_payment: resolveDebtMinimumPayment({
+      payment_type,
+      remaining_amount,
+      interest_rate,
+      term_months: term_months && term_months > 0 ? term_months : null,
+      manual_payment,
+    }),
     due_day: formData.get("due_day") ? Number(formData.get("due_day")) : null,
     priority: Number(formData.get("priority") || 0),
+  };
+}
+
+export async function createDebt(formData: FormData) {
+  const { supabase, userId } = await getUserId();
+  const fields = parseDebtFormFields(formData);
+  const { error } = await supabase.from("debts").insert({
+    user_id: userId,
+    ...fields,
   });
   if (error) throw error;
   await markOnboardingStep("debts");
@@ -212,17 +238,10 @@ export async function createDebt(formData: FormData) {
 
 export async function updateDebt(id: string, formData: FormData) {
   const { supabase } = await getUserId();
+  const fields = parseDebtFormFields(formData);
   const { error } = await supabase
     .from("debts")
-    .update({
-      title: formData.get("title") as string,
-      total_amount: Number(formData.get("total_amount")),
-      remaining_amount: Number(formData.get("remaining_amount")),
-      interest_rate: Number(formData.get("interest_rate")),
-      minimum_payment: Number(formData.get("minimum_payment")),
-      due_day: formData.get("due_day") ? Number(formData.get("due_day")) : null,
-      priority: Number(formData.get("priority") || 0),
-    })
+    .update(fields)
     .eq("id", id);
   if (error) throw error;
   revalidateFinancialPages();

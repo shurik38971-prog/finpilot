@@ -1,3 +1,9 @@
+import {
+  DEBT_TERM_MISSING_WARNING,
+  getDebtMonthlyPayment,
+  getDebtOverpayment,
+  isDebtTermMissing,
+} from "@/lib/finance/debt-payment";
 import type {
   Debt,
   DebtInputSnapshot,
@@ -13,6 +19,7 @@ interface DebtState {
   initialBalance: number;
   rate: number;
   minimum: number;
+  termMonths: number | null;
 }
 
 const MAX_SIMULATION_MONTHS = 600;
@@ -66,26 +73,39 @@ function applyPayment(
 }
 
 function buildInputSnapshot(debts: Debt[]): DebtInputSnapshot[] {
-  return debts.map((debt) => ({
-    id: debt.id,
-    title: debt.title,
-    initialBalance: debt.remaining_amount,
-    annualRatePercent: debt.interest_rate,
-    monthlyRatePercent: monthlyRate(debt.interest_rate) * 100,
-    minimumPayment: debt.minimum_payment,
-    firstMonthInterest: Math.round(
-      debt.remaining_amount * monthlyRate(debt.interest_rate)
-    ),
-  }));
+  return debts.map((debt) => {
+    const minimumPayment = getDebtMonthlyPayment(debt);
+    return {
+      id: debt.id,
+      title: debt.title,
+      initialBalance: debt.remaining_amount,
+      annualRatePercent: debt.interest_rate,
+      monthlyRatePercent: monthlyRate(debt.interest_rate) * 100,
+      minimumPayment,
+      firstMonthInterest: Math.round(
+        debt.remaining_amount * monthlyRate(debt.interest_rate)
+      ),
+      termMonths: debt.term_months,
+      paymentType: debt.payment_type ?? "annuity",
+      overpayment: getDebtOverpayment(debt),
+    };
+  });
 }
 
-function detectInputWarnings(snapshot: DebtInputSnapshot[]): string[] {
+function detectInputWarnings(debts: Debt[], snapshot: DebtInputSnapshot[]): string[] {
   const warnings: string[] = [];
 
-  for (const debt of snapshot) {
+  for (let i = 0; i < snapshot.length; i++) {
+    const debt = snapshot[i];
+    const source = debts[i];
+
+    if (source && isDebtTermMissing(source)) {
+      warnings.push(`«${debt.title}»: ${DEBT_TERM_MISSING_WARNING}`);
+    }
+
     if (debt.minimumPayment + PAYOFF_EPSILON < debt.firstMonthInterest) {
       warnings.push(
-        `«${debt.title}»: минимальный платёж (${debt.minimumPayment.toLocaleString("ru-RU")} ₽) меньше процентов за 1-й месяц (${debt.firstMonthInterest.toLocaleString("ru-RU")} ₽) — долг будет расти без доплат.`
+        `«${debt.title}»: ежемесячный платёж (${debt.minimumPayment.toLocaleString("ru-RU")} ₽) меньше процентов за 1-й месяц (${debt.firstMonthInterest.toLocaleString("ru-RU")} ₽) — долг будет расти без доплат.`
       );
     }
     if (debt.annualRatePercent > 100) {
@@ -98,13 +118,22 @@ function detectInputWarnings(snapshot: DebtInputSnapshot[]): string[] {
   return warnings;
 }
 
+function simulationMonthLimit(states: DebtState[]): number {
+  const terms = states
+    .map((debt) => debt.termMonths)
+    .filter((term): term is number => term !== null && term > 0);
+
+  if (terms.length === 0) return MAX_SIMULATION_MONTHS;
+  return Math.max(...terms) + 120;
+}
+
 export function calculateDebtPayoff(
   debts: Debt[],
   extraPayment: number,
   strategy: "avalanche" | "snowball"
 ): DebtPayoffPlan {
   const inputSnapshot = buildInputSnapshot(debts);
-  const inputWarnings = detectInputWarnings(inputSnapshot);
+  const inputWarnings = detectInputWarnings(debts, inputSnapshot);
 
   if (debts.length === 0) {
     return {
@@ -127,8 +156,11 @@ export function calculateDebtPayoff(
     remaining: debt.remaining_amount,
     initialBalance: debt.remaining_amount,
     rate: debt.interest_rate,
-    minimum: debt.minimum_payment,
+    minimum: getDebtMonthlyPayment(debt),
+    termMonths: debt.term_months,
   }));
+
+  const monthLimit = simulationMonthLimit(states);
 
   const steps: DebtPayoffStep[] = [];
   const ledger: DebtPayoffLedgerEntry[] = [];
@@ -139,10 +171,10 @@ export function calculateDebtPayoff(
   let status: DebtPayoffPlan["status"] = "complete";
 
   while (states.some((debt) => debt.remaining > PAYOFF_EPSILON)) {
-    if (month >= MAX_SIMULATION_MONTHS) {
+    if (month >= monthLimit) {
       status = "max_months_reached";
       warnings.push(
-        `Расчёт остановлен на ${MAX_SIMULATION_MONTHS} мес. — при текущих платежах долг не погашается.`
+        `Расчёт остановлен на ${monthLimit} мес. — при текущих платежах долг не погашается.`
       );
       break;
     }

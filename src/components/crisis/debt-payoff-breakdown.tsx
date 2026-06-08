@@ -42,7 +42,9 @@ function InputTable({ plan }: { plan: DebtPayoffPlan }) {
             <th className="py-2 pr-2 font-medium">Долг</th>
             <th className="py-2 pr-2 font-medium">Остаток</th>
             <th className="py-2 pr-2 font-medium">Ставка</th>
-            <th className="py-2 pr-2 font-medium">Мин. платёж</th>
+            <th className="py-2 pr-2 font-medium">Срок</th>
+            <th className="py-2 pr-2 font-medium">Платёж</th>
+            <th className="py-2 pr-2 font-medium">Переплата</th>
             <th className="py-2 font-medium">% за 1-й мес</th>
           </tr>
         </thead>
@@ -52,7 +54,13 @@ function InputTable({ plan }: { plan: DebtPayoffPlan }) {
               <td className="py-2 pr-2">{row.title}</td>
               <td className="py-2 pr-2">{formatCurrency(row.initialBalance)}</td>
               <td className="py-2 pr-2">{row.annualRatePercent}%</td>
+              <td className="py-2 pr-2">
+                {row.termMonths ? `${row.termMonths} мес.` : "—"}
+              </td>
               <td className="py-2 pr-2">{formatCurrency(row.minimumPayment)}</td>
+              <td className="py-2 pr-2">
+                {row.overpayment !== null ? formatCurrency(row.overpayment) : "—"}
+              </td>
               <td className="py-2">{formatCurrency(row.firstMonthInterest)}</td>
             </tr>
           ))}

@@ -1,3 +1,4 @@
+import { getDebtMonthlyPayment } from "@/lib/finance/debt-payment";
 import type { Debt, Expense, Income } from "@/types/database";
 import {
   actualIncomeInMonth,
@@ -88,7 +89,7 @@ export function totalDebtRemaining(debts: Debt[]): number {
 }
 
 export function monthlyDebtPayments(debts: Debt[]): number {
-  return debts.reduce((sum, d) => sum + d.minimum_payment, 0);
+  return debts.reduce((sum, d) => sum + getDebtMonthlyPayment(d), 0);
 }
 
 export function hasFinancialData(

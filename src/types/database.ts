@@ -34,6 +34,13 @@ export interface Expense {
   created_at: string;
 }
 
+export type DebtPaymentType = "annuity" | "manual";
+
+export const DEBT_PAYMENT_TYPE_LABELS: Record<DebtPaymentType, string> = {
+  annuity: "Аннуитетный (по сроку и ставке)",
+  manual: "Вручную",
+};
+
 export interface Debt {
   id: string;
   user_id: string;
@@ -42,6 +49,8 @@ export interface Debt {
   remaining_amount: number;
   interest_rate: number;
   minimum_payment: number;
+  term_months: number | null;
+  payment_type: DebtPaymentType;
   due_day: number | null;
   priority: number;
   created_at: string;
@@ -86,6 +95,9 @@ export interface DebtInputSnapshot {
   monthlyRatePercent: number;
   minimumPayment: number;
   firstMonthInterest: number;
+  termMonths: number | null;
+  paymentType: DebtPaymentType;
+  overpayment: number | null;
 }
 
 export interface DebtPayoffLedgerEntry {

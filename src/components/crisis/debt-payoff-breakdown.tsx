@@ -19,19 +19,6 @@ function statusBadge(status: DebtPayoffStatus) {
   return <Badge variant="warning">Расчёт обрезан по лимиту срока</Badge>;
 }
 
-function FormulaBlock() {
-  return (
-    <div className="rounded-lg border border-border/60 bg-surface-hover/20 p-3 text-sm space-y-2">
-      <p className="font-medium text-foreground">Формула расчёта</p>
-      <div className="font-mono text-xs text-muted space-y-1">
-        <p>месячная ставка = годовая ставка ÷ 12 ÷ 100</p>
-        <p>проценты за месяц = остаток на начало × месячная ставка</p>
-        <p>из платежа сначала гасятся проценты, остаток — тело долга</p>
-        <p>если платёж &lt; процентов — неоплаченные проценты прибавляются к долгу</p>
-      </div>
-    </div>
-  );
-}
 
 function InputTable({ plan }: { plan: DebtPayoffPlan }) {
   return (
@@ -108,7 +95,11 @@ function LedgerTable({ plan }: { plan: DebtPayoffPlan }) {
                 <td className="p-2">{row.month}</td>
                 <td className="p-2">{row.debtTitle}</td>
                 <td className="p-2 text-muted">
-                  {row.paymentType === "minimum" ? "мин." : "доп."}
+                  {row.paymentType === "monthly"
+                    ? "итого"
+                    : row.paymentType === "minimum"
+                      ? "мин."
+                      : "доп."}
                 </td>
                 <td className="p-2">{formatCurrency(row.balanceBefore)}</td>
                 <td className="p-2 text-red-400">{formatCurrency(row.interestAccrued)}</td>
@@ -217,14 +208,13 @@ export function DebtPayoffBreakdown({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Исходные данные и формула</CardTitle>
+          <CardTitle className="text-base">Исходные данные</CardTitle>
           <CardDescription>
-            Проверьте входные цифры — результат считается только из них
+            Входные цифры по каждому долгу
           </CardDescription>
         </CardHeader>
         <div className="px-5 pb-5 space-y-4">
           <InputTable plan={avalanche} />
-          <FormulaBlock />
           <div className="rounded-lg border border-border/60 bg-accent/5 p-3 text-sm text-muted leading-relaxed">
             <span className="font-medium text-foreground">Почему один сценарий выгоднее: </span>
             {comparison}

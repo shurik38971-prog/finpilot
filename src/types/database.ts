@@ -103,7 +103,7 @@ export interface DebtInputSnapshot {
 export interface DebtPayoffLedgerEntry {
   month: number;
   debtTitle: string;
-  paymentType: "minimum" | "extra";
+  paymentType: "minimum" | "extra" | "monthly";
   balanceBefore: number;
   interestAccrued: number;
   paymentTotal: number;

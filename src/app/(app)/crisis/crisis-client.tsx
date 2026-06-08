@@ -1,7 +1,7 @@
 "use client";
 
+import { CrisisScenarioComparison } from "@/components/crisis/crisis-scenario-comparison";
 import { DebtPayoffBreakdown } from "@/components/crisis/debt-payoff-breakdown";
-import { SingleDebtForecast } from "@/components/crisis/single-debt-forecast";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,13 @@ export function CrisisPageClient({ debts }: { debts: Debt[] }) {
   const [extraPayment, setExtraPayment] = useState(5000);
   const multipleDebts = debts.length >= 2;
 
-  const singlePlan = useMemo(
-    () =>
-      debts.length === 1
-        ? calculateDebtPayoff(debts, extraPayment, "avalanche")
-        : null,
+  const baseline = useMemo(
+    () => calculateDebtPayoff(debts, 0, "avalanche"),
+    [debts]
+  );
+
+  const withExtra = useMemo(
+    () => calculateDebtPayoff(debts, extraPayment, "avalanche"),
     [debts, extraPayment]
   );
 
@@ -41,11 +43,7 @@ export function CrisisPageClient({ debts }: { debts: Debt[] }) {
     <div>
       <PageHeader
         title="Антикризисный режим"
-        description={
-          multipleDebts
-            ? "Стратегии погашения долгов с прозрачным расчётом"
-            : "Прогноз погашения долга с учётом дополнительных платежей"
-        }
+        description="Что будет, если платить больше — сравнение сценариев погашения"
       />
 
       <div className="mb-6 max-w-xs">
@@ -68,15 +66,28 @@ export function CrisisPageClient({ debts }: { debts: Debt[] }) {
             </CardDescription>
           </CardHeader>
         </Card>
-      ) : debts.length === 1 && singlePlan ? (
-        <SingleDebtForecast
-          debt={debts[0]}
-          plan={singlePlan}
-          extraPayment={extraPayment}
-        />
-      ) : avalanche && snowball ? (
-        <DebtPayoffBreakdown avalanche={avalanche} snowball={snowball} />
-      ) : null}
+      ) : (
+        <div className="space-y-8">
+          <CrisisScenarioComparison
+            debts={debts}
+            baseline={baseline}
+            withExtra={withExtra}
+            extraPayment={extraPayment}
+          />
+
+          {multipleDebts && avalanche && snowball && (
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div>
+                <h2 className="text-lg font-semibold">Детали стратегий</h2>
+                <p className="text-sm text-muted">
+                  Куда направить доплату при нескольких долгах — лавина или снежный ком
+                </p>
+              </div>
+              <DebtPayoffBreakdown avalanche={avalanche} snowball={snowball} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

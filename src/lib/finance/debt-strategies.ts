@@ -22,6 +22,15 @@ interface DebtState {
   termMonths: number | null;
 }
 
+interface MonthlyPaymentResult {
+  balanceBefore: number;
+  interestAccrued: number;
+  paymentTotal: number;
+  paymentToInterest: number;
+  paymentToPrincipal: number;
+  balanceAfter: number;
+}
+
 const MAX_SIMULATION_MONTHS = 600;
 const MAX_BALANCE_MULTIPLIER = 50;
 const PAYOFF_EPSILON = 0.01;
@@ -40,35 +49,37 @@ function sortDebts(
   });
 }
 
-interface PaymentResult {
-  balanceBefore: number;
-  interestAccrued: number;
-  paymentToInterest: number;
-  paymentToPrincipal: number;
-  balanceAfter: number;
-}
+/** One interest accrual per month; base + extra are a single payment. */
+export function applyMonthlyPayment(
+  openingBalance: number,
+  totalPayment: number,
+  annualRatePercent: number
+): MonthlyPaymentResult {
+  if (openingBalance <= PAYOFF_EPSILON) {
+    return {
+      balanceBefore: 0,
+      interestAccrued: 0,
+      paymentTotal: 0,
+      paymentToInterest: 0,
+      paymentToPrincipal: 0,
+      balanceAfter: 0,
+    };
+  }
 
-function applyPayment(
-  debt: DebtState,
-  payment: number
-): PaymentResult {
-  const balanceBefore = debt.remaining;
-  const interestAccrued = balanceBefore * monthlyRate(debt.rate);
-  const paymentToInterest = Math.min(payment, interestAccrued);
-  const paymentToPrincipal = Math.min(
-    Math.max(0, payment - paymentToInterest),
-    balanceBefore
-  );
-  const unpaidInterest = interestAccrued - paymentToInterest;
-
-  debt.remaining = balanceBefore - paymentToPrincipal + unpaidInterest;
+  const monthlyInterest = openingBalance * monthlyRate(annualRatePercent);
+  const maxPayment = openingBalance + monthlyInterest;
+  const paymentApplied = Math.min(Math.max(0, totalPayment), maxPayment);
+  const paymentToInterest = Math.min(paymentApplied, monthlyInterest);
+  const paymentToPrincipal = paymentApplied - paymentToInterest;
+  const balanceAfter = openingBalance + monthlyInterest - paymentApplied;
 
   return {
-    balanceBefore,
-    interestAccrued,
+    balanceBefore: openingBalance,
+    interestAccrued: monthlyInterest,
+    paymentTotal: paymentApplied,
     paymentToInterest,
     paymentToPrincipal,
-    balanceAfter: debt.remaining,
+    balanceAfter: Math.max(0, balanceAfter),
   };
 }
 
@@ -127,6 +138,45 @@ function simulationMonthLimit(states: DebtState[]): number {
   return Math.max(...terms) + 120;
 }
 
+function allocateMonthlyPayments(
+  states: DebtState[],
+  extraPayment: number,
+  strategy: "avalanche" | "snowball"
+): Map<string, number> {
+  const payments = new Map<string, number>();
+  const opening = new Map<string, number>();
+
+  for (const debt of states) {
+    if (debt.remaining <= PAYOFF_EPSILON) continue;
+    payments.set(debt.id, debt.minimum);
+    opening.set(debt.id, debt.remaining);
+  }
+
+  let extraBudget = Math.max(0, extraPayment);
+  const active = sortDebts(
+    states.filter((debt) => debt.remaining > PAYOFF_EPSILON),
+    strategy
+  );
+
+  for (const debt of active) {
+    if (extraBudget <= PAYOFF_EPSILON) break;
+
+    const balance = opening.get(debt.id) ?? debt.remaining;
+    const monthlyInterest = balance * monthlyRate(debt.rate);
+    const maxPayment = balance + monthlyInterest;
+    const current = payments.get(debt.id) ?? debt.minimum;
+    const room = Math.max(0, maxPayment - current);
+    const add = Math.min(extraBudget, room);
+
+    if (add > PAYOFF_EPSILON) {
+      payments.set(debt.id, current + add);
+      extraBudget -= add;
+    }
+  }
+
+  return payments;
+}
+
 export function calculateDebtPayoff(
   debts: Debt[],
   extraPayment: number,
@@ -181,18 +231,21 @@ export function calculateDebtPayoff(
 
     month++;
 
+    const monthlyPayments = allocateMonthlyPayments(states, extraPayment, strategy);
+
     for (const debt of states) {
       if (debt.remaining <= PAYOFF_EPSILON) continue;
 
-      const payment = Math.min(debt.minimum, debt.remaining + debt.remaining * monthlyRate(debt.rate));
-      const result = applyPayment(debt, payment);
+      const payment = monthlyPayments.get(debt.id) ?? debt.minimum;
+      const result = applyMonthlyPayment(debt.remaining, payment, debt.rate);
+      debt.remaining = result.balanceAfter;
       totalInterest += result.paymentToInterest;
-      totalPaid += payment;
+      totalPaid += result.paymentTotal;
 
       steps.push({
         month,
         debtTitle: debt.title,
-        payment,
+        payment: result.paymentTotal,
         remaining: Math.max(0, debt.remaining),
         interestPaid: result.paymentToInterest,
       });
@@ -200,10 +253,10 @@ export function calculateDebtPayoff(
       ledger.push({
         month,
         debtTitle: debt.title,
-        paymentType: "minimum",
+        paymentType: "monthly",
         balanceBefore: result.balanceBefore,
         interestAccrued: result.interestAccrued,
-        paymentTotal: payment,
+        paymentTotal: result.paymentTotal,
         paymentToInterest: result.paymentToInterest,
         paymentToPrincipal: result.paymentToPrincipal,
         balanceAfter: result.balanceAfter,
@@ -212,56 +265,7 @@ export function calculateDebtPayoff(
       if (debt.remaining > debt.initialBalance * MAX_BALANCE_MULTIPLIER) {
         status = "unpayable";
         warnings.push(
-          `«${debt.title}»: остаток вырос более чем в ${MAX_BALANCE_MULTIPLIER}× — минимальные платежи не покрывают проценты.`
-        );
-        break;
-      }
-    }
-
-    if (status === "unpayable") break;
-
-    let budget = Math.max(0, extraPayment);
-    const active = sortDebts(
-      states.filter((debt) => debt.remaining > PAYOFF_EPSILON),
-      strategy
-    );
-
-    for (const debt of active) {
-      if (budget <= PAYOFF_EPSILON) break;
-
-      const payment = Math.min(
-        budget,
-        debt.remaining + debt.remaining * monthlyRate(debt.rate)
-      );
-      const result = applyPayment(debt, payment);
-      totalInterest += result.paymentToInterest;
-      totalPaid += payment;
-      budget -= payment;
-
-      steps.push({
-        month,
-        debtTitle: debt.title,
-        payment,
-        remaining: Math.max(0, debt.remaining),
-        interestPaid: result.paymentToInterest,
-      });
-
-      ledger.push({
-        month,
-        debtTitle: debt.title,
-        paymentType: "extra",
-        balanceBefore: result.balanceBefore,
-        interestAccrued: result.interestAccrued,
-        paymentTotal: payment,
-        paymentToInterest: result.paymentToInterest,
-        paymentToPrincipal: result.paymentToPrincipal,
-        balanceAfter: result.balanceAfter,
-      });
-
-      if (debt.remaining > debt.initialBalance * MAX_BALANCE_MULTIPLIER) {
-        status = "unpayable";
-        warnings.push(
-          `«${debt.title}»: остаток вырос более чем в ${MAX_BALANCE_MULTIPLIER}× — при такой ставке нужны большие доплаты.`
+          `«${debt.title}»: остаток вырос более чем в ${MAX_BALANCE_MULTIPLIER}× — платежи не покрывают проценты.`
         );
         break;
       }
@@ -297,7 +301,7 @@ export function buildStrategyComparison(
   if (avalanche.status === "unpayable" || snowball.status === "unpayable") {
     const broken = [avalanche, snowball].filter((plan) => plan.status === "unpayable");
     if (broken.length === 2) {
-      return "Оба сценария непогашаемы при текущих платежах — увеличьте доплату или пересмотрите минимальные платежи.";
+      return "Оба сценария непогашаемы при текущих платежах — увеличьте доплату или пересмотрите ежемесячные платежи.";
     }
     const viable = broken[0] === avalanche ? snowball : avalanche;
     return `${strategyLabel(viable.strategy)} остаётся рабочим сценарием; альтернатива даёт непогашаемый долг при текущих платежах.`;
@@ -331,4 +335,12 @@ function describeTopRate(plan: DebtPayoffPlan): string {
   )[0];
   if (!top) return "высокая ставка";
   return `${top.annualRatePercent}% у «${top.title}»`;
+}
+
+export function sumBaseMonthlyPayments(debts: Debt[]): number {
+  return debts.reduce((sum, debt) => sum + getDebtMonthlyPayment(debt), 0);
+}
+
+export function totalDebtRemaining(debts: Debt[]): number {
+  return debts.reduce((sum, debt) => sum + debt.remaining_amount, 0);
 }

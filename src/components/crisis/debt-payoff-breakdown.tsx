@@ -85,7 +85,7 @@ function LedgerTable({ plan }: { plan: DebtPayoffPlan }) {
               <th className="p-2 font-medium">Проценты</th>
               <th className="p-2 font-medium">Платёж</th>
               <th className="p-2 font-medium">В проценты</th>
-              <th className="p-2 font-medium">В тело</th>
+              <th className="p-2 font-medium">На основной долг</th>
               <th className="p-2 font-medium">После</th>
             </tr>
           </thead>

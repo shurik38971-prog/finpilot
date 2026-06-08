@@ -24,21 +24,6 @@ function formatClosingMonth(monthsFromNow: number): string {
   });
 }
 
-function FormulaBlock() {
-  return (
-    <div className="rounded-lg border border-border/60 bg-surface-hover/20 p-3 text-sm space-y-2">
-      <p className="font-medium text-foreground">Формула расчёта (один раз в месяц)</p>
-      <div className="font-mono text-xs text-muted space-y-1">
-        <p>месячная ставка = годовая ставка ÷ 12 ÷ 100</p>
-        <p>проценты = остаток на начало месяца × месячная ставка</p>
-        <p>базовый: в проценты = min(базовый, проценты), остаток базового — в тело</p>
-        <p>доплата: целиком в тело долга (досрочное погашение)</p>
-        <p>новый остаток = остаток − в тело + неоплаченные проценты</p>
-      </div>
-    </div>
-  );
-}
-
 function ScenarioMetrics({
   title,
   description,
@@ -253,8 +238,6 @@ export function CrisisScenarioComparison({
           ))}
         </div>
       )}
-
-      <FormulaBlock />
     </div>
   );
 }

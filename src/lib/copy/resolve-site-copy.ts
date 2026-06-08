@@ -4,7 +4,7 @@ import {
   type SiteCopyDefinition,
 } from "@/lib/copy/site-copy-defaults";
 import { createClient } from "@/lib/supabase/server";
-import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
 export type ResolvedSiteCopy = Record<string, string>;
 
@@ -26,16 +26,16 @@ async function loadSiteCopyOverrides(): Promise<Record<string, string>> {
   return overrides;
 }
 
-const getCachedOverrides = unstable_cache(
-  loadSiteCopyOverrides,
-  ["site-copy-overrides"],
-  { revalidate: 60, tags: ["site-copy"] }
-);
-
-export async function getResolvedSiteCopy(): Promise<ResolvedSiteCopy> {
-  const overrides = await getCachedOverrides();
-  return { ...SITE_COPY_DEFAULTS, ...overrides };
-}
+/** Per-request dedupe; must not use unstable_cache here (reads cookies via Supabase). */
+export const getResolvedSiteCopy = cache(async (): Promise<ResolvedSiteCopy> => {
+  try {
+    const overrides = await loadSiteCopyOverrides();
+    return { ...SITE_COPY_DEFAULTS, ...overrides };
+  } catch (error) {
+    console.warn("[site_copy] using defaults:", error);
+    return { ...SITE_COPY_DEFAULTS };
+  }
+});
 
 export function resolveCopyValue(
   copy: ResolvedSiteCopy,

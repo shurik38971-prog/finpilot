@@ -7,7 +7,7 @@ import {
   isSiteCopyKey,
 } from "@/lib/copy/site-copy-defaults";
 import { getResolvedSiteCopy } from "@/lib/copy/resolve-site-copy";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 
 export async function adminGetSiteCopyEditorData() {
   const { service } = await requireAdmin();
@@ -80,7 +80,6 @@ export async function adminResetAllSiteCopy() {
 }
 
 function revalidateSiteCopy() {
-  revalidateTag("site-copy");
   revalidatePath("/", "layout");
   revalidatePath("/admin/copy");
 }

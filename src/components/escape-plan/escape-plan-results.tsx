@@ -11,14 +11,14 @@ import {
   chooseEscapeOption,
   getEscapePlanTasks,
 } from "@/lib/actions/escape-plans";
+import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
 import {
   buildSituationBrief,
   ESCAPE_VISIBLE_OPTIONS,
 } from "@/lib/escape-plan/situation-brief";
 import {
-  resolvePrimaryGoal,
-  resolveSecondaryGoals,
+  getEffectiveSkills,
   type EscapePlanOption,
   type EscapePlanResult,
   type UserCapabilities,
@@ -44,18 +44,13 @@ export function EscapePlanResults({
   initialActivePlanTasks = [],
   onRegenerate,
 }: EscapePlanResultsProps) {
-  const primaryGoal = resolvePrimaryGoal(capabilities);
-  const secondaryGoals = resolveSecondaryGoals(capabilities);
-
   const rankedOptions = useMemo(() => {
-    if (!capabilities.skills.length) return plan.options;
-    return rankAndSortEscapePlanOptions(plan.options, {
-      skills: capabilities.skills,
-      constraints: capabilities.constraints,
-      primaryGoal,
-      secondaryGoals,
-    });
-  }, [plan.options, capabilities, primaryGoal, secondaryGoals]);
+    if (getEffectiveSkills(capabilities).length === 0) return plan.options;
+    return rankAndSortEscapePlanOptions(
+      plan.options,
+      buildEscapeRankingContext(capabilities)
+    );
+  }, [plan.options, capabilities]);
 
   const [escapePlans, setEscapePlans] = useState(initialEscapePlans);
   const [pendingFollowUp, setPendingFollowUp] = useState(initialPendingFollowUp);

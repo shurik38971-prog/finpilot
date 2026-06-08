@@ -45,6 +45,8 @@ export const ESCAPE_GOALS = [
 
 export const MAX_SECONDARY_GOALS = 3;
 
+export const CUSTOM_SECONDARY_GOAL = "Своя цель";
+
 export const DEFAULT_PRIMARY_GOAL = ESCAPE_GOALS[0];
 
 export type EscapeSkill = (typeof ESCAPE_SKILLS)[number];
@@ -66,6 +68,9 @@ export interface UserCapabilities {
   target_result: string | null;
   primary_goal: string | null;
   secondary_goals: string[];
+  custom_skills: string[];
+  custom_goal: string | null;
+  custom_restriction: string | null;
   last_plan: EscapePlanResult | null;
   created_at: string;
   updated_at: string;
@@ -148,11 +153,40 @@ export interface EscapePlanResult {
 export interface CapabilitiesFormInput {
   current_work: string;
   skills: string[];
+  custom_skills: string[];
   available_hours_per_week: number;
   constraints: string[];
-  constraints_other?: string;
+  custom_restriction?: string;
   primary_goal: string;
   secondary_goals: string[];
+  custom_goal?: string;
+}
+
+export function parseCustomSkillsInput(value: string): string[] {
+  return value
+    .split(/[,;]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+export function getEffectiveSkills(
+  capabilities: Pick<UserCapabilities, "skills" | "custom_skills">
+): string[] {
+  const standard = capabilities.skills.filter((s) => s !== "Другое");
+  const custom = capabilities.custom_skills ?? [];
+  return [...standard, ...custom];
+}
+
+export function getEffectiveConstraints(
+  capabilities: Pick<UserCapabilities, "constraints" | "custom_restriction">
+): string[] {
+  const known = new Set<string>(ESCAPE_CONSTRAINTS);
+  const standard = capabilities.constraints.filter((c) => c !== "Другое");
+  const legacyCustom = capabilities.constraints.filter((c) => !known.has(c));
+  const explicit = capabilities.custom_restriction?.trim()
+    ? [capabilities.custom_restriction.trim()]
+    : [];
+  return [...new Set([...standard, ...legacyCustom, ...explicit])];
 }
 
 const LEGACY_TARGET_TO_GOAL: Record<string, EscapeGoal> = {
@@ -183,11 +217,17 @@ export function resolvePrimaryGoal(capabilities: UserCapabilities | null): strin
 }
 
 export function resolveSecondaryGoals(capabilities: UserCapabilities | null): string[] {
-  if (!capabilities?.secondary_goals?.length) return [];
+  if (!capabilities) return [];
   const primary = resolvePrimaryGoal(capabilities);
-  return capabilities.secondary_goals
-    .filter((goal) => goal !== primary)
-    .slice(0, MAX_SECONDARY_GOALS);
+  const goals = (capabilities.secondary_goals ?? [])
+    .filter((goal) => goal !== primary && goal !== CUSTOM_SECONDARY_GOAL);
+
+  if (capabilities.custom_goal?.trim()) {
+    const custom = capabilities.custom_goal.trim();
+    if (!goals.includes(custom)) goals.push(custom);
+  }
+
+  return goals.slice(0, MAX_SECONDARY_GOALS);
 }
 
 export function buildGoalsFocusText(
@@ -223,7 +263,7 @@ export function normalizeSecondaryGoals(
   const seen = new Set<string>();
   const result: string[] = [];
   for (const goal of secondaryGoals) {
-    if (goal === primaryGoal || seen.has(goal)) continue;
+    if (goal === primaryGoal || goal === CUSTOM_SECONDARY_GOAL || seen.has(goal)) continue;
     seen.add(goal);
     result.push(goal);
     if (result.length >= MAX_SECONDARY_GOALS) break;

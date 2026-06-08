@@ -5,6 +5,8 @@ export interface EscapePlanRankingContext {
   constraints: string[];
   primaryGoal: string;
   secondaryGoals?: string[];
+  customSkills?: string[];
+  customGoal?: string | null;
 }
 
 /** Professional / digital skills — higher weight when matching options */
@@ -175,21 +177,35 @@ interface ScoreBreakdown {
   physicalPenalty: number;
 }
 
-function scoreSkillMatch(text: string, skills: string[]): { score: number; matched: string[] } {
+function skillMatchKeywords(skill: string): string[] {
+  const mapped = SKILL_KEYWORDS[skill];
+  if (mapped && mapped.length > 0) return mapped;
+  const lower = skill.toLowerCase();
+  const words = lower.split(/[\s,/+-]+/).filter((w) => w.length >= 3);
+  return [lower, ...words];
+}
+
+function scoreSkillMatch(
+  text: string,
+  skills: string[],
+  customSkills: string[] = []
+): { score: number; matched: string[] } {
   if (skills.length === 0) return { score: 0, matched: [] };
 
   let raw = 0;
   const matched: string[] = [];
   const maxPerSkill = 8;
+  const customSet = new Set(customSkills.map((s) => s.toLowerCase()));
 
   for (const skill of skills) {
-    const keywords = SKILL_KEYWORDS[skill] ?? [skill.toLowerCase()];
+    if (skill === "Другое") continue;
+    const keywords = skillMatchKeywords(skill);
     const hits = countMatches(text, keywords);
     if (hits > 0) {
       matched.push(skill);
-      const weight = (PROFESSIONAL_DIGITAL_SKILLS as readonly string[]).includes(skill)
-        ? 1.6
-        : 1;
+      const isPro = (PROFESSIONAL_DIGITAL_SKILLS as readonly string[]).includes(skill);
+      const isCustom = customSet.has(skill.toLowerCase());
+      const weight = isPro ? 1.6 : isCustom ? 1.5 : 1;
       raw += Math.min(maxPerSkill, hits * 3) * weight;
     }
   }
@@ -267,7 +283,8 @@ function scoreGoal(
   option: EscapePlanOption,
   text: string,
   primaryGoal: string,
-  secondaryGoals: string[]
+  secondaryGoals: string[],
+  customGoal?: string | null
 ): number {
   let score = 0;
   const goals = [primaryGoal, ...secondaryGoals];
@@ -278,6 +295,17 @@ function scoreGoal(
 
     const keywords = GOAL_KEYWORDS[goal] ?? [];
     if (containsAny(text, keywords)) score += goal === primaryGoal ? 3 : 1;
+    else if (!GOAL_KEYWORDS[goal]) {
+      const words = goal.toLowerCase().split(/[\s,]+/).filter((w) => w.length >= 3);
+      if (words.some((w) => text.includes(w))) {
+        score += goal === primaryGoal ? 2 : 2;
+      }
+    }
+  }
+
+  if (customGoal?.trim()) {
+    const words = customGoal.toLowerCase().split(/[\s,]+/).filter((w) => w.length >= 3);
+    if (words.some((w) => text.includes(w))) score += 3;
   }
 
   return Math.min(10, score);
@@ -288,7 +316,9 @@ function buildRankReasons(
   matchedSkills: string[],
   text: string,
   constraints: string[],
-  option: EscapePlanOption
+  option: EscapePlanOption,
+  customSkills: string[] = [],
+  customGoal?: string | null
 ): string[] {
   const reasons: string[] = [];
 
@@ -302,6 +332,20 @@ function buildRankReasons(
     reasons.push(`Опирается на навык «${proMatched[0]}»`);
   } else if (matchedSkills.length > 0) {
     reasons.push(`Совпадает с навыками: ${matchedSkills.slice(0, 2).join(", ")}`);
+  }
+
+  const customMatched = matchedSkills.filter((s) =>
+    customSkills.some((c) => c.toLowerCase() === s.toLowerCase())
+  );
+  if (customMatched.length > 0) {
+    reasons.push(`Опирается на ваш навык «${customMatched[0]}»`);
+  }
+
+  if (customGoal?.trim()) {
+    const words = customGoal.toLowerCase().split(/[\s,]+/).filter((w) => w.length >= 3);
+    if (words.some((w) => text.includes(w))) {
+      reasons.push(`Помогает с вашей целью: ${customGoal.trim()}`);
+    }
   }
 
   if (breakdown.professionalBonus > 0) {
@@ -354,13 +398,20 @@ export function rankEscapePlanOption(
   context: EscapePlanRankingContext
 ): { rank_score: number; rank_reasons: string[] } {
   const text = optionText(option);
-  const { skills, constraints, primaryGoal, secondaryGoals = [] } = context;
+  const {
+    skills,
+    constraints,
+    primaryGoal,
+    secondaryGoals = [],
+    customSkills = [],
+    customGoal,
+  } = context;
 
-  const { score: skillScore, matched } = scoreSkillMatch(text, skills);
+  const { score: skillScore, matched } = scoreSkillMatch(text, skills, customSkills);
   const incomeScore = scoreIncome(option);
   const speedScore = scoreSpeed(option, text);
   const constraintsScore = scoreConstraints(text, constraints);
-  const goalScore = scoreGoal(option, text, primaryGoal, secondaryGoals);
+  const goalScore = scoreGoal(option, text, primaryGoal, secondaryGoals, customGoal);
 
   let professionalBonus = 0;
   let physicalPenalty = 0;
@@ -401,7 +452,9 @@ export function rankEscapePlanOption(
     matched,
     text,
     constraints,
-    option
+    option,
+    customSkills,
+    customGoal
   );
 
   if (rank_reasons.length === 0) {

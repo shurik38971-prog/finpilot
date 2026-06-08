@@ -14,7 +14,10 @@ import { getGoals } from "@/lib/actions/goals";
 import { getFinancialData } from "@/lib/actions/finance";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
+import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
 import {
+  getEffectiveConstraints,
+  getEffectiveSkills,
   resolvePrimaryGoal,
   resolveSecondaryGoals,
 } from "@/types/escape-plan";
@@ -48,6 +51,9 @@ function buildEscapePlanPrompt(input: {
   const { financial, capabilities, mainProblem, guardrailRules } = input;
   const primaryGoal = resolvePrimaryGoal(capabilities);
   const secondaryGoals = resolveSecondaryGoals(capabilities);
+  const standardSkills = capabilities.skills.filter((s) => s !== "Другое");
+  const customSkills = capabilities.custom_skills ?? [];
+  const effectiveConstraints = getEffectiveConstraints(capabilities);
 
   return `
 Подбери реалистичные варианты улучшения финансовой ситуации для этого пользователя.
@@ -62,13 +68,17 @@ ${mainProblem ?? "не определена"}
 
 АНКЕТА ВОЗМОЖНОСТЕЙ:
 - Чем занимается: ${capabilities.current_work ?? "не указано"}
-- Навыки (только из списка, не выдумывай другие): ${capabilities.skills.join(", ") || "не указаны"}
+- Навыки (стандартные): ${standardSkills.join(", ") || "не указаны"}
+- Навыки (свои, указал пользователь): ${customSkills.length > 0 ? customSkills.join(", ") : "нет"}
+- Все навыки для подбора: ${getEffectiveSkills(capabilities).join(", ") || "не указаны"}
 - Часов в неделю: ${capabilities.available_hours_per_week ?? "не указано"}
-- Ограничения: ${capabilities.constraints.join(", ") || "нет"}
+- Ограничения: ${effectiveConstraints.join(", ") || "нет"}
+${capabilities.custom_restriction ? `- Своё ограничение: ${capabilities.custom_restriction}` : ""}
 
 ЦЕЛИ (главная важнее дополнительных):
 - Главная цель: ${primaryGoal}
 - Дополнительные цели: ${secondaryGoals.length > 0 ? secondaryGoals.join(", ") : "не указаны"}
+${capabilities.custom_goal ? `- Своя дополнительная цель: ${capabilities.custom_goal}` : ""}
 
 Свободный остаток (netCashFlow): ${financial.netCashFlow} ₽/мес.
 Если netCashFlow отрицательный, needed_amount ≈ модуль дефицита.
@@ -78,6 +88,7 @@ ${mainProblem ?? "не определена"}
 2. НЕ предлагай физический труд (переезды, сборка мебели, велоремонт, грузчик), если навыки пользователя цифровые/профессиональные
 3. Главная цель: «${primaryGoal}»; дополнительные: ${secondaryGoals.join(", ") || "нет"}
 4. Случайные подработки без связи с навыками — только если навыки не применимы
+5. Если есть customSkills или customGoal — обязательно учитывай их при выборе вариантов и пиши в why_chosen, почему вариант связан с ними
 
 Ответь строго JSON:
 {
@@ -151,7 +162,7 @@ export async function POST() {
       );
     }
 
-    if (capabilities.skills.length === 0) {
+    if (getEffectiveSkills(capabilities).length === 0) {
       return NextResponse.json(
         { error: "Укажите хотя бы один навык" },
         { status: 400 }
@@ -181,7 +192,9 @@ export async function POST() {
     );
 
     const fallbackNeeded = Math.max(0, -financial.netCashFlow);
-    const guardrailRules = buildEscapePlanGuardrailRules(capabilities.constraints);
+    const guardrailRules = buildEscapePlanGuardrailRules(
+      getEffectiveConstraints(capabilities)
+    );
 
     const chatResult = await gptunnelChat(
       [
@@ -207,12 +220,11 @@ export async function POST() {
     }
 
     const raw = extractJsonFromText(chatResult.content);
-    const plan = sanitizeEscapePlanResult(raw, fallbackNeeded, {
-      skills: capabilities.skills,
-      constraints: capabilities.constraints,
-      primaryGoal: resolvePrimaryGoal(capabilities),
-      secondaryGoals: resolveSecondaryGoals(capabilities),
-    });
+    const plan = sanitizeEscapePlanResult(
+      raw,
+      fallbackNeeded,
+      buildEscapeRankingContext(capabilities)
+    );
 
     if (plan.options.length === 0) {
       return NextResponse.json(

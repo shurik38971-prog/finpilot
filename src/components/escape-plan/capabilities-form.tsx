@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
+  CUSTOM_SECONDARY_GOAL,
   ESCAPE_CONSTRAINTS,
   ESCAPE_GOALS,
   ESCAPE_HOURS_OPTIONS,
   ESCAPE_SKILLS,
   MAX_SECONDARY_GOALS,
+  parseCustomSkillsInput,
   resolvePrimaryGoal,
   resolveSecondaryGoals,
   type CapabilitiesFormInput,
@@ -29,6 +31,9 @@ export function CapabilitiesForm({
 }: CapabilitiesFormProps) {
   const [currentWork, setCurrentWork] = useState(initial?.current_work ?? "");
   const [skills, setSkills] = useState<string[]>(initial?.skills ?? []);
+  const [customSkillsInput, setCustomSkillsInput] = useState(
+    initial?.custom_skills?.join(", ") ?? ""
+  );
   const [hours, setHours] = useState(
     initial?.available_hours_per_week
       ? String(initial.available_hours_per_week)
@@ -39,17 +44,24 @@ export function CapabilitiesForm({
       (ESCAPE_CONSTRAINTS as readonly string[]).includes(c)
     ) ?? []
   );
-  const [constraintsOther, setConstraintsOther] = useState(
-    initial?.constraints?.find(
-      (c) => !(ESCAPE_CONSTRAINTS as readonly string[]).includes(c)
-    ) ?? ""
+  const [customRestriction, setCustomRestriction] = useState(
+    initial?.custom_restriction ??
+      initial?.constraints?.find(
+        (c) => !(ESCAPE_CONSTRAINTS as readonly string[]).includes(c)
+      ) ??
+      ""
   );
   const [primaryGoal, setPrimaryGoal] = useState(
     resolvePrimaryGoal(initial ?? null)
   );
-  const [secondaryGoals, setSecondaryGoals] = useState<string[]>(
-    resolveSecondaryGoals(initial ?? null)
-  );
+  const [secondaryGoals, setSecondaryGoals] = useState<string[]>(() => {
+    const goals = resolveSecondaryGoals(initial ?? null);
+    if (initial?.custom_goal?.trim()) {
+      return [...goals.filter((g) => g !== initial.custom_goal), CUSTOM_SECONDARY_GOAL];
+    }
+    return goals;
+  });
+  const [customGoal, setCustomGoal] = useState(initial?.custom_goal ?? "");
 
   function toggleSkill(skill: string) {
     setSkills((prev) =>
@@ -75,6 +87,7 @@ export function CapabilitiesForm({
 
     setSecondaryGoals((prev) => {
       if (prev.includes(goal)) {
+        if (goal === CUSTOM_SECONDARY_GOAL) setCustomGoal("");
         return prev.filter((g) => g !== goal);
       }
       if (prev.length >= MAX_SECONDARY_GOALS) return prev;
@@ -82,20 +95,33 @@ export function CapabilitiesForm({
     });
   }
 
+  const customSkills = parseCustomSkillsInput(customSkillsInput);
+  const hasSkills =
+    skills.filter((s) => s !== "Другое").length > 0 || customSkills.length > 0;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     await onSubmit({
       current_work: currentWork,
       skills,
+      custom_skills: skills.includes("Другое") ? customSkills : [],
       available_hours_per_week: Number(hours),
       constraints,
-      constraints_other: constraintsOther,
+      custom_restriction: constraints.includes("Другое")
+        ? customRestriction.trim()
+        : undefined,
       primary_goal: primaryGoal,
       secondary_goals: secondaryGoals,
+      custom_goal: secondaryGoals.includes(CUSTOM_SECONDARY_GOAL)
+        ? customGoal.trim()
+        : undefined,
     });
   }
 
-  const secondaryOptions = ESCAPE_GOALS.filter((goal) => goal !== primaryGoal);
+  const secondaryOptions = [
+    ...ESCAPE_GOALS.filter((goal) => goal !== primaryGoal),
+    CUSTOM_SECONDARY_GOAL,
+  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -126,6 +152,15 @@ export function CapabilitiesForm({
             </label>
           ))}
         </div>
+        {skills.includes("Другое") && (
+          <Input
+            id="custom_skills"
+            label="Ваши навыки"
+            value={customSkillsInput}
+            onChange={(e) => setCustomSkillsInput(e.target.value)}
+            placeholder="Укажите навыки через запятую"
+          />
+        )}
       </fieldset>
 
       <Select
@@ -161,6 +196,15 @@ export function CapabilitiesForm({
             </label>
           ))}
         </div>
+        {secondaryGoals.includes(CUSTOM_SECONDARY_GOAL) && (
+          <Input
+            id="custom_goal"
+            label="Своя цель"
+            value={customGoal}
+            onChange={(e) => setCustomGoal(e.target.value)}
+            placeholder="Какой результат хотите получить?"
+          />
+        )}
       </fieldset>
 
       <Select
@@ -194,16 +238,16 @@ export function CapabilitiesForm({
         </div>
         {constraints.includes("Другое") && (
           <Input
-            id="constraints_other"
-            label="Уточните ограничение"
-            value={constraintsOther}
-            onChange={(e) => setConstraintsOther(e.target.value)}
-            placeholder="Например: только утром до 12:00"
+            id="custom_restriction"
+            label="Ваше ограничение"
+            value={customRestriction}
+            onChange={(e) => setCustomRestriction(e.target.value)}
+            placeholder="Опишите ограничение"
           />
         )}
       </fieldset>
 
-      <Button type="submit" className="w-full" disabled={loading || skills.length === 0}>
+      <Button type="submit" className="w-full" disabled={loading || !hasSkills}>
         {loading ? "Анализируем..." : "Найти варианты выхода"}
       </Button>
     </form>

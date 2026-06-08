@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ESCAPE_HOURS_OPTIONS,
+  getEffectiveConstraints,
+  getEffectiveSkills,
   resolvePrimaryGoal,
   resolveSecondaryGoals,
   type UserCapabilities,
@@ -58,7 +60,7 @@ export function CapabilitiesProfileSummary({
         <div className="grid gap-4 sm:grid-cols-2 text-sm">
           <div>
             <p className="text-muted mb-2">Навыки</p>
-            <CheckList items={capabilities.skills} />
+            <CheckList items={getEffectiveSkills(capabilities)} />
           </div>
           <div>
             <p className="text-muted mb-2">Цели</p>
@@ -66,7 +68,7 @@ export function CapabilitiesProfileSummary({
           </div>
           <div>
             <p className="text-muted mb-2">Ограничения</p>
-            <CheckList items={capabilities.constraints} />
+            <CheckList items={getEffectiveConstraints(capabilities)} />
           </div>
           <div>
             <p className="text-muted mb-1">Время</p>

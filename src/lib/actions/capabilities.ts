@@ -3,7 +3,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
+  CUSTOM_SECONDARY_GOAL,
   ESCAPE_GOALS,
+  getEffectiveSkills,
   normalizeSecondaryGoals,
   type CapabilitiesFormInput,
   type EscapePlanResult,
@@ -43,18 +45,20 @@ export async function getUserCapabilities(): Promise<UserCapabilities | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data as UserCapabilities | null;
+  if (!data) return null;
+
+  return {
+    ...(data as UserCapabilities),
+    custom_skills: (data as UserCapabilities).custom_skills ?? [],
+    custom_goal: (data as UserCapabilities).custom_goal ?? null,
+    custom_restriction: (data as UserCapabilities).custom_restriction ?? null,
+  };
 }
 
 export async function saveUserCapabilities(
   input: CapabilitiesFormInput
 ): Promise<UserCapabilities> {
   const { supabase, userId } = await getUserId();
-
-  const constraints = [...input.constraints];
-  if (input.constraints_other?.trim()) {
-    constraints.push(input.constraints_other.trim());
-  }
 
   if (!ESCAPE_GOALS.includes(input.primary_goal as (typeof ESCAPE_GOALS)[number])) {
     throw new Error("Выберите главную цель");
@@ -65,15 +69,43 @@ export async function saveUserCapabilities(
     input.secondary_goals
   );
 
+  const custom_skills = input.custom_skills ?? [];
+  const effectiveSkills = getEffectiveSkills({
+    skills: input.skills,
+    custom_skills,
+  });
+
+  if (effectiveSkills.length === 0) {
+    throw new Error("Укажите хотя бы один навык");
+  }
+
+  if (
+    input.secondary_goals.includes(CUSTOM_SECONDARY_GOAL) &&
+    !input.custom_goal?.trim()
+  ) {
+    throw new Error("Опишите свою дополнительную цель");
+  }
+
+  if (input.constraints.includes("Другое") && !input.custom_restriction?.trim()) {
+    throw new Error("Опишите ограничение");
+  }
+
+  if (input.skills.includes("Другое") && custom_skills.length === 0) {
+    throw new Error("Укажите свои навыки через запятую");
+  }
+
   const payload = {
     user_id: userId,
     current_work: input.current_work.trim() || null,
     skills: input.skills,
+    custom_skills,
     available_hours_per_week: input.available_hours_per_week,
-    constraints,
-    preferred_format: derivePreferredFormat(constraints),
+    constraints: input.constraints,
+    custom_restriction: input.custom_restriction?.trim() || null,
+    preferred_format: derivePreferredFormat(input.constraints),
     primary_goal: input.primary_goal,
     secondary_goals,
+    custom_goal: input.custom_goal?.trim() || null,
     updated_at: new Date().toISOString(),
   };
 

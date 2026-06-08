@@ -1,5 +1,6 @@
 "use client";
 
+import { EscapePlanFailureFeedback } from "@/components/escape-plan/escape-plan-failure-feedback";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { answerEscapeFollowUp } from "@/lib/actions/escape-plans";
@@ -8,6 +9,7 @@ import type {
   EscapePlanResult,
   UserEscapePlan,
 } from "@/types/escape-plan";
+import { resolveAttemptStatus } from "@/types/rescue-plan";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
@@ -15,15 +17,23 @@ interface EscapePlanFollowUpProps {
   pending: UserEscapePlan;
   plan: EscapePlanResult;
   onAnswered: (updated: UserEscapePlan) => void;
+  onFailed: (updated: UserEscapePlan) => void;
 }
 
 export function EscapePlanFollowUp({
   pending,
   plan,
   onAnswered,
+  onFailed,
 }: EscapePlanFollowUpProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const snapshot = pending.option_snapshot;
+  const nextPlanStep = plan.plan_7_days[1] ?? plan.plan_7_days[0];
+  const needsFailureReason =
+    pending.follow_up_answer === "no" &&
+    resolveAttemptStatus(pending) !== "failed";
 
   async function handleAnswer(answer: EscapeFollowUpAnswer) {
     setLoading(true);
@@ -37,9 +47,6 @@ export function EscapePlanFollowUp({
       setLoading(false);
     }
   }
-
-  const snapshot = pending.option_snapshot;
-  const nextPlanStep = plan.plan_7_days[1] ?? plan.plan_7_days[0];
 
   return (
     <Card className="border-accent/30 bg-accent/5">
@@ -76,7 +83,7 @@ export function EscapePlanFollowUp({
                 disabled={loading}
                 onClick={() => handleAnswer("no")}
               >
-                Нет
+                Не получилось
               </Button>
               {loading && <Loader2 className="size-4 animate-spin text-muted" />}
             </div>
@@ -85,11 +92,19 @@ export function EscapePlanFollowUp({
 
         {error && <p className="text-sm text-red-400">{error}</p>}
 
+        {needsFailureReason && (
+          <EscapePlanFailureFeedback
+            planId={pending.id}
+            onReported={onFailed}
+          />
+        )}
+
         {pending.follow_up_answer === "yes" && (
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm space-y-1">
             <p className="font-medium text-emerald-400">Отлично — продолжайте.</p>
             <p>
-              Следующий шаг: {nextPlanStep ?? snapshot?.first_step ?? "закрепите результат и зафиксируйте прогресс в FinPilot"}
+              Следующий шаг:{" "}
+              {nextPlanStep ?? snapshot?.first_step ?? "закрепите результат"}
             </p>
           </div>
         )}
@@ -99,16 +114,16 @@ export function EscapePlanFollowUp({
             <p className="font-medium">Это нормально — главное, что движение есть.</p>
             <p>
               Повторите первый шаг или уточните его:{" "}
-              {snapshot?.first_step ?? "вернитесь к плану на 7 дней"}
+              {snapshot?.first_step ?? "вернитесь к чек-листу ниже"}
             </p>
           </div>
         )}
 
-        {pending.follow_up_answer === "no" && (
+        {resolveAttemptStatus(pending) === "failed" && (
           <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-sm space-y-1">
             <p className="font-medium">Этот путь не сработал — попробуйте другой вариант ниже.</p>
             <p className="text-muted">
-              Выберите направление с более высокой уверенностью или меньшим порогом входа.
+              Мы учтём причину при следующих рекомендациях.
             </p>
           </div>
         )}

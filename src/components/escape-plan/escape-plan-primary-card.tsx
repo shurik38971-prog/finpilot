@@ -76,7 +76,7 @@ export function EscapePlanPrimaryCard({
               Создаём план…
             </>
           ) : (
-            "Начать этот план"
+            "Хочу попробовать"
           )}
         </Button>
       </CardHeader>

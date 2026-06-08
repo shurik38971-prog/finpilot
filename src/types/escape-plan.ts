@@ -56,6 +56,8 @@ export type EscapeGoal = (typeof ESCAPE_GOALS)[number];
 /** @deprecated use primary_goal */
 export const ESCAPE_TARGET_RESULTS = ESCAPE_GOALS;
 
+import type { EscapeFailureReason, RescueAttemptStatus, RescuePlan } from "@/types/rescue-plan";
+
 export interface UserCapabilities {
   id: string;
   user_id: string;
@@ -72,6 +74,7 @@ export interface UserCapabilities {
   custom_goal: string | null;
   custom_restriction: string | null;
   last_plan: EscapePlanResult | null;
+  last_rescue_plan: RescuePlan | null;
   created_at: string;
   updated_at: string;
 }
@@ -133,6 +136,11 @@ export interface UserEscapePlan {
   option_title: string;
   option_snapshot: EscapePlanOption;
   status: EscapePlanStatus;
+  attempt_status: RescueAttemptStatus;
+  failure_reason: EscapeFailureReason | null;
+  failure_reason_other: string | null;
+  active_goal: string | null;
+  income_found: number;
   follow_up_due_at: string | null;
   follow_up_answer: EscapeFollowUpAnswer | null;
   follow_up_answered_at: string | null;

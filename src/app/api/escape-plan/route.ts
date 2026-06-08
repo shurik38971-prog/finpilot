@@ -14,13 +14,17 @@ import { getGoals } from "@/lib/actions/goals";
 import { getFinancialData } from "@/lib/actions/finance";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
+import { getFailedEscapeAttempts } from "@/lib/actions/escape-plans";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
+import { buildRescuePlan } from "@/lib/escape-plan/build-rescue-plan";
+import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
 import {
   getEffectiveConstraints,
   getEffectiveSkills,
   resolvePrimaryGoal,
   resolveSecondaryGoals,
 } from "@/types/escape-plan";
+import { ESCAPE_FAILURE_REASONS } from "@/types/rescue-plan";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -42,13 +46,34 @@ function extractJsonFromText(text: string) {
   }
 }
 
+function buildFailedAttemptsBlock(
+  attempts: Awaited<ReturnType<typeof getFailedEscapeAttempts>>
+): string {
+  if (attempts.length === 0) return "Нет.";
+  const labels = Object.fromEntries(
+    ESCAPE_FAILURE_REASONS.map((item) => [item.value, item.label])
+  );
+  return attempts
+    .map((attempt) => {
+      const reason =
+        labels[attempt.failure_reason ?? "other"] ?? attempt.failure_reason;
+      const extra = attempt.failure_reason_other
+        ? ` (${attempt.failure_reason_other})`
+        : "";
+      return `- «${attempt.option_title}»: ${reason}${extra}. Не предлагай похожий путь без учёта причины.`;
+    })
+    .join("\n");
+}
+
 function buildEscapePlanPrompt(input: {
   financial: Awaited<ReturnType<typeof getAnalysisContext>>;
   capabilities: NonNullable<Awaited<ReturnType<typeof getUserCapabilities>>>;
   mainProblem: string | null;
   guardrailRules: string;
+  failedAttempts: Awaited<ReturnType<typeof getFailedEscapeAttempts>>;
 }) {
-  const { financial, capabilities, mainProblem, guardrailRules } = input;
+  const { financial, capabilities, mainProblem, guardrailRules, failedAttempts } =
+    input;
   const primaryGoal = resolvePrimaryGoal(capabilities);
   const secondaryGoals = resolveSecondaryGoals(capabilities);
   const standardSkills = capabilities.skills.filter((s) => s !== "Другое");
@@ -89,6 +114,11 @@ ${capabilities.custom_goal ? `- Своя дополнительная цель: 
 3. Главная цель: «${primaryGoal}»; дополнительные: ${secondaryGoals.join(", ") || "нет"}
 4. Случайные подработки без связи с навыками — только если навыки не применимы
 5. Если есть customSkills или customGoal — обязательно учитывай их при выборе вариантов и пиши в why_chosen, почему вариант связан с ними
+6. НЕ используй термины «индекс», «score», «рейтинг», «AI», «модель»
+7. Каждый вариант должен отвечать: почему подходит именно этому человеку; сколько денег может дать; как приблизит к цели; какой первый шаг сегодня
+
+НЕ СРАБОТАВШИЕ ПОПЫТКИ (учитывай при рекомендациях):
+${buildFailedAttemptsBlock(failedAttempts)}
 
 Ответь строго JSON:
 {
@@ -174,11 +204,13 @@ export async function POST() {
       { incomes, expenses, debts, profileIncome },
       financialProfile,
       goals,
+      failedAttempts,
     ] = await Promise.all([
       getAnalysisContext(),
       getFinancialData(),
       getUserFinancialProfile(),
       getGoals(),
+      getFailedEscapeAttempts().catch(() => []),
     ]);
 
     const profileType = financialProfile.profileType ?? DEFAULT_PROFILE_TYPE;
@@ -206,6 +238,7 @@ export async function POST() {
             capabilities,
             mainProblem,
             guardrailRules,
+            failedAttempts,
           }),
         },
       ],
@@ -233,9 +266,22 @@ export async function POST() {
       );
     }
 
-    await saveEscapePlanResult(plan);
+    const rankedOptions = rankAndSortEscapePlanOptions(
+      plan.options,
+      buildEscapeRankingContext(capabilities)
+    );
+    const rescuePlan = buildRescuePlan({
+      monthlyIncome: financial.monthlyIncome,
+      netCashFlow: financial.netCashFlow,
+      totalDebt: financial.totalDebt,
+      primaryGoal: resolvePrimaryGoal(capabilities),
+      escapePlan: plan,
+      topOption: rankedOptions[0] ?? null,
+    });
 
-    return NextResponse.json({ plan });
+    await saveEscapePlanResult(plan, rescuePlan);
+
+    return NextResponse.json({ plan, rescuePlan });
   } catch (error) {
     console.error("escape-plan error:", error);
     return NextResponse.json(

@@ -12,11 +12,18 @@ import type {
   UserCapabilities,
   UserEscapePlan,
 } from "@/types/escape-plan";
+import type { RescuePlan } from "@/types/rescue-plan";
 import type { FinancialTask } from "@/types/tasks";
 import { useState } from "react";
 
 interface EscapePlanPageClientProps {
   initialCapabilities: UserCapabilities | null;
+  financialSnapshot: {
+    monthlyIncome: number;
+    netCashFlow: number;
+    totalDebt: number;
+  };
+  initialRescuePlan?: RescuePlan | null;
   initialEscapePlans?: UserEscapePlan[];
   initialPendingFollowUp?: UserEscapePlan | null;
   initialActivePlanTasks?: FinancialTask[];
@@ -24,6 +31,8 @@ interface EscapePlanPageClientProps {
 
 export function EscapePlanPageClient({
   initialCapabilities,
+  financialSnapshot,
+  initialRescuePlan = null,
   initialEscapePlans = [],
   initialPendingFollowUp = null,
   initialActivePlanTasks = [],
@@ -64,8 +73,8 @@ export function EscapePlanPageClient({
   return (
     <div>
       <PageHeader
-        title="Поиск выхода"
-        description="Конкретные варианты и шаги — что делать дальше в вашей ситуации"
+        title="Выход из ситуации"
+        description="Где вы сейчас, что мешает и что делать дальше — без лишних цифр"
       />
 
       <div className="space-y-8 max-w-2xl">
@@ -97,6 +106,8 @@ export function EscapePlanPageClient({
           <EscapePlanResults
             plan={plan}
             capabilities={capabilities}
+            financialSnapshot={financialSnapshot}
+            initialRescuePlan={initialRescuePlan}
             initialEscapePlans={initialEscapePlans}
             initialPendingFollowUp={initialPendingFollowUp}
             initialActivePlanTasks={initialActivePlanTasks}

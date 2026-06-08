@@ -93,7 +93,7 @@ export function EscapePlanOptionCard({
               Сохраняем…
             </>
           ) : (
-            "Выбрать направление"
+            "Хочу попробовать"
           )}
         </Button>
       </CardHeader>

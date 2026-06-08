@@ -5,31 +5,42 @@ import { EscapePlanFollowUp } from "@/components/escape-plan/escape-plan-follow-
 import { EscapePlanNotRecommendedList } from "@/components/escape-plan/escape-plan-not-recommended";
 import { EscapePlanOptionCard } from "@/components/escape-plan/escape-plan-option-card";
 import { EscapePlanPrimaryCard } from "@/components/escape-plan/escape-plan-primary-card";
+import { RescuePlanCard } from "@/components/escape-plan/rescue-plan-card";
+import { RescueProgressCard } from "@/components/escape-plan/rescue-progress-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
 import {
   chooseEscapeOption,
   getEscapePlanTasks,
 } from "@/lib/actions/escape-plans";
+import { buildRescuePlan, buildRescueProgressFromPlan } from "@/lib/escape-plan/build-rescue-plan";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
-import {
-  buildSituationBrief,
-  ESCAPE_VISIBLE_OPTIONS,
-} from "@/lib/escape-plan/situation-brief";
+import { ESCAPE_VISIBLE_OPTIONS } from "@/lib/escape-plan/situation-brief";
 import {
   getEffectiveSkills,
+  resolvePrimaryGoal,
   type EscapePlanOption,
   type EscapePlanResult,
   type UserCapabilities,
   type UserEscapePlan,
 } from "@/types/escape-plan";
+import {
+  isActiveEscapeAttempt,
+  resolveAttemptStatus,
+  type RescuePlan,
+} from "@/types/rescue-plan";
 import type { FinancialTask } from "@/types/tasks";
 import { useMemo, useState } from "react";
 
 interface EscapePlanResultsProps {
   plan: EscapePlanResult;
   capabilities: UserCapabilities;
+  financialSnapshot: {
+    monthlyIncome: number;
+    netCashFlow: number;
+    totalDebt: number;
+  };
+  initialRescuePlan?: RescuePlan | null;
   initialEscapePlans?: UserEscapePlan[];
   initialPendingFollowUp?: UserEscapePlan | null;
   initialActivePlanTasks?: FinancialTask[];
@@ -39,19 +50,13 @@ interface EscapePlanResultsProps {
 export function EscapePlanResults({
   plan,
   capabilities,
+  financialSnapshot,
+  initialRescuePlan = null,
   initialEscapePlans = [],
   initialPendingFollowUp = null,
   initialActivePlanTasks = [],
   onRegenerate,
 }: EscapePlanResultsProps) {
-  const rankedOptions = useMemo(() => {
-    if (getEffectiveSkills(capabilities).length === 0) return plan.options;
-    return rankAndSortEscapePlanOptions(
-      plan.options,
-      buildEscapeRankingContext(capabilities)
-    );
-  }, [plan.options, capabilities]);
-
   const [escapePlans, setEscapePlans] = useState(initialEscapePlans);
   const [pendingFollowUp, setPendingFollowUp] = useState(initialPendingFollowUp);
   const [activePlanTasks, setActivePlanTasks] = useState(initialActivePlanTasks);
@@ -60,7 +65,25 @@ export function EscapePlanResults({
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showAlternatives, setShowAlternatives] = useState(false);
 
-  const activePlan = escapePlans.find((p) => p.status === "active") ?? null;
+  const failedPlans = useMemo(
+    () =>
+      escapePlans.filter(
+        (item) =>
+          resolveAttemptStatus(item) === "failed" && Boolean(item.failure_reason)
+      ),
+    [escapePlans]
+  );
+
+  const rankedOptions = useMemo(() => {
+    if (getEffectiveSkills(capabilities).length === 0) return plan.options;
+    return rankAndSortEscapePlanOptions(
+      plan.options,
+      buildEscapeRankingContext(capabilities, failedPlans)
+    );
+  }, [plan.options, capabilities, failedPlans]);
+
+  const activePlan =
+    escapePlans.find((p) => isActiveEscapeAttempt(p)) ?? null;
   const activeTitle = activePlan?.option_title ?? null;
 
   const availableOptions = useMemo(() => {
@@ -72,10 +95,34 @@ export function EscapePlanResults({
   const backupOptions = availableOptions.slice(1, ESCAPE_VISIBLE_OPTIONS);
   const hiddenOptions = availableOptions.slice(ESCAPE_VISIBLE_OPTIONS);
 
-  const situationBrief = useMemo(
-    () => buildSituationBrief(plan, primaryOption?.title ?? plan.main_strategy),
-    [plan, primaryOption?.title]
-  );
+  const rescuePlan = useMemo(() => {
+    if (initialRescuePlan && !activePlan) return initialRescuePlan;
+    return buildRescuePlan({
+      ...financialSnapshot,
+      primaryGoal: resolvePrimaryGoal(capabilities),
+      escapePlan: plan,
+      topOption: primaryOption ?? rankedOptions[0] ?? null,
+      activePlan,
+      pendingTasks: activePlanTasks,
+    });
+  }, [
+    initialRescuePlan,
+    activePlan,
+    financialSnapshot,
+    capabilities,
+    plan,
+    primaryOption,
+    rankedOptions,
+    activePlanTasks,
+  ]);
+
+  const progress = useMemo(() => {
+    if (!activePlan) return null;
+    return buildRescueProgressFromPlan(
+      rescuePlan,
+      activePlan.income_found ?? 0
+    );
+  }, [activePlan, rescuePlan]);
 
   async function handleChoose(option: EscapePlanOption) {
     setChoosingTitle(option.title);
@@ -88,7 +135,9 @@ export function EscapePlanResults({
         ...prev
           .filter((p) => p.id !== saved.id)
           .map((p) =>
-            p.status === "active" ? { ...p, status: "abandoned" as const } : p
+            isActiveEscapeAttempt(p)
+              ? { ...p, status: "abandoned" as const, attempt_status: "failed" as const }
+              : p
           ),
       ]);
       setActivePlanTasks(tasks);
@@ -107,18 +156,33 @@ export function EscapePlanResults({
       prev.map((p) => (p.id === updated.id ? updated : p))
     );
     setPendingFollowUp(updated);
-    if (updated.follow_up_answer === "no") {
-      setActivePlanTasks([]);
-    }
+  }
+
+  function handleAttemptFailed(updated: UserEscapePlan) {
+    setEscapePlans((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p))
+    );
+    setPendingFollowUp(null);
+    setActivePlanTasks([]);
   }
 
   return (
     <div className="space-y-6">
+      <RescuePlanCard plan={rescuePlan} />
+
+      {progress && activePlan && (
+        <RescueProgressCard
+          progress={progress}
+          activeGoal={activePlan.active_goal}
+        />
+      )}
+
       {pendingFollowUp && (
         <EscapePlanFollowUp
           pending={pendingFollowUp}
           plan={plan}
           onAnswered={handleFollowUpAnswered}
+          onFailed={handleAttemptFailed}
         />
       )}
 
@@ -127,6 +191,7 @@ export function EscapePlanResults({
           <EscapePlanActiveDirection
             activePlan={activePlan}
             steps={activePlanTasks}
+            onFailed={handleAttemptFailed}
           />
 
           {availableOptions.length > 0 && (
@@ -166,17 +231,6 @@ export function EscapePlanResults({
         </>
       ) : (
         <>
-          <Card>
-            <CardHeader className="space-y-2">
-              <h2 className="text-base font-semibold">Что можно сделать</h2>
-              <div className="text-sm text-muted space-y-2 leading-relaxed">
-                {situationBrief.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </div>
-            </CardHeader>
-          </Card>
-
           {primaryOption && (
             <EscapePlanPrimaryCard
               option={primaryOption}

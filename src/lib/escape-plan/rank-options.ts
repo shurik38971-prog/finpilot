@@ -1,5 +1,10 @@
 import type { EscapePlanOption } from "@/types/escape-plan";
 
+export interface FailedEscapeAttempt {
+  optionTitle: string;
+  reason: string;
+}
+
 export interface EscapePlanRankingContext {
   skills: string[];
   constraints: string[];
@@ -7,6 +12,7 @@ export interface EscapePlanRankingContext {
   secondaryGoals?: string[];
   customSkills?: string[];
   customGoal?: string | null;
+  failedAttempts?: FailedEscapeAttempt[];
 }
 
 /** Professional / digital skills — higher weight when matching options */
@@ -501,12 +507,29 @@ export function rankAndSortEscapePlanOptions(
   options: EscapePlanOption[],
   context: EscapePlanRankingContext
 ): EscapePlanOption[] {
+  const failedTitles = (context.failedAttempts ?? []).map((item) =>
+    item.optionTitle.toLowerCase()
+  );
+
   const ranked = options.map((option, index) => {
     const { rank_score, rank_reasons } = rankEscapePlanOption(option, context);
+    const titleLower = option.title.toLowerCase();
+    const failedPenalty = failedTitles.some(
+      (failed) =>
+        titleLower.includes(failed) ||
+        failed.includes(titleLower) ||
+        titleLower.split(/\s+/).some((word) => word.length > 4 && failed.includes(word))
+    )
+      ? 28
+      : 0;
+
     return {
       ...option,
-      rank_score,
-      rank_reasons,
+      rank_score: Math.max(0, rank_score - failedPenalty),
+      rank_reasons:
+        failedPenalty > 0
+          ? [...rank_reasons, "Ранее этот путь не сработал — ниже в списке"]
+          : rank_reasons,
       priority_rank: index + 1,
     };
   });

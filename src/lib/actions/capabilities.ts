@@ -11,6 +11,7 @@ import {
   type EscapePlanResult,
   type UserCapabilities,
 } from "@/types/escape-plan";
+import type { RescuePlan } from "@/types/rescue-plan";
 
 const CAPABILITIES_PATHS = ["/escape-plan", "/dashboard"];
 
@@ -52,6 +53,7 @@ export async function getUserCapabilities(): Promise<UserCapabilities | null> {
     custom_skills: (data as UserCapabilities).custom_skills ?? [],
     custom_goal: (data as UserCapabilities).custom_goal ?? null,
     custom_restriction: (data as UserCapabilities).custom_restriction ?? null,
+    last_rescue_plan: (data as UserCapabilities).last_rescue_plan ?? null,
   };
 }
 
@@ -138,14 +140,22 @@ export async function saveUserCapabilities(
   return data as UserCapabilities;
 }
 
-export async function saveEscapePlanResult(plan: EscapePlanResult): Promise<void> {
+export async function saveEscapePlanResult(
+  plan: EscapePlanResult,
+  rescuePlan?: RescuePlan | null
+): Promise<void> {
   const { supabase, userId } = await getUserId();
+  const payload: Record<string, unknown> = {
+    last_plan: plan,
+    updated_at: new Date().toISOString(),
+  };
+  if (rescuePlan) {
+    payload.last_rescue_plan = rescuePlan;
+  }
+
   const { error } = await supabase
     .from("user_capabilities")
-    .update({
-      last_plan: plan,
-      updated_at: new Date().toISOString(),
-    })
+    .update(payload)
     .eq("user_id", userId);
 
   if (error) throw error;

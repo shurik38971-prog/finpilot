@@ -1,5 +1,6 @@
 "use server";
 
+import { buildActiveGoalTitle } from "@/lib/escape-plan/build-active-goal";
 import { buildEscapeActionSteps } from "@/lib/escape-plan/build-action-steps";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -9,6 +10,8 @@ import type {
   EscapePlanOptionType,
   UserEscapePlan,
 } from "@/types/escape-plan";
+import type { EscapeFailureReason } from "@/types/rescue-plan";
+import { resolveAttemptStatus } from "@/types/rescue-plan";
 import type { FinancialTask, TaskCategory } from "@/types/tasks";
 
 const ESCAPE_PATHS = ["/escape-plan", "/dashboard", "/actions"];
@@ -18,6 +21,28 @@ const OPTION_TASK_CATEGORY: Record<EscapePlanOptionType, TaskCategory> = {
   reduce_expenses: "cut_optional_spending",
   debt_action: "debt_negotiation",
 };
+
+function normalizeEscapePlan(row: UserEscapePlan): UserEscapePlan {
+  return {
+    ...row,
+    attempt_status: resolveAttemptStatus(row),
+    failure_reason: row.failure_reason ?? null,
+    failure_reason_other: row.failure_reason_other ?? null,
+    active_goal: row.active_goal ?? null,
+    income_found: row.income_found ?? 0,
+  };
+}
+
+function estimateIncomeFromOption(option: EscapePlanOption): number {
+  if (option.income_min > 0 && option.income_max > 0) {
+    return Math.round((option.income_min + option.income_max) / 2);
+  }
+  if (option.income_min > 0) return option.income_min;
+  if (option.expected_effect && option.expected_effect > 0) {
+    return option.expected_effect;
+  }
+  return 0;
+}
 
 async function getUserId() {
   const supabase = await createClient();
@@ -84,7 +109,15 @@ export async function getUserEscapePlans(): Promise<UserEscapePlan[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as UserEscapePlan[];
+  return ((data ?? []) as UserEscapePlan[]).map(normalizeEscapePlan);
+}
+
+export async function getFailedEscapeAttempts(): Promise<UserEscapePlan[]> {
+  const plans = await getUserEscapePlans();
+  return plans.filter(
+    (plan) =>
+      resolveAttemptStatus(plan) === "failed" && Boolean(plan.failure_reason)
+  );
 }
 
 export async function getEscapePlanTasks(
@@ -120,7 +153,7 @@ export async function getPendingEscapeFollowUp(): Promise<UserEscapePlan | null>
     .maybeSingle();
 
   if (error) throw error;
-  return data as UserEscapePlan | null;
+  return data ? normalizeEscapePlan(data as UserEscapePlan) : null;
 }
 
 export async function chooseEscapeOption(
@@ -135,6 +168,7 @@ export async function chooseEscapeOption(
     .from("user_escape_plans")
     .update({
       status: "abandoned",
+      attempt_status: "failed",
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
@@ -150,6 +184,9 @@ export async function chooseEscapeOption(
       option_title: option.title,
       option_snapshot: option,
       status: "active",
+      attempt_status: "in_progress",
+      active_goal: buildActiveGoalTitle(option),
+      income_found: 0,
       follow_up_due_at: followUpDue.toISOString(),
     })
     .select("*")
@@ -160,7 +197,7 @@ export async function chooseEscapeOption(
   await createEscapePlanTasks(supabase, userId, data.id, option, plan7Days);
 
   revalidateEscapePages();
-  return data as UserEscapePlan;
+  return normalizeEscapePlan(data as UserEscapePlan);
 }
 
 export async function answerEscapeFollowUp(
@@ -169,8 +206,38 @@ export async function answerEscapeFollowUp(
 ): Promise<UserEscapePlan> {
   const { supabase, userId } = await getUserId();
 
-  const status =
-    answer === "yes" ? "completed" : answer === "partial" ? "active" : "abandoned";
+  if (answer === "no") {
+    const { data, error } = await supabase
+      .from("user_escape_plans")
+      .update({
+        follow_up_answer: answer,
+        follow_up_answered_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectionId)
+      .eq("user_id", userId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    revalidateEscapePages();
+    return normalizeEscapePlan(data as UserEscapePlan);
+  }
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("user_escape_plans")
+    .select("option_snapshot")
+    .eq("id", selectionId)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const snapshot = existing.option_snapshot as EscapePlanOption;
+  const status = answer === "yes" ? "completed" : "active";
+  const attemptStatus = answer === "yes" ? "success" : "in_progress";
+  const incomeFound =
+    answer === "yes" ? estimateIncomeFromOption(snapshot) : undefined;
 
   const { data, error } = await supabase
     .from("user_escape_plans")
@@ -178,6 +245,8 @@ export async function answerEscapeFollowUp(
       follow_up_answer: answer,
       follow_up_answered_at: new Date().toISOString(),
       status,
+      attempt_status: attemptStatus,
+      ...(incomeFound !== undefined ? { income_found: incomeFound } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("id", selectionId)
@@ -187,10 +256,37 @@ export async function answerEscapeFollowUp(
 
   if (error) throw error;
 
-  if (answer === "no") {
-    await archivePendingEscapeTasks(supabase, userId);
-  }
-
   revalidateEscapePages();
-  return data as UserEscapePlan;
+  return normalizeEscapePlan(data as UserEscapePlan);
+}
+
+export async function reportAttemptFailure(
+  selectionId: string,
+  reason: EscapeFailureReason,
+  reasonOther?: string
+): Promise<UserEscapePlan> {
+  const { supabase, userId } = await getUserId();
+
+  const { data, error } = await supabase
+    .from("user_escape_plans")
+    .update({
+      status: "abandoned",
+      attempt_status: "failed",
+      failure_reason: reason,
+      failure_reason_other:
+        reason === "other" ? reasonOther?.trim() || null : null,
+      follow_up_answer: "no",
+      follow_up_answered_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", selectionId)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  await archivePendingEscapeTasks(supabase, userId);
+  revalidateEscapePages();
+  return normalizeEscapePlan(data as UserEscapePlan);
 }

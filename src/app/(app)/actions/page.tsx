@@ -1,5 +1,6 @@
 import { getFinancialTasks } from "@/lib/actions/tasks";
 import { deduplicateUserTasksForUser } from "@/lib/finance/deduplicate-user-tasks";
+import { isCleanupMode } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 import { ActionsPageClient } from "./actions-client";
 
@@ -20,5 +21,5 @@ export default async function ActionsPage() {
   }
 
   const tasks = await getFinancialTasks();
-  return <ActionsPageClient tasks={tasks} />;
+  return <ActionsPageClient tasks={tasks} cleanupMode={isCleanupMode()} />;
 }

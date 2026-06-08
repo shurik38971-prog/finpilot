@@ -1,14 +1,23 @@
 "use server";
 
+import { buildEscapeActionSteps } from "@/lib/escape-plan/build-action-steps";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type {
   EscapeFollowUpAnswer,
   EscapePlanOption,
+  EscapePlanOptionType,
   UserEscapePlan,
 } from "@/types/escape-plan";
+import type { FinancialTask, TaskCategory } from "@/types/tasks";
 
-const ESCAPE_PATHS = ["/escape-plan", "/dashboard"];
+const ESCAPE_PATHS = ["/escape-plan", "/dashboard", "/actions"];
+
+const OPTION_TASK_CATEGORY: Record<EscapePlanOptionType, TaskCategory> = {
+  increase_income: "increase_income",
+  reduce_expenses: "cut_optional_spending",
+  debt_action: "debt_negotiation",
+};
 
 async function getUserId() {
   const supabase = await createClient();
@@ -25,6 +34,47 @@ function revalidateEscapePages() {
   }
 }
 
+async function archivePendingEscapeTasks(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  await supabase
+    .from("financial_tasks")
+    .update({ status: "archived" })
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .not("escape_plan_id", "is", null);
+}
+
+async function createEscapePlanTasks(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  escapePlanId: string,
+  option: EscapePlanOption,
+  plan7Days: string[]
+) {
+  const steps = buildEscapeActionSteps(option, plan7Days);
+  const category = OPTION_TASK_CATEGORY[option.type] ?? "other";
+
+  const rows = steps.map((title, index) => ({
+    user_id: userId,
+    title,
+    description: `Шаг по направлению «${option.title}»`,
+    explanation: `Вы выбрали это направление в «Поиске выхода». Выполните шаг — так вы приблизитесь к результату.`,
+    impact_score: Math.max(40, 70 - index * 8),
+    impact_label: "Заметно поможет",
+    priority_score: Math.max(50, 95 - index * 10),
+    financial_impact: 0,
+    task_category: category,
+    escape_plan_id: escapePlanId,
+    normalized_title: `escape:${escapePlanId}:${index}`,
+    status: "pending" as const,
+  }));
+
+  const { error } = await supabase.from("financial_tasks").insert(rows);
+  if (error) throw error;
+}
+
 export async function getUserEscapePlans(): Promise<UserEscapePlan[]> {
   const { supabase, userId } = await getUserId();
   const { data, error } = await supabase
@@ -35,6 +85,23 @@ export async function getUserEscapePlans(): Promise<UserEscapePlan[]> {
 
   if (error) throw error;
   return (data ?? []) as UserEscapePlan[];
+}
+
+export async function getEscapePlanTasks(
+  escapePlanId: string
+): Promise<FinancialTask[]> {
+  const { supabase, userId } = await getUserId();
+  const { data, error } = await supabase
+    .from("financial_tasks")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .neq("status", "archived")
+    .order("priority_score", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as FinancialTask[];
 }
 
 export async function getPendingEscapeFollowUp(): Promise<UserEscapePlan | null> {
@@ -57,9 +124,12 @@ export async function getPendingEscapeFollowUp(): Promise<UserEscapePlan | null>
 }
 
 export async function chooseEscapeOption(
-  option: EscapePlanOption
+  option: EscapePlanOption,
+  plan7Days: string[] = []
 ): Promise<UserEscapePlan> {
   const { supabase, userId } = await getUserId();
+
+  await archivePendingEscapeTasks(supabase, userId);
 
   await supabase
     .from("user_escape_plans")
@@ -86,6 +156,9 @@ export async function chooseEscapeOption(
     .single();
 
   if (error) throw error;
+
+  await createEscapePlanTasks(supabase, userId, data.id, option, plan7Days);
+
   revalidateEscapePages();
   return data as UserEscapePlan;
 }
@@ -113,6 +186,11 @@ export async function answerEscapeFollowUp(
     .single();
 
   if (error) throw error;
+
+  if (answer === "no") {
+    await archivePendingEscapeTasks(supabase, userId);
+  }
+
   revalidateEscapePages();
   return data as UserEscapePlan;
 }

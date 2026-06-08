@@ -411,6 +411,39 @@ export function rankEscapePlanOption(
   return { rank_score, rank_reasons };
 }
 
+export type EscapeFitLevel = "excellent" | "good" | "low";
+
+const FIT_LABELS: Record<EscapeFitLevel, string> = {
+  excellent: "Подходит отлично",
+  good: "Подходит хорошо",
+  low: "Низкое соответствие",
+};
+
+export function getEscapeFitLabel(
+  option: EscapePlanOption,
+  index: number,
+  total: number
+): { level: EscapeFitLevel; label: string } {
+  const score = option.rank_score ?? 0;
+  let level: EscapeFitLevel;
+
+  if (index === 0 || score >= 72) {
+    level = "excellent";
+  } else if (index <= 1 && score >= 48) {
+    level = "good";
+  } else if (score >= 55) {
+    level = "good";
+  } else if (index >= total - 1 && score < 40) {
+    level = "low";
+  } else if (score >= 38) {
+    level = "good";
+  } else {
+    level = "low";
+  }
+
+  return { level, label: FIT_LABELS[level] };
+}
+
 export function rankAndSortEscapePlanOptions(
   options: EscapePlanOption[],
   context: EscapePlanRankingContext

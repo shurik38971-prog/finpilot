@@ -65,10 +65,12 @@ function PrimaryActionCard({
   task,
   loadingId,
   onComplete,
+  cleanupMode = false,
 }: {
   task: FinancialTaskWithGoal;
   loadingId: string | null;
   onComplete: (id: string) => void;
+  cleanupMode?: boolean;
 }) {
   const displayImpact = getDisplayableTaskImpact(task);
 
@@ -78,23 +80,31 @@ function PrimaryActionCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted mb-1">
-              Следующее лучшее действие · {importanceLabel(task.priority_score)}
+              {cleanupMode
+                ? task.escape_plan_id
+                  ? "Активный план"
+                  : "Следующий шаг"
+                : `Следующее лучшее действие · ${importanceLabel(task.priority_score)}`}
             </p>
             <CardTitle className="text-lg">{task.title}</CardTitle>
-            <div className="mt-2">
-              <GoalBadge task={task} />
-            </div>
+            {!cleanupMode && (
+              <div className="mt-2">
+                <GoalBadge task={task} />
+              </div>
+            )}
           </div>
-          <Badge variant={impactVariant(task.impact_score)}>
-            {benefitLabel(task.impact_score, task.impact_label)}
-          </Badge>
+          {!cleanupMode && (
+            <Badge variant={impactVariant(task.impact_score)}>
+              {benefitLabel(task.impact_score, task.impact_label)}
+            </Badge>
+          )}
         </div>
         {task.description && (
           <CardDescription className="text-sm leading-relaxed">
             {task.description}
           </CardDescription>
         )}
-        {displayImpact && (
+        {!cleanupMode && displayImpact && (
           <div className="mt-3">
             <TaskImpactPreview impact={displayImpact} />
           </div>
@@ -105,12 +115,15 @@ function PrimaryActionCard({
           explanation={task.explanation}
           taskCategory={task.task_category}
           className="mt-3"
+          compact={cleanupMode}
         />
       </CardHeader>
       <div className="px-5 pb-5 flex flex-wrap items-center gap-3">
-        <span className="text-xs text-muted">
-          {benefitLabel(task.impact_score, task.impact_label)}
-        </span>
+        {!cleanupMode && (
+          <span className="text-xs text-muted">
+            {benefitLabel(task.impact_score, task.impact_label)}
+          </span>
+        )}
         {task.due_date && (
           <span className="text-xs text-muted flex items-center gap-1">
             <Clock className="h-3 w-3" />
@@ -140,12 +153,14 @@ function TaskRow({
   onComplete,
   onPostpone,
   onDelete,
+  cleanupMode = false,
 }: {
   task: FinancialTaskWithGoal;
   loadingId: string | null;
   onComplete: (id: string) => void;
   onPostpone: (id: string) => void;
   onDelete: (id: string) => void;
+  cleanupMode?: boolean;
 }) {
   const isDone = task.status === "done";
   const displayImpact = getDisplayableTaskImpact(task);
@@ -170,7 +185,7 @@ function TaskRow({
           <Badge variant={statusVariant(task.status)}>
             {TASK_STATUS_LABELS[task.status]}
           </Badge>
-          {!isDone && (
+          {!isDone && !cleanupMode && (
             <Badge variant={impactVariant(task.impact_score)}>
               {benefitLabel(task.impact_score, task.impact_label)}
             </Badge>
@@ -179,8 +194,8 @@ function TaskRow({
         {task.description && (
           <p className="text-sm text-muted leading-relaxed">{task.description}</p>
         )}
-        <GoalBadge task={task} />
-        {displayImpact && (
+        {!cleanupMode && <GoalBadge task={task} />}
+        {!cleanupMode && displayImpact && (
           <TaskImpactPreview impact={displayImpact} compact />
         )}
         <TaskRecommendationContext
@@ -234,9 +249,13 @@ const VISIBLE_ACTIVE_TASKS = 5;
 
 interface ActionsPageClientProps {
   tasks: FinancialTaskWithGoal[];
+  cleanupMode?: boolean;
 }
 
-export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
+export function ActionsPageClient({
+  tasks,
+  cleanupMode = false,
+}: ActionsPageClientProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showAllActive, setShowAllActive] = useState(false);
@@ -298,7 +317,11 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
       />
       <PageHeader
         title="Что делать сейчас"
-        description="Дела из ИИ-разбора — сначала самое важное, потом остальное"
+        description={
+          cleanupMode
+            ? "Конкретные шаги — что сделать сегодня, чтобы продвинуться"
+            : "Дела из ИИ-разбора — сначала самое важное, потом остальное"
+        }
       />
 
       {tasks.length === 0 ? (
@@ -307,13 +330,16 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
             <div className="rounded-full bg-surface-hover p-4 mb-4">
               <Target className="h-8 w-8 text-muted" />
             </div>
-            <h3 className="text-lg font-medium mb-1">Задач пока нет</h3>
+            <h3 className="text-lg font-medium mb-1">Шагов пока нет</h3>
             <p className="text-sm text-muted max-w-sm mb-4">
-              Запустите ИИ-анализ — FinPilot создаст персональный список
-              дел из разбора.
+              {cleanupMode
+                ? "Выберите направление в разделе «Поиск выхода» — FinPilot составит персональный план шагов."
+                : "Запустите ИИ-анализ — FinPilot создаст персональный список дел из разбора."}
             </p>
-            <Link href="/analyze">
-              <Button>Запустить ИИ-анализ</Button>
+            <Link href={cleanupMode ? "/escape-plan" : "/analyze"}>
+              <Button>
+                {cleanupMode ? "Поиск выхода" : "Запустить ИИ-анализ"}
+              </Button>
             </Link>
           </div>
         </Card>
@@ -324,6 +350,7 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
               task={primary}
               loadingId={loadingId}
               onComplete={handleComplete}
+              cleanupMode={cleanupMode}
             />
           )}
 
@@ -344,6 +371,7 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
                       if (!confirm("Удалить задачу?")) return;
                       runAction(id, deleteTask);
                     }}
+                    cleanupMode={cleanupMode}
                   />
                 ))}
               </div>
@@ -380,6 +408,7 @@ export function ActionsPageClient({ tasks }: ActionsPageClientProps) {
                       if (!confirm("Удалить задачу?")) return;
                       runAction(id, deleteTask);
                     }}
+                    cleanupMode={cleanupMode}
                   />
                 ))}
               </div>

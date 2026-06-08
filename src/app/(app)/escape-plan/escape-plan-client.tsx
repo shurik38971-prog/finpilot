@@ -1,6 +1,7 @@
 "use client";
 
 import { CapabilitiesForm } from "@/components/escape-plan/capabilities-form";
+import { CapabilitiesProfileSummary } from "@/components/escape-plan/capabilities-profile-summary";
 import { EscapePlanResults } from "@/components/escape-plan/escape-plan-results";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,23 +12,27 @@ import type {
   UserCapabilities,
   UserEscapePlan,
 } from "@/types/escape-plan";
+import type { FinancialTask } from "@/types/tasks";
 import { useState } from "react";
 
 interface EscapePlanPageClientProps {
   initialCapabilities: UserCapabilities | null;
   initialEscapePlans?: UserEscapePlan[];
   initialPendingFollowUp?: UserEscapePlan | null;
+  initialActivePlanTasks?: FinancialTask[];
 }
 
 export function EscapePlanPageClient({
   initialCapabilities,
   initialEscapePlans = [],
   initialPendingFollowUp = null,
+  initialActivePlanTasks = [],
 }: EscapePlanPageClientProps) {
   const [capabilities, setCapabilities] = useState(initialCapabilities);
   const [plan, setPlan] = useState<EscapePlanResult | null>(
     initialCapabilities?.last_plan ?? null
   );
+  const [formExpanded, setFormExpanded] = useState(!initialCapabilities?.last_plan);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -46,6 +51,7 @@ export function EscapePlanPageClient({
       }
 
       setPlan(data.plan);
+      setFormExpanded(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
     } finally {
@@ -53,37 +59,48 @@ export function EscapePlanPageClient({
     }
   }
 
+  const showProfileSummary = Boolean(plan && capabilities && !formExpanded);
+
   return (
     <div>
       <PageHeader
         title="Поиск выхода"
-        description="Реалистичные варианты с учётом ваших навыков, времени и ограничений"
+        description="Конкретные варианты и шаги — что делать дальше в вашей ситуации"
       />
 
       <div className="space-y-8 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Анкета возможностей</CardTitle>
-            <CardDescription>
-              Ответьте на вопросы — подберём варианты под вашу ситуацию, а не общие советы
-            </CardDescription>
-          </CardHeader>
-          <div className="px-5 pb-5">
-            <CapabilitiesForm
-              initial={capabilities}
-              loading={loading}
-              onSubmit={handleSubmit}
-            />
-            {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
-          </div>
-        </Card>
+        {showProfileSummary ? (
+          <CapabilitiesProfileSummary
+            capabilities={capabilities!}
+            onEdit={() => setFormExpanded(true)}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Анкета возможностей</CardTitle>
+              <CardDescription>
+                Ответьте на вопросы — подберём варианты под вашу ситуацию
+              </CardDescription>
+            </CardHeader>
+            <div className="px-5 pb-5">
+              <CapabilitiesForm
+                initial={capabilities}
+                loading={loading}
+                onSubmit={handleSubmit}
+              />
+              {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+            </div>
+          </Card>
+        )}
 
-        {plan && (
+        {plan && capabilities && (
           <EscapePlanResults
             plan={plan}
             capabilities={capabilities}
             initialEscapePlans={initialEscapePlans}
             initialPendingFollowUp={initialPendingFollowUp}
+            initialActivePlanTasks={initialActivePlanTasks}
+            onRegenerate={() => setFormExpanded(true)}
           />
         )}
       </div>

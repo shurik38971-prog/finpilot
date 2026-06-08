@@ -28,6 +28,7 @@ export interface FinancialTask {
   financial_impact: number;
   status: TaskStatus;
   due_date: string | null;
+  escape_plan_id?: string | null;
   created_at: string;
   completed_at: string | null;
 }

@@ -4,48 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ESCAPE_CONFIDENCE_LABELS,
-  formatEscapeIncomeRange,
-  type EscapePlanConfidence,
-  type EscapePlanDifficulty,
-  type EscapePlanOption,
-} from "@/types/escape-plan";
+  getEscapeFitLabel,
+  type EscapeFitLevel,
+} from "@/lib/escape-plan/rank-options";
+import { formatEscapeIncomeRange, type EscapePlanOption } from "@/types/escape-plan";
 import { Check, Loader2 } from "lucide-react";
 
-function difficultyLabel(difficulty: EscapePlanDifficulty): string {
-  switch (difficulty) {
-    case "low":
-      return "Низкая";
-    case "high":
-      return "Высокая";
-    default:
-      return "Средняя";
-  }
-}
-
-function difficultyVariant(
-  difficulty: EscapePlanDifficulty
-): "success" | "warning" | "danger" {
-  switch (difficulty) {
-    case "low":
+function fitVariant(level: EscapeFitLevel): "success" | "warning" | "default" {
+  switch (level) {
+    case "excellent":
       return "success";
-    case "high":
-      return "danger";
-    default:
+    case "good":
       return "warning";
-  }
-}
-
-function confidenceVariant(
-  confidence: EscapePlanConfidence
-): "success" | "warning" | "danger" {
-  switch (confidence) {
-    case "high":
-      return "success";
-    case "low":
-      return "danger";
     default:
-      return "warning";
+      return "default";
   }
 }
 
@@ -57,6 +29,8 @@ function resolveWhyChosen(option: EscapePlanOption): string[] {
 
 interface EscapePlanOptionCardProps {
   option: EscapePlanOption;
+  fitIndex: number;
+  fitTotal: number;
   isActive: boolean;
   choosing: boolean;
   onChoose: (option: EscapePlanOption) => void;
@@ -64,11 +38,13 @@ interface EscapePlanOptionCardProps {
 
 export function EscapePlanOptionCard({
   option,
+  fitIndex,
+  fitTotal,
   isActive,
   choosing,
   onChoose,
 }: EscapePlanOptionCardProps) {
-  const confidence = option.confidence ?? "medium";
+  const { level, label: fitLabel } = getEscapeFitLabel(option, fitIndex, fitTotal);
   const incomeRange = formatEscapeIncomeRange(option);
   const whyChosen = resolveWhyChosen(option);
 
@@ -77,38 +53,10 @@ export function EscapePlanOptionCard({
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <CardTitle className="text-base">{option.title}</CardTitle>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={confidenceVariant(confidence)}>
-              Уверенность: {ESCAPE_CONFIDENCE_LABELS[confidence]}
-            </Badge>
-            <Badge variant={difficultyVariant(option.difficulty)}>
-              Сложность: {difficultyLabel(option.difficulty)}
-            </Badge>
-          </div>
+          <Badge variant={fitVariant(level)}>{fitLabel}</Badge>
         </div>
 
         {option.why_fits && <CardDescription>{option.why_fits}</CardDescription>}
-
-        {option.rank_score != null && option.rank_score > 0 && (
-          <div className="text-sm rounded-lg border border-border/60 bg-surface-hover/40 p-3 space-y-2">
-            <p className="font-medium">
-              Рейтинг: {option.rank_score}/100
-            </p>
-            {option.rank_reasons && option.rank_reasons.length > 0 && (
-              <>
-                <p className="text-muted">Почему вариант на этом месте:</p>
-                <ul className="space-y-1">
-                  {option.rank_reasons.map((reason) => (
-                    <li key={reason} className="flex gap-2">
-                      <Check className="size-4 shrink-0 text-accent mt-0.5" />
-                      <span>{reason}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
-        )}
 
         {whyChosen.length > 0 && (
           <div className="text-sm">
@@ -139,16 +87,12 @@ export function EscapePlanOptionCard({
             <dt className="text-muted">Время</dt>
             <dd>{option.time_required || "—"}</dd>
           </div>
-          <div>
-            <dt className="text-muted">Риск</dt>
-            <dd>{option.risk || "—"}</dd>
-          </div>
         </dl>
 
         {isActive ? (
           <div className="flex items-center gap-2 text-sm text-emerald-400">
             <Check className="size-4" />
-            Активное направление
+            Вы выбрали это направление
           </div>
         ) : (
           <Button

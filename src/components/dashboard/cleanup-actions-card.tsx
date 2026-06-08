@@ -22,11 +22,10 @@ export function CleanupActionsCard({ tasks }: CleanupActionsCardProps) {
       {actions.length === 0 ? (
         <div className="space-y-3">
           <p className="text-sm text-muted leading-relaxed">
-            Пока нет действий с объяснением. Запустите ИИ-анализ — FinPilot
-            предложит конкретные шаги.
+            Выберите направление в «Поиске выхода» — появятся конкретные шаги.
           </p>
-          <Link href="/analyze">
-            <Button size="sm">ИИ-анализ</Button>
+          <Link href="/escape-plan">
+            <Button size="sm">Поиск выхода</Button>
           </Link>
         </div>
       ) : (

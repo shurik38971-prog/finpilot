@@ -50,8 +50,11 @@ export function EscapePlanPageClient({
     setLoading(true);
     setError("");
     try {
-      const saved = await saveUserCapabilities(input);
-      setCapabilities(saved);
+      const saveResult = await saveUserCapabilities(input);
+      if (!saveResult.ok) {
+        throw new Error(saveResult.error);
+      }
+      setCapabilities(saveResult.data);
 
       const response = await fetch("/api/escape-plan", { method: "POST" });
       const data = await response.json();

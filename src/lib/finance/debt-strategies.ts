@@ -49,10 +49,15 @@ function sortDebts(
   });
 }
 
-/** One interest accrual per month; base + extra are a single payment. */
+/**
+ * One interest accrual per month.
+ * Base payment: interest first, remainder to principal.
+ * Extra payment: 100% to principal (early repayment).
+ */
 export function applyMonthlyPayment(
   openingBalance: number,
-  totalPayment: number,
+  basePayment: number,
+  extraPayment: number,
   annualRatePercent: number
 ): MonthlyPaymentResult {
   if (openingBalance <= PAYOFF_EPSILON) {
@@ -67,16 +72,28 @@ export function applyMonthlyPayment(
   }
 
   const monthlyInterest = openingBalance * monthlyRate(annualRatePercent);
-  const maxPayment = openingBalance + monthlyInterest;
-  const paymentApplied = Math.min(Math.max(0, totalPayment), maxPayment);
-  const paymentToInterest = Math.min(paymentApplied, monthlyInterest);
-  const paymentToPrincipal = paymentApplied - paymentToInterest;
-  const balanceAfter = openingBalance + monthlyInterest - paymentApplied;
+  const base = Math.max(0, basePayment);
+  const extra = Math.max(0, extraPayment);
+
+  const baseToInterest = Math.min(base, monthlyInterest);
+  const baseToPrincipal = Math.min(
+    Math.max(0, base - baseToInterest),
+    openingBalance
+  );
+  const unpaidInterest = monthlyInterest - baseToInterest;
+  const principalRemaining = openingBalance - baseToPrincipal;
+  const extraToPrincipal = Math.min(extra, principalRemaining);
+
+  const paymentToInterest = baseToInterest;
+  const paymentToPrincipal = baseToPrincipal + extraToPrincipal;
+  const paymentTotal = paymentToInterest + paymentToPrincipal;
+  const balanceAfter =
+    openingBalance - baseToPrincipal - extraToPrincipal + unpaidInterest;
 
   return {
     balanceBefore: openingBalance,
     interestAccrued: monthlyInterest,
-    paymentTotal: paymentApplied,
+    paymentTotal,
     paymentToInterest,
     paymentToPrincipal,
     balanceAfter: Math.max(0, balanceAfter),
@@ -138,21 +155,14 @@ function simulationMonthLimit(states: DebtState[]): number {
   return Math.max(...terms) + 120;
 }
 
-function allocateMonthlyPayments(
+function allocateMonthlyExtra(
   states: DebtState[],
   extraPayment: number,
   strategy: "avalanche" | "snowball"
 ): Map<string, number> {
-  const payments = new Map<string, number>();
-  const opening = new Map<string, number>();
-
-  for (const debt of states) {
-    if (debt.remaining <= PAYOFF_EPSILON) continue;
-    payments.set(debt.id, debt.minimum);
-    opening.set(debt.id, debt.remaining);
-  }
-
+  const extras = new Map<string, number>();
   let extraBudget = Math.max(0, extraPayment);
+
   const active = sortDebts(
     states.filter((debt) => debt.remaining > PAYOFF_EPSILON),
     strategy
@@ -161,20 +171,22 @@ function allocateMonthlyPayments(
   for (const debt of active) {
     if (extraBudget <= PAYOFF_EPSILON) break;
 
-    const balance = opening.get(debt.id) ?? debt.remaining;
+    const balance = debt.remaining;
     const monthlyInterest = balance * monthlyRate(debt.rate);
-    const maxPayment = balance + monthlyInterest;
-    const current = payments.get(debt.id) ?? debt.minimum;
-    const room = Math.max(0, maxPayment - current);
-    const add = Math.min(extraBudget, room);
+    const baseToPrincipal = Math.min(
+      Math.max(0, debt.minimum - monthlyInterest),
+      balance
+    );
+    const principalRoom = Math.max(0, balance - baseToPrincipal);
+    const add = Math.min(extraBudget, principalRoom);
 
     if (add > PAYOFF_EPSILON) {
-      payments.set(debt.id, current + add);
+      extras.set(debt.id, add);
       extraBudget -= add;
     }
   }
 
-  return payments;
+  return extras;
 }
 
 export function calculateDebtPayoff(
@@ -231,13 +243,18 @@ export function calculateDebtPayoff(
 
     month++;
 
-    const monthlyPayments = allocateMonthlyPayments(states, extraPayment, strategy);
+    const monthlyExtras = allocateMonthlyExtra(states, extraPayment, strategy);
 
     for (const debt of states) {
       if (debt.remaining <= PAYOFF_EPSILON) continue;
 
-      const payment = monthlyPayments.get(debt.id) ?? debt.minimum;
-      const result = applyMonthlyPayment(debt.remaining, payment, debt.rate);
+      const extra = monthlyExtras.get(debt.id) ?? 0;
+      const result = applyMonthlyPayment(
+        debt.remaining,
+        debt.minimum,
+        extra,
+        debt.rate
+      );
       debt.remaining = result.balanceAfter;
       totalInterest += result.paymentToInterest;
       totalPaid += result.paymentTotal;

@@ -86,6 +86,28 @@ export async function getFinancialTasks(): Promise<FinancialTaskWithGoal[]> {
     .filter((task) => Boolean(task.explanation?.trim()));
 }
 
+export async function getCleanupActions(
+  limit = 3
+): Promise<FinancialTaskWithGoal[]> {
+  const tasks = await getFinancialTasks();
+  const seen = new Set<string>();
+  const result: FinancialTaskWithGoal[] = [];
+
+  for (const task of tasks) {
+    if (task.status !== "pending") continue;
+    if (!task.explanation?.trim()) continue;
+
+    const key = task.normalized_title?.trim() || task.title.trim();
+    if (!key || seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(task);
+    if (result.length >= limit) break;
+  }
+
+  return result;
+}
+
 export async function getTopPendingTask(): Promise<FinancialTaskWithGoal | null> {
   const next = await getNextBestAction();
   if (!next) return null;

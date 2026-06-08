@@ -17,6 +17,8 @@ interface SummaryCardsProps {
   totalExpenses: number;
   netCashFlow: number;
   totalDebt: number;
+  debtPayments?: number;
+  cleanupMode?: boolean;
 }
 
 const cards = [
@@ -51,15 +53,47 @@ const cards = [
   },
 ] as const;
 
+const cleanupCards = [
+  {
+    key: "income",
+    label: "Доход за месяц",
+    icon: TrendingUp,
+    color: "text-emerald-400",
+    getValue: (p: SummaryCardsProps) => p.totalIncome,
+  },
+  {
+    key: "expenses",
+    label: "Расходы за месяц",
+    icon: TrendingDown,
+    color: "text-red-400",
+    getValue: (p: SummaryCardsProps) => p.totalExpenses,
+  },
+  {
+    key: "debtPayments",
+    label: "Платежи по долгам",
+    icon: CreditCard,
+    color: "text-orange-400",
+    getValue: (p: SummaryCardsProps) => p.debtPayments ?? 0,
+  },
+  {
+    key: "net",
+    label: "Свободный остаток",
+    icon: Wallet,
+    color: "text-accent",
+    getValue: (p: SummaryCardsProps) => p.netCashFlow,
+  },
+] as const;
+
 export function SummaryCards(props: SummaryCardsProps) {
   const income = props.incomeSummary;
+  const visibleCards = props.cleanupMode ? cleanupCards : cards;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map((card) => {
+      {visibleCards.map((card) => {
         const { key, label, icon: Icon, color, getValue } = card;
-        const subtitle = "subtitle" in card ? card.subtitle : undefined;
-        const isDebt = key === "debt";
+        const subtitle = key === "debt" ? "Осталось выплатить" : undefined;
+        const isDebt = key === "debt" || key === "debtPayments";
 
         return (
           <Card

@@ -14,6 +14,10 @@ import { getGoals } from "@/lib/actions/goals";
 import { getFinancialData } from "@/lib/actions/finance";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
+import {
+  resolvePrimaryGoal,
+  resolveSecondaryGoals,
+} from "@/types/escape-plan";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -42,6 +46,8 @@ function buildEscapePlanPrompt(input: {
   guardrailRules: string;
 }) {
   const { financial, capabilities, mainProblem, guardrailRules } = input;
+  const primaryGoal = resolvePrimaryGoal(capabilities);
+  const secondaryGoals = resolveSecondaryGoals(capabilities);
 
   return `
 Подбери реалистичные варианты улучшения финансовой ситуации для этого пользователя.
@@ -59,17 +65,25 @@ ${mainProblem ?? "не определена"}
 - Навыки (только из списка, не выдумывай другие): ${capabilities.skills.join(", ") || "не указаны"}
 - Часов в неделю: ${capabilities.available_hours_per_week ?? "не указано"}
 - Ограничения: ${capabilities.constraints.join(", ") || "нет"}
-- Цель: ${capabilities.target_result ?? "не указана"}
+
+ЦЕЛИ (главная важнее дополнительных):
+- Главная цель: ${primaryGoal}
+- Дополнительные цели: ${secondaryGoals.length > 0 ? secondaryGoals.join(", ") : "не указаны"}
 
 Свободный остаток (netCashFlow): ${financial.netCashFlow} ₽/мес.
 Если netCashFlow отрицательный, needed_amount ≈ модуль дефицита.
-Учитывай цель «${capabilities.target_result}».
+
+Приоритет рекомендаций:
+1. Сначала продвигай главную цель «${primaryGoal}»
+2. Затем учитывай дополнительные: ${secondaryGoals.join(", ") || "нет"}
+3. Варианты должны сочетать цели, если это реалистично (например: закрыть долги + увеличить доход)
 
 Ответь строго JSON:
 {
   "situation_summary": "2-3 предложения без паники и без мотивации",
   "needed_amount": 15000,
   "main_strategy": "главное направление одной фразой",
+  "goals_focus": "одно предложение: почему рекомендации сфокусированы на главной цели",
   "options": [
     {
       "title": "название",
@@ -116,6 +130,13 @@ export async function POST() {
     if (!capabilities) {
       return NextResponse.json(
         { error: "Сначала заполните анкету возможностей" },
+        { status: 400 }
+      );
+    }
+
+    if (!resolvePrimaryGoal(capabilities)) {
+      return NextResponse.json(
+        { error: "Укажите главную цель" },
         { status: 400 }
       );
     }

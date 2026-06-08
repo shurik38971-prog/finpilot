@@ -33,17 +33,26 @@ export const ESCAPE_CONSTRAINTS = [
   "Другое",
 ] as const;
 
-export const ESCAPE_TARGET_RESULTS = [
-  "Покрыть дефицит",
+export const ESCAPE_GOALS = [
   "Закрыть долги",
-  "Накопить подушку",
+  "Создать подушку безопасности",
   "Увеличить доход",
   "Снизить расходы",
+  "Накопить на крупную покупку",
+  "Улучшить финансовую стабильность",
+  "Снизить финансовый стресс",
 ] as const;
+
+export const MAX_SECONDARY_GOALS = 3;
+
+export const DEFAULT_PRIMARY_GOAL = ESCAPE_GOALS[0];
 
 export type EscapeSkill = (typeof ESCAPE_SKILLS)[number];
 export type EscapeConstraint = (typeof ESCAPE_CONSTRAINTS)[number];
-export type EscapeTargetResult = (typeof ESCAPE_TARGET_RESULTS)[number];
+export type EscapeGoal = (typeof ESCAPE_GOALS)[number];
+
+/** @deprecated use primary_goal */
+export const ESCAPE_TARGET_RESULTS = ESCAPE_GOALS;
 
 export interface UserCapabilities {
   id: string;
@@ -53,7 +62,10 @@ export interface UserCapabilities {
   available_hours_per_week: number | null;
   constraints: string[];
   preferred_format: string | null;
+  /** @deprecated use primary_goal */
   target_result: string | null;
+  primary_goal: string | null;
+  secondary_goals: string[];
   last_plan: EscapePlanResult | null;
   created_at: string;
   updated_at: string;
@@ -86,6 +98,7 @@ export interface EscapePlanResult {
   situation_summary: string;
   needed_amount: number;
   main_strategy: string;
+  goals_focus?: string;
   options: EscapePlanOption[];
   not_recommended: EscapePlanNotRecommended[];
   plan_7_days: string[];
@@ -97,5 +110,68 @@ export interface CapabilitiesFormInput {
   available_hours_per_week: number;
   constraints: string[];
   constraints_other?: string;
-  target_result: string;
+  primary_goal: string;
+  secondary_goals: string[];
+}
+
+const LEGACY_TARGET_TO_GOAL: Record<string, EscapeGoal> = {
+  "Покрыть дефицит": "Улучшить финансовую стабильность",
+  "Закрыть долги": "Закрыть долги",
+  "Накопить подушку": "Создать подушку безопасности",
+  "Увеличить доход": "Увеличить доход",
+  "Снизить расходы": "Снизить расходы",
+};
+
+const GOAL_FOCUS_PHRASES: Record<string, string> = {
+  "Закрыть долги": "снижение долговой нагрузки",
+  "Создать подушку безопасности": "формирование финансовой подушки",
+  "Увеличить доход": "рост дохода",
+  "Снизить расходы": "сокращение расходов",
+  "Накопить на крупную покупку": "накопление на крупную покупку",
+  "Улучшить финансовую стабильность": "укрепление финансовой стабильности",
+  "Снизить финансовый стресс": "снижение финансового стресса",
+};
+
+export function resolvePrimaryGoal(capabilities: UserCapabilities | null): string {
+  if (!capabilities) return DEFAULT_PRIMARY_GOAL;
+  if (capabilities.primary_goal) return capabilities.primary_goal;
+  if (capabilities.target_result) {
+    return LEGACY_TARGET_TO_GOAL[capabilities.target_result] ?? DEFAULT_PRIMARY_GOAL;
+  }
+  return DEFAULT_PRIMARY_GOAL;
+}
+
+export function resolveSecondaryGoals(capabilities: UserCapabilities | null): string[] {
+  if (!capabilities?.secondary_goals?.length) return [];
+  const primary = resolvePrimaryGoal(capabilities);
+  return capabilities.secondary_goals
+    .filter((goal) => goal !== primary)
+    .slice(0, MAX_SECONDARY_GOALS);
+}
+
+export function buildGoalsFocusText(
+  primaryGoal: string,
+  aiFocus?: string
+): string {
+  if (aiFocus?.trim()) return aiFocus.trim();
+  const phrase = GOAL_FOCUS_PHRASES[primaryGoal];
+  if (!phrase) {
+    return "Поэтому рекомендации согласованы с вашими целями.";
+  }
+  return `Поэтому рекомендации в первую очередь направлены на ${phrase}.`;
+}
+
+export function normalizeSecondaryGoals(
+  primaryGoal: string,
+  secondaryGoals: string[]
+): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const goal of secondaryGoals) {
+    if (goal === primaryGoal || seen.has(goal)) continue;
+    seen.add(goal);
+    result.push(goal);
+    if (result.length >= MAX_SECONDARY_GOALS) break;
+  }
+  return result;
 }

@@ -139,6 +139,7 @@ export function sanitizeEscapePlanResult(
     ),
     needed_amount: asNumber(data.needed_amount, fallbackNeededAmount),
     main_strategy: asString(data.main_strategy),
+    goals_focus: asString(data.goals_focus),
     options,
     not_recommended,
     plan_7_days,

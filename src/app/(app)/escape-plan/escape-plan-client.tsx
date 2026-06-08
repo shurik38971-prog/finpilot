@@ -69,7 +69,9 @@ export function EscapePlanPageClient({
           </div>
         </Card>
 
-        {plan && <EscapePlanResults plan={plan} />}
+        {plan && (
+          <EscapePlanResults plan={plan} capabilities={capabilities} />
+        )}
       </div>
     </div>
   );

@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
   ESCAPE_CONSTRAINTS,
+  ESCAPE_GOALS,
   ESCAPE_HOURS_OPTIONS,
   ESCAPE_SKILLS,
-  ESCAPE_TARGET_RESULTS,
+  MAX_SECONDARY_GOALS,
+  resolvePrimaryGoal,
+  resolveSecondaryGoals,
   type CapabilitiesFormInput,
   type UserCapabilities,
 } from "@/types/escape-plan";
@@ -41,8 +44,11 @@ export function CapabilitiesForm({
       (c) => !(ESCAPE_CONSTRAINTS as readonly string[]).includes(c)
     ) ?? ""
   );
-  const [targetResult, setTargetResult] = useState(
-    initial?.target_result ?? ESCAPE_TARGET_RESULTS[0]
+  const [primaryGoal, setPrimaryGoal] = useState(
+    resolvePrimaryGoal(initial ?? null)
+  );
+  const [secondaryGoals, setSecondaryGoals] = useState<string[]>(
+    resolveSecondaryGoals(initial ?? null)
   );
 
   function toggleSkill(skill: string) {
@@ -59,6 +65,23 @@ export function CapabilitiesForm({
     );
   }
 
+  function handlePrimaryChange(value: string) {
+    setPrimaryGoal(value);
+    setSecondaryGoals((prev) => prev.filter((goal) => goal !== value));
+  }
+
+  function toggleSecondaryGoal(goal: string) {
+    if (goal === primaryGoal) return;
+
+    setSecondaryGoals((prev) => {
+      if (prev.includes(goal)) {
+        return prev.filter((g) => g !== goal);
+      }
+      if (prev.length >= MAX_SECONDARY_GOALS) return prev;
+      return [...prev, goal];
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     await onSubmit({
@@ -67,9 +90,12 @@ export function CapabilitiesForm({
       available_hours_per_week: Number(hours),
       constraints,
       constraints_other: constraintsOther,
-      target_result: targetResult,
+      primary_goal: primaryGoal,
+      secondary_goals: secondaryGoals,
     });
   }
+
+  const secondaryOptions = ESCAPE_GOALS.filter((goal) => goal !== primaryGoal);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -97,6 +123,41 @@ export function CapabilitiesForm({
                 className="rounded border-border"
               />
               {skill}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <Select
+        id="primary_goal"
+        label="Главная цель"
+        value={primaryGoal}
+        onChange={(e) => handlePrimaryChange(e.target.value)}
+        options={ESCAPE_GOALS.map((goal) => ({ value: goal, label: goal }))}
+      />
+
+      <fieldset className="space-y-2">
+        <legend className="text-sm text-muted">
+          Что ещё важно?{" "}
+          <span className="text-xs">до {MAX_SECONDARY_GOALS}, по желанию</span>
+        </legend>
+        <div className="grid grid-cols-1 gap-2">
+          {secondaryOptions.map((goal) => (
+            <label
+              key={goal}
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm cursor-pointer hover:bg-surface-hover"
+            >
+              <input
+                type="checkbox"
+                checked={secondaryGoals.includes(goal)}
+                onChange={() => toggleSecondaryGoal(goal)}
+                disabled={
+                  !secondaryGoals.includes(goal) &&
+                  secondaryGoals.length >= MAX_SECONDARY_GOALS
+                }
+                className="rounded border-border"
+              />
+              {goal}
             </label>
           ))}
         </div>
@@ -141,14 +202,6 @@ export function CapabilitiesForm({
           />
         )}
       </fieldset>
-
-      <Select
-        id="target_result"
-        label="Какой результат нужен?"
-        value={targetResult}
-        onChange={(e) => setTargetResult(e.target.value)}
-        options={ESCAPE_TARGET_RESULTS.map((r) => ({ value: r, label: r }))}
-      />
 
       <Button type="submit" className="w-full" disabled={loading || skills.length === 0}>
         {loading ? "Анализируем..." : "Найти варианты выхода"}

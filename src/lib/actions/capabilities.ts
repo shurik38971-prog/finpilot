@@ -2,10 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type {
-  CapabilitiesFormInput,
-  EscapePlanResult,
-  UserCapabilities,
+import {
+  ESCAPE_GOALS,
+  normalizeSecondaryGoals,
+  type CapabilitiesFormInput,
+  type EscapePlanResult,
+  type UserCapabilities,
 } from "@/types/escape-plan";
 
 const CAPABILITIES_PATHS = ["/escape-plan", "/dashboard"];
@@ -54,6 +56,15 @@ export async function saveUserCapabilities(
     constraints.push(input.constraints_other.trim());
   }
 
+  if (!ESCAPE_GOALS.includes(input.primary_goal as (typeof ESCAPE_GOALS)[number])) {
+    throw new Error("Выберите главную цель");
+  }
+
+  const secondary_goals = normalizeSecondaryGoals(
+    input.primary_goal,
+    input.secondary_goals
+  );
+
   const payload = {
     user_id: userId,
     current_work: input.current_work.trim() || null,
@@ -61,7 +72,8 @@ export async function saveUserCapabilities(
     available_hours_per_week: input.available_hours_per_week,
     constraints,
     preferred_format: derivePreferredFormat(constraints),
-    target_result: input.target_result,
+    primary_goal: input.primary_goal,
+    secondary_goals,
     updated_at: new Date().toISOString(),
   };
 

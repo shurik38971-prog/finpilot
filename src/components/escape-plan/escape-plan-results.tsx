@@ -3,7 +3,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import type { EscapePlanDifficulty, EscapePlanResult } from "@/types/escape-plan";
+import {
+  buildGoalsFocusText,
+  resolvePrimaryGoal,
+  resolveSecondaryGoals,
+  type EscapePlanDifficulty,
+  type EscapePlanResult,
+  type UserCapabilities,
+} from "@/types/escape-plan";
 
 function difficultyLabel(difficulty: EscapePlanDifficulty): string {
   switch (difficulty) {
@@ -31,11 +38,41 @@ function difficultyVariant(
 
 interface EscapePlanResultsProps {
   plan: EscapePlanResult;
+  capabilities: UserCapabilities | null;
 }
 
-export function EscapePlanResults({ plan }: EscapePlanResultsProps) {
+export function EscapePlanResults({ plan, capabilities }: EscapePlanResultsProps) {
+  const primaryGoal = resolvePrimaryGoal(capabilities);
+  const secondaryGoals = resolveSecondaryGoals(capabilities);
+  const goalsFocus = buildGoalsFocusText(primaryGoal, plan.goals_focus);
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader className="space-y-3">
+          <CardTitle className="text-base">Ваши цели</CardTitle>
+          <dl className="text-sm space-y-2">
+            <div>
+              <dt className="text-muted">Главная</dt>
+              <dd className="font-medium">{primaryGoal}</dd>
+            </div>
+            {secondaryGoals.length > 0 && (
+              <div>
+                <dt className="text-muted">Дополнительные</dt>
+                <dd className="mt-1 space-y-1">
+                  {secondaryGoals.map((goal) => (
+                    <p key={goal} className="font-medium">
+                      • {goal}
+                    </p>
+                  ))}
+                </dd>
+              </div>
+            )}
+          </dl>
+          <CardDescription>{goalsFocus}</CardDescription>
+        </CardHeader>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Сколько нужно улучшить</CardTitle>
@@ -44,8 +81,8 @@ export function EscapePlanResults({ plan }: EscapePlanResultsProps) {
         <div className="px-5 pb-5">
           <p className="text-lg font-semibold">
             {plan.needed_amount > 0
-              ? `Чтобы выйти в плюс по вашей цели, нужно найти или освободить около ${formatCurrency(plan.needed_amount)} в месяц.`
-              : "По расчёту дефицита нет — фокус на закреплении результата и росте запаса."}
+              ? `Чтобы продвинуться к целям, нужно найти или освободить около ${formatCurrency(plan.needed_amount)} в месяц.`
+              : "По расчёту дефицита нет — фокус на закреплении результата и движении к целям."}
           </p>
           {plan.main_strategy && (
             <p className="text-sm text-muted mt-2">

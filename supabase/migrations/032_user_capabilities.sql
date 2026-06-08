@@ -7,6 +7,8 @@ create table if not exists public.user_capabilities (
   constraints text[] not null default '{}',
   preferred_format text,
   target_result text,
+  primary_goal text,
+  secondary_goals text[] not null default '{}',
   last_plan jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

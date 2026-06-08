@@ -1,4 +1,7 @@
-import { sortEscapePlanOptions } from "@/lib/escape-plan/sort-options";
+import {
+  sortEscapePlanOptions,
+  type EscapePlanRankingContext,
+} from "@/lib/escape-plan/sort-options";
 import type {
   EscapePlanConfidence,
   EscapePlanDifficulty,
@@ -35,9 +38,9 @@ export function buildEscapePlanSystemPrompt(): string {
 - why_chosen: 3–5 коротких причин с привязкой к навыкам, ограничениям и времени пользователя
 - income_min и income_max: реалистичная вилка в рублях в месяц, не одна точная цифра
 - confidence: high если навык есть и нет конфликтов; medium если нужна подготовка; low если долгий старт или высокая конкуренция
-- priority_rank: 1 = самый вероятный и быстрый результат для этого человека (не самый большой доход)
+- предлагать варианты ТОЛЬКО на основе навыков из анкеты; не предлагать физический труд (переезды, сборка мебели, велоремонт), если у пользователя есть цифровые навыки (разработка, дизайн, маркетинг, тексты, компьютеры)
 - not_recommended: явная причина, привязанная к данным пользователя
-- 3–5 вариантов, отсортированных по priority_rank
+- 3–5 вариантов; итоговый порядок пересчитывается системой по навыкам и ограничениям
 
 Ответ — только валидный JSON без markdown.`;
 }
@@ -132,13 +135,14 @@ function parseIncomeRange(o: Record<string, unknown>) {
 
 export function sanitizeEscapePlanResult(
   raw: unknown,
-  fallbackNeededAmount: number
+  fallbackNeededAmount: number,
+  rankingContext?: EscapePlanRankingContext
 ): EscapePlanResult {
   const data = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
 
   const optionsRaw = Array.isArray(data.options) ? data.options : [];
   const options = sortEscapePlanOptions(
-    optionsRaw.slice(0, 5).map((item, index) => {
+    optionsRaw.slice(0, 5).map((item) => {
       const o = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
       const { incomeMin, incomeMax } = parseIncomeRange(o);
       const whyChosen = asStringArray(o.why_chosen);
@@ -157,9 +161,9 @@ export function sanitizeEscapePlanResult(
         difficulty: asDifficulty(o.difficulty),
         time_required: asString(o.time_required),
         risk: asString(o.risk),
-        priority_rank: asNumber(o.priority_rank, index + 1) || index + 1,
       };
-    })
+    }),
+    rankingContext
   );
 
   const notRecommendedRaw = Array.isArray(data.not_recommended)

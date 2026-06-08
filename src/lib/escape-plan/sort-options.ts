@@ -1,26 +1,30 @@
-import type { EscapePlanConfidence, EscapePlanOption } from "@/types/escape-plan";
+import {
+  rankAndSortEscapePlanOptions,
+  type EscapePlanRankingContext,
+} from "@/lib/escape-plan/rank-options";
+import type { EscapePlanOption } from "@/types/escape-plan";
 
-const CONFIDENCE_WEIGHT: Record<EscapePlanConfidence, number> = {
-  high: 300,
-  medium: 200,
-  low: 100,
-};
+export type { EscapePlanRankingContext } from "@/lib/escape-plan/rank-options";
 
-/** Higher score = show earlier: confidence, then speed, then income potential */
+/** @deprecated use rankAndSortEscapePlanOptions with user context */
 export function scoreEscapeOption(option: EscapePlanOption): number {
-  const confidence = CONFIDENCE_WEIGHT[option.confidence] ?? 200;
-  const speed = Math.max(0, 100 - (option.priority_rank ?? 5) * 10);
-  const income = option.income_max > 0 ? Math.min(option.income_max / 1000, 80) : 0;
-  return confidence + speed + income;
+  return option.rank_score ?? 0;
 }
 
 export function sortEscapePlanOptions(
-  options: EscapePlanOption[]
+  options: EscapePlanOption[],
+  context?: EscapePlanRankingContext
 ): EscapePlanOption[] {
+  if (context && context.skills.length > 0) {
+    return rankAndSortEscapePlanOptions(options, context);
+  }
+
   return [...options].sort((a, b) => {
+    const scoreDiff = (b.rank_score ?? 0) - (a.rank_score ?? 0);
+    if (scoreDiff !== 0) return scoreDiff;
+
     const rankA = a.priority_rank ?? 99;
     const rankB = b.priority_rank ?? 99;
-    if (rankA !== rankB) return rankA - rankB;
-    return scoreEscapeOption(b) - scoreEscapeOption(a);
+    return rankA - rankB;
   });
 }

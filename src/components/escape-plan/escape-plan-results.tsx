@@ -15,7 +15,8 @@ import {
   type UserCapabilities,
   type UserEscapePlan,
 } from "@/types/escape-plan";
-import { useState } from "react";
+import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
+import { useMemo, useState } from "react";
 
 interface EscapePlanResultsProps {
   plan: EscapePlanResult;
@@ -33,6 +34,16 @@ export function EscapePlanResults({
   const primaryGoal = resolvePrimaryGoal(capabilities);
   const secondaryGoals = resolveSecondaryGoals(capabilities);
   const goalsFocus = buildGoalsFocusText(primaryGoal, plan.goals_focus);
+
+  const rankedOptions = useMemo(() => {
+    if (!capabilities?.skills.length) return plan.options;
+    return rankAndSortEscapePlanOptions(plan.options, {
+      skills: capabilities.skills,
+      constraints: capabilities.constraints,
+      primaryGoal,
+      secondaryGoals,
+    });
+  }, [plan.options, capabilities, primaryGoal, secondaryGoals]);
 
   const [escapePlans, setEscapePlans] = useState(initialEscapePlans);
   const [pendingFollowUp, setPendingFollowUp] = useState(initialPendingFollowUp);
@@ -133,13 +144,13 @@ export function EscapePlanResults({
             : plan.options.length < 5
               ? "реалистичных направления"
               : "реалистичных направлений"}
-          . Сверху — с наибольшей вероятностью результата.
+          . Сверху — наиболее подходящие по вашим навыкам и ограничениям.
         </p>
         {chooseError && (
           <p className="text-sm text-red-400">{chooseError}</p>
         )}
         <div className="grid gap-4">
-          {plan.options.map((option) => (
+          {rankedOptions.map((option) => (
             <EscapePlanOptionCard
               key={option.title}
               option={option}

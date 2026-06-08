@@ -102,6 +102,8 @@ export interface EscapePlanOption {
   time_required: string;
   risk: string;
   priority_rank?: number;
+  rank_score?: number;
+  rank_reasons?: string[];
 }
 
 export type EscapeNotRecommendedReasonType = "not_worth" | "not_suitable";

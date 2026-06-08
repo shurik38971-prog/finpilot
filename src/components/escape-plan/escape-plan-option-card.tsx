@@ -89,6 +89,27 @@ export function EscapePlanOptionCard({
 
         {option.why_fits && <CardDescription>{option.why_fits}</CardDescription>}
 
+        {option.rank_score != null && option.rank_score > 0 && (
+          <div className="text-sm rounded-lg border border-border/60 bg-surface-hover/40 p-3 space-y-2">
+            <p className="font-medium">
+              Рейтинг: {option.rank_score}/100
+            </p>
+            {option.rank_reasons && option.rank_reasons.length > 0 && (
+              <>
+                <p className="text-muted">Почему вариант на этом месте:</p>
+                <ul className="space-y-1">
+                  {option.rank_reasons.map((reason) => (
+                    <li key={reason} className="flex gap-2">
+                      <Check className="size-4 shrink-0 text-accent mt-0.5" />
+                      <span>{reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
         {whyChosen.length > 0 && (
           <div className="text-sm">
             <p className="text-muted mb-2">Почему этот вариант подходит:</p>

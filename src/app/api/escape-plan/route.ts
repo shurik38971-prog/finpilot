@@ -74,9 +74,10 @@ ${mainProblem ?? "не определена"}
 Если netCashFlow отрицательный, needed_amount ≈ модуль дефицита.
 
 Приоритет рекомендаций:
-1. Сначала продвигай главную цель «${primaryGoal}»
-2. Затем учитывай дополнительные: ${secondaryGoals.join(", ") || "нет"}
-3. Варианты должны сочетать цели, если это реалистично (например: закрыть долги + увеличить доход)
+1. Сначала варианты на основе УКАЗАННЫХ навыков пользователя — особенно профессиональных (разработка, дизайн, маркетинг, тексты, компьютеры)
+2. НЕ предлагай физический труд (переезды, сборка мебели, велоремонт, грузчик), если навыки пользователя цифровые/профессиональные
+3. Главная цель: «${primaryGoal}»; дополнительные: ${secondaryGoals.join(", ") || "нет"}
+4. Случайные подработки без связи с навыками — только если навыки не применимы
 
 Ответь строго JSON:
 {
@@ -210,7 +211,12 @@ export async function POST() {
     }
 
     const raw = extractJsonFromText(chatResult.content);
-    const plan = sanitizeEscapePlanResult(raw, fallbackNeeded);
+    const plan = sanitizeEscapePlanResult(raw, fallbackNeeded, {
+      skills: capabilities.skills,
+      constraints: capabilities.constraints,
+      primaryGoal: resolvePrimaryGoal(capabilities),
+      secondaryGoals: resolveSecondaryGoals(capabilities),
+    });
 
     if (plan.options.length === 0) {
       return NextResponse.json(

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import type { RescuePlan } from "@/types/rescue-plan";
@@ -27,29 +28,38 @@ function SituationLines({ text }: { text: string }) {
 }
 
 export function RescuePlanCard({ plan }: RescuePlanCardProps) {
+  const badge = useCopy("rescue.badge");
+  const headline = useCopy("rescue.headline");
+  const currentSituation = useCopy("rescue.current_situation");
+  const mainProblem = useCopy("rescue.main_problem");
+  const monthlyGap = useCopy("rescue.monthly_gap");
+  const bestOption = useCopy("rescue.best_option");
+  const nextStep = useCopy("rescue.next_step");
+  const expectedResult = useCopy("rescue.expected_result");
+
   return (
     <Card className="border-accent/40 bg-gradient-to-b from-accent/10 to-transparent">
       <CardHeader className="space-y-5">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-accent mb-1">
-            План спасения
+            {badge}
           </p>
-          <CardTitle className="text-lg">Где вы сейчас и что делать</CardTitle>
+          <CardTitle className="text-lg">{headline}</CardTitle>
         </div>
 
         <section className="space-y-2">
-          <h3 className="text-sm font-medium">Текущая ситуация</h3>
+          <h3 className="text-sm font-medium">{currentSituation}</h3>
           <SituationLines text={plan.currentSituation} />
         </section>
 
         <section className="space-y-1">
-          <h3 className="text-sm font-medium">Главная проблема</h3>
+          <h3 className="text-sm font-medium">{mainProblem}</h3>
           <p className="text-sm text-muted leading-relaxed">{plan.mainProblem}</p>
         </section>
 
         {plan.monthlyGap > 0 && (
           <section className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-            <p className="text-sm text-muted">Не хватает</p>
+            <p className="text-sm text-muted">{monthlyGap}</p>
             <p className="text-xl font-semibold mt-0.5">
               ≈ {formatCurrency(plan.monthlyGap)} в месяц
             </p>
@@ -57,17 +67,17 @@ export function RescuePlanCard({ plan }: RescuePlanCardProps) {
         )}
 
         <section className="space-y-1">
-          <h3 className="text-sm font-medium">Лучший вариант</h3>
+          <h3 className="text-sm font-medium">{bestOption}</h3>
           <p className="text-sm font-semibold">{plan.recommendedPath}</p>
         </section>
 
         <section className="space-y-1">
-          <h3 className="text-sm font-medium">Следующий шаг</h3>
+          <h3 className="text-sm font-medium">{nextStep}</h3>
           <p className="text-sm leading-relaxed">{plan.nextAction}</p>
         </section>
 
         <section className="space-y-1">
-          <h3 className="text-sm font-medium">Ожидаемый результат</h3>
+          <h3 className="text-sm font-medium">{expectedResult}</h3>
           <p className="text-sm text-muted leading-relaxed">{plan.expectedResult}</p>
         </section>
       </CardHeader>

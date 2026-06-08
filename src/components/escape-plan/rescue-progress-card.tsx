@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import type { RescueProgressSnapshot } from "@/types/rescue-plan";
@@ -13,23 +14,30 @@ export function RescueProgressCard({
   progress,
   activeGoal,
 }: RescueProgressCardProps) {
+  const progressLabel = useCopy("rescue.progress_label");
+  const primaryGoal = useCopy("rescue.primary_goal");
+  const inProgress = useCopy("rescue.in_progress");
+  const incomeFound = useCopy("rescue.income_found");
+  const incomeRemaining = useCopy("rescue.income_remaining");
+
   return (
     <Card>
       <CardHeader className="space-y-4">
         <div>
-          <p className="text-xs text-muted mb-1">Прогресс</p>
-          <CardTitle className="text-lg">Главная цель</CardTitle>
+          <p className="text-xs text-muted mb-1">{progressLabel}</p>
+          <CardTitle className="text-lg">{primaryGoal}</CardTitle>
           <p className="text-base font-semibold mt-1">{progress.primaryGoal}</p>
           {activeGoal && (
             <p className="text-sm text-muted mt-2">
-              Сейчас в работе: <span className="text-foreground">{activeGoal}</span>
+              {inProgress}{" "}
+              <span className="text-foreground">{activeGoal}</span>
             </p>
           )}
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted">Прогресс</span>
+            <span className="text-muted">{progressLabel}</span>
             <span className="font-semibold">{progress.percent}%</span>
           </div>
           <div className="h-2 rounded-full bg-surface overflow-hidden">
@@ -43,13 +51,13 @@ export function RescueProgressCard({
         {progress.monthlyGap > 0 && (
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div className="rounded-lg border border-border/50 p-3">
-              <dt className="text-muted">Дополнительный доход найден</dt>
+              <dt className="text-muted">{incomeFound}</dt>
               <dd className="font-semibold text-emerald-400 mt-1">
                 +{formatCurrency(progress.incomeFound)} / мес
               </dd>
             </div>
             <div className="rounded-lg border border-border/50 p-3">
-              <dt className="text-muted">Осталось найти</dt>
+              <dt className="text-muted">{incomeRemaining}</dt>
               <dd className="font-semibold mt-1">
                 +{formatCurrency(progress.remaining)} / мес
               </dd>

@@ -26,31 +26,66 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { createClient } from "@/lib/supabase/client";
 import { isNavHiddenInCleanup } from "@/lib/feature-flags";
 
 const navItems = [
-  { href: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
-  { href: "/income", label: "Доходы", icon: TrendingUp },
-  { href: "/expenses", label: "Расходы", icon: TrendingDown },
-  { href: "/debts", label: "Долги", icon: CreditCard },
-  { href: "/crisis", label: "Антикризис", icon: AlertTriangle },
-  { href: "/escape-plan", label: "Выход из ситуации", icon: Compass },
-  { href: "/scenarios", label: "Сценарии", icon: Zap },
-  { href: "/simulator", label: "Что если", icon: FlaskConical },
-  { href: "/actions", label: "Что делать", icon: CheckCircle2 },
-  { href: "/analyze", label: "ИИ-анализ", icon: Sparkles },
-  { href: "/history", label: "История", icon: History },
-  { href: "/goals", label: "Цели", icon: Target },
-  { href: "/feedback", label: "Обратная связь", icon: MessageCircle },
-  { href: "/faq", label: "FAQ", icon: CircleHelp },
-  { href: "/settings", label: "Настройки", icon: Settings },
-];
+  { href: "/dashboard", copyKey: "nav.dashboard", icon: LayoutDashboard },
+  { href: "/income", copyKey: "nav.income", icon: TrendingUp },
+  { href: "/expenses", copyKey: "nav.expenses", icon: TrendingDown },
+  { href: "/debts", copyKey: "nav.debts", icon: CreditCard },
+  { href: "/crisis", copyKey: "nav.crisis", icon: AlertTriangle },
+  { href: "/escape-plan", copyKey: "nav.escape_plan", icon: Compass },
+  { href: "/scenarios", copyKey: "nav.scenarios", icon: Zap },
+  { href: "/simulator", copyKey: "nav.simulator", icon: FlaskConical },
+  { href: "/actions", copyKey: "nav.actions", icon: CheckCircle2 },
+  { href: "/analyze", copyKey: "nav.analyze", icon: Sparkles },
+  { href: "/history", copyKey: "nav.history", icon: History },
+  { href: "/goals", copyKey: "nav.goals", icon: Target },
+  { href: "/feedback", copyKey: "nav.feedback", icon: MessageCircle },
+  { href: "/faq", copyKey: "nav.faq", icon: CircleHelp },
+  { href: "/settings", copyKey: "nav.settings", icon: Settings },
+] as const;
 
 interface SidebarProps {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
   showAdminNav?: boolean;
+}
+
+function SidebarNavItem({
+  href,
+  copyKey,
+  icon: Icon,
+  pathname,
+  onNavigate,
+}: {
+  href: string;
+  copyKey: string;
+  icon: typeof LayoutDashboard;
+  pathname: string;
+  onNavigate: (label: string, href: string) => void;
+}) {
+  const label = useCopy(copyKey);
+
+  return (
+    <Link
+      href={href}
+      onClick={() => onNavigate(label, href)}
+      data-analytics-id={`nav-${href}`}
+      data-analytics-label={label}
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+        pathname === href
+          ? "bg-accent/10 text-accent"
+          : "text-muted hover:bg-surface-hover hover:text-foreground"
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {label}
+    </Link>
+  );
 }
 
 export function Sidebar({
@@ -60,6 +95,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const adminNavLabel = useCopy("nav.admin", "Админка");
 
   async function handleLogout() {
     const supabase = createClient();
@@ -94,28 +130,18 @@ export function Sidebar({
       <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
         {navItems
           .filter(({ href }) => !isNavHiddenInCleanup(href))
-          .map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => handleNavClick(label, href)}
-            data-analytics-id={`nav-${href}`}
-            data-analytics-label={label}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-              pathname === href
-                ? "bg-accent/10 text-accent"
-                : "text-muted hover:bg-surface-hover hover:text-foreground"
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {label}
-          </Link>
-        ))}
+          .map((item) => (
+            <SidebarNavItem
+              key={item.href}
+              {...item}
+              pathname={pathname}
+              onNavigate={handleNavClick}
+            />
+          ))}
         {showAdminNav && (
           <Link
             href="/admin"
-            onClick={() => handleNavClick("Админка", "/admin")}
+            onClick={() => handleNavClick(adminNavLabel, "/admin")}
             data-analytics-id="nav-admin"
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors mt-2 border border-dashed border-accent/30",
@@ -125,7 +151,7 @@ export function Sidebar({
             )}
           >
             <BarChart3 className="h-4 w-4 shrink-0" />
-            Админка
+            {adminNavLabel}
           </Link>
         )}
       </nav>

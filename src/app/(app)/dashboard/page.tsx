@@ -14,6 +14,7 @@ import { ProfileReadinessWidget } from "@/components/dashboard/profile-readiness
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { EarlyAccessBanner } from "@/components/early-access/early-access-banner";
 import { PageHeader } from "@/components/layout/page-header";
+import { getResolvedSiteCopy } from "@/lib/copy/resolve-site-copy";
 import { ProfileDashboardStats } from "@/components/profile/profile-dashboard-stats";
 import { ProfileOnboardingCard } from "@/components/profile/profile-onboarding-card";
 import { getGoals } from "@/lib/actions/goals";
@@ -60,12 +61,14 @@ export default async function DashboardPage() {
     onboarding,
     financialProfile,
     goals,
+    siteCopy,
   ] = await Promise.all([
     getFinancialData(),
     getPrimaryGoalFocus(),
     getOnboardingProgress(),
     getUserFinancialProfile(),
     getGoals(),
+    getResolvedSiteCopy(),
   ]);
 
   const profileType =
@@ -169,7 +172,7 @@ export default async function DashboardPage() {
     <DashboardAutoRefresh>
       <div>
         <PageHeader
-          title="Дашборд"
+          title={siteCopy["page.dashboard.title"]}
           description={
             cleanupMode ? undefined : "Сводка по вашим деньгам"
           }

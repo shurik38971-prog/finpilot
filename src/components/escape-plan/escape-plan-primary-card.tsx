@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -23,12 +24,15 @@ export function EscapePlanPrimaryCard({
 }: EscapePlanPrimaryCardProps) {
   const incomeRange = formatEscapeIncomeRange(option);
   const whyReasons = compactWhyReasons(option, 4);
+  const primaryLabel = useCopy("escape.primary_recommendation");
+  const tryLabel = useCopy("btn.try_option");
+  const creatingLabel = useCopy("btn.creating_plan");
 
   return (
     <Card className="border-accent/50 bg-accent/5 ring-1 ring-accent/30">
       <CardHeader className="space-y-4">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Главная рекомендация · {getTop3FitLabel(0)}
+          {primaryLabel} · {getTop3FitLabel(0)}
         </p>
         <CardTitle className="text-xl">{option.title}</CardTitle>
 
@@ -73,10 +77,10 @@ export function EscapePlanPrimaryCard({
           {choosing ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Создаём план…
+              {creatingLabel}
             </>
           ) : (
-            "Хочу попробовать"
+            tryLabel
           )}
         </Button>
       </CardHeader>

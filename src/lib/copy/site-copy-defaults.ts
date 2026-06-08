@@ -1,0 +1,286 @@
+export type SiteCopyGroup =
+  | "nav"
+  | "pages"
+  | "rescue"
+  | "escape"
+  | "buttons"
+  | "actions";
+
+export interface SiteCopyDefinition {
+  key: string;
+  defaultValue: string;
+  group: SiteCopyGroup;
+  label: string;
+}
+
+export const SITE_COPY_GROUP_LABELS: Record<SiteCopyGroup, string> = {
+  nav: "Меню",
+  pages: "Заголовки страниц",
+  rescue: "План спасения",
+  escape: "Выход из ситуации",
+  buttons: "Кнопки",
+  actions: "Что делать",
+};
+
+export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
+  // Меню
+  { key: "nav.dashboard", group: "nav", label: "Дашборд", defaultValue: "Дашборд" },
+  { key: "nav.income", group: "nav", label: "Доходы", defaultValue: "Доходы" },
+  { key: "nav.expenses", group: "nav", label: "Расходы", defaultValue: "Расходы" },
+  { key: "nav.debts", group: "nav", label: "Долги", defaultValue: "Долги" },
+  { key: "nav.crisis", group: "nav", label: "Антикризис", defaultValue: "Антикризис" },
+  {
+    key: "nav.escape_plan",
+    group: "nav",
+    label: "Выход из ситуации",
+    defaultValue: "Выход из ситуации",
+  },
+  { key: "nav.scenarios", group: "nav", label: "Сценарии", defaultValue: "Сценарии" },
+  { key: "nav.simulator", group: "nav", label: "Что если", defaultValue: "Что если" },
+  {
+    key: "nav.actions",
+    group: "nav",
+    label: "Что делать",
+    defaultValue: "Что делать",
+  },
+  {
+    key: "nav.analyze",
+    group: "nav",
+    label: "ИИ-анализ",
+    defaultValue: "ИИ-анализ",
+  },
+  { key: "nav.history", group: "nav", label: "История", defaultValue: "История" },
+  { key: "nav.goals", group: "nav", label: "Цели", defaultValue: "Цели" },
+  {
+    key: "nav.feedback",
+    group: "nav",
+    label: "Обратная связь",
+    defaultValue: "Обратная связь",
+  },
+  { key: "nav.faq", group: "nav", label: "FAQ", defaultValue: "FAQ" },
+  {
+    key: "nav.settings",
+    group: "nav",
+    label: "Настройки",
+    defaultValue: "Настройки",
+  },
+  { key: "nav.admin", group: "nav", label: "Админка", defaultValue: "Админка" },
+
+  // Заголовки страниц
+  {
+    key: "page.escape_plan.title",
+    group: "pages",
+    label: "Выход из ситуации — заголовок",
+    defaultValue: "Выход из ситуации",
+  },
+  {
+    key: "page.escape_plan.description",
+    group: "pages",
+    label: "Выход из ситуации — подзаголовок",
+    defaultValue: "Где вы сейчас, что мешает и что делать дальше — без лишних цифр",
+  },
+  {
+    key: "page.dashboard.title",
+    group: "pages",
+    label: "Дашборд — заголовок",
+    defaultValue: "Дашборд",
+  },
+  {
+    key: "page.actions.title",
+    group: "pages",
+    label: "Что делать — заголовок",
+    defaultValue: "Что делать сейчас",
+  },
+  {
+    key: "page.actions.description_cleanup",
+    group: "pages",
+    label: "Что делать — подзаголовок (cleanup)",
+    defaultValue: "Конкретные шаги — что сделать сегодня, чтобы продвинуться",
+  },
+  {
+    key: "page.actions.description",
+    group: "pages",
+    label: "Что делать — подзаголовок",
+    defaultValue: "Дела из ИИ-разбора — сначала самое важное, потом остальное",
+  },
+
+  // План спасения
+  {
+    key: "rescue.badge",
+    group: "rescue",
+    label: "Метка блока",
+    defaultValue: "План спасения",
+  },
+  {
+    key: "rescue.headline",
+    group: "rescue",
+    label: "Заголовок блока",
+    defaultValue: "Где вы сейчас и что делать",
+  },
+  {
+    key: "rescue.current_situation",
+    group: "rescue",
+    label: "Секция: текущая ситуация",
+    defaultValue: "Текущая ситуация",
+  },
+  {
+    key: "rescue.main_problem",
+    group: "rescue",
+    label: "Секция: главная проблема",
+    defaultValue: "Главная проблема",
+  },
+  {
+    key: "rescue.monthly_gap",
+    group: "rescue",
+    label: "Секция: не хватает",
+    defaultValue: "Не хватает",
+  },
+  {
+    key: "rescue.best_option",
+    group: "rescue",
+    label: "Секция: лучший вариант",
+    defaultValue: "Лучший вариант",
+  },
+  {
+    key: "rescue.next_step",
+    group: "rescue",
+    label: "Секция: следующий шаг",
+    defaultValue: "Следующий шаг",
+  },
+  {
+    key: "rescue.expected_result",
+    group: "rescue",
+    label: "Секция: ожидаемый результат",
+    defaultValue: "Ожидаемый результат",
+  },
+  {
+    key: "rescue.progress_label",
+    group: "rescue",
+    label: "Прогресс — метка",
+    defaultValue: "Прогресс",
+  },
+  {
+    key: "rescue.primary_goal",
+    group: "rescue",
+    label: "Прогресс — главная цель",
+    defaultValue: "Главная цель",
+  },
+  {
+    key: "rescue.in_progress",
+    group: "rescue",
+    label: "Прогресс — сейчас в работе",
+    defaultValue: "Сейчас в работе:",
+  },
+  {
+    key: "rescue.income_found",
+    group: "rescue",
+    label: "Прогресс — доход найден",
+    defaultValue: "Дополнительный доход найден",
+  },
+  {
+    key: "rescue.income_remaining",
+    group: "rescue",
+    label: "Прогресс — осталось найти",
+    defaultValue: "Осталось найти",
+  },
+
+  // Выход из ситуации
+  {
+    key: "escape.survey_title",
+    group: "escape",
+    label: "Анкета — заголовок",
+    defaultValue: "Анкета возможностей",
+  },
+  {
+    key: "escape.survey_description",
+    group: "escape",
+    label: "Анкета — описание",
+    defaultValue: "Ответьте на вопросы — подберём варианты под вашу ситуацию",
+  },
+  {
+    key: "escape.primary_recommendation",
+    group: "escape",
+    label: "Главная рекомендация",
+    defaultValue: "Главная рекомендация",
+  },
+  {
+    key: "escape.backup_options",
+    group: "escape",
+    label: "Запасные варианты",
+    defaultValue: "Запасные варианты",
+  },
+  {
+    key: "escape.active_goal",
+    group: "escape",
+    label: "Активная цель",
+    defaultValue: "Активная цель",
+  },
+  {
+    key: "escape.action_plan",
+    group: "escape",
+    label: "План действий",
+    defaultValue: "План действий",
+  },
+  {
+    key: "escape.direction_label",
+    group: "escape",
+    label: "Направление",
+    defaultValue: "Направление:",
+  },
+
+  // Кнопки
+  {
+    key: "btn.try_option",
+    group: "buttons",
+    label: "Хочу попробовать",
+    defaultValue: "Хочу попробовать",
+  },
+  {
+    key: "btn.creating_plan",
+    group: "buttons",
+    label: "Создаём план…",
+    defaultValue: "Создаём план…",
+  },
+  {
+    key: "btn.done",
+    group: "buttons",
+    label: "Готово (шаг)",
+    defaultValue: "Готово",
+  },
+  {
+    key: "btn.all_actions",
+    group: "buttons",
+    label: "Все шаги в «Что делать»",
+    defaultValue: "Все шаги в разделе «Что делать»",
+  },
+  {
+    key: "btn.failed",
+    group: "buttons",
+    label: "Не получилось",
+    defaultValue: "Не получилось",
+  },
+  {
+    key: "btn.save",
+    group: "buttons",
+    label: "Сохранить",
+    defaultValue: "Сохранить",
+  },
+  {
+    key: "btn.reset_default",
+    group: "buttons",
+    label: "Сбросить к умолчанию",
+    defaultValue: "Сбросить",
+  },
+];
+
+export const SITE_COPY_DEFAULTS: Record<string, string> = Object.fromEntries(
+  SITE_COPY_DEFINITIONS.map((item) => [item.key, item.defaultValue])
+);
+
+export const SITE_COPY_KEYS = new Set(
+  SITE_COPY_DEFINITIONS.map((item) => item.key)
+);
+
+export function isSiteCopyKey(key: string): boolean {
+  return SITE_COPY_KEYS.has(key);
+}

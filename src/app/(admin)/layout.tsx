@@ -57,6 +57,12 @@ export default async function AdminLayout({
             >
               Система
             </Link>
+            <Link
+              href="/admin/copy"
+              className="text-muted hover:text-foreground transition-colors"
+            >
+              Тексты
+            </Link>
           </nav>
           <span className="text-xs text-muted hidden sm:inline">
             {user.email}

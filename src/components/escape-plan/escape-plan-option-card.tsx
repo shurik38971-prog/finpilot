@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +43,8 @@ export function EscapePlanOptionCard({
 }: EscapePlanOptionCardProps) {
   const level = fitLevel ?? (fitIndex <= 1 ? "excellent" : fitIndex === 2 ? "good" : "low");
   const fitLabel = fitIndex <= 2 ? getTop3FitLabel(fitIndex) : "Запасной вариант";
+  const tryLabel = useCopy("btn.try_option");
+  const creatingLabel = useCopy("btn.creating_plan");
   const incomeRange = formatEscapeIncomeRange(option);
   const whyReasons = compactWhyReasons(option, compact ? 2 : 4);
 
@@ -90,10 +93,10 @@ export function EscapePlanOptionCard({
           {choosing ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Сохраняем…
+              {creatingLabel}
             </>
           ) : (
-            "Хочу попробовать"
+            tryLabel
           )}
         </Button>
       </CardHeader>

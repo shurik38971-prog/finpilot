@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { EscapePlanFailureFeedback } from "@/components/escape-plan/escape-plan-failure-feedback";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,12 @@ export function EscapePlanActiveDirection({
   const [showFailureForm, setShowFailureForm] = useState(false);
   const pendingSteps = steps.filter((s) => s.status === "pending");
   const allSteps = steps.filter((s) => s.status !== "archived");
+  const activeGoalLabel = useCopy("escape.active_goal");
+  const directionLabel = useCopy("escape.direction_label");
+  const actionPlanLabel = useCopy("escape.action_plan");
+  const doneLabel = useCopy("btn.done");
+  const allActionsLabel = useCopy("btn.all_actions");
+  const failedLabel = useCopy("btn.failed");
 
   async function handleComplete(id: string) {
     setLoadingId(id);
@@ -42,18 +49,18 @@ export function EscapePlanActiveDirection({
     <Card className="border-accent/40 bg-accent/5">
       <CardHeader className="space-y-4">
         <div>
-          <p className="text-xs text-muted mb-1">Активная цель</p>
+          <p className="text-xs text-muted mb-1">{activeGoalLabel}</p>
           <CardTitle className="text-lg">
             {activePlan.active_goal ?? activePlan.option_title}
           </CardTitle>
           <CardDescription className="mt-1">
-            Направление: {activePlan.option_title}
+            {directionLabel} {activePlan.option_title}
           </CardDescription>
         </div>
 
         {allSteps.length > 0 && (
           <div className="space-y-2">
-            <p className="text-sm font-medium">План действий</p>
+            <p className="text-sm font-medium">{actionPlanLabel}</p>
             <ul className="space-y-2">
               {allSteps.map((step) => {
                 const done = step.status === "done";
@@ -78,7 +85,7 @@ export function EscapePlanActiveDirection({
                         ) : (
                           <>
                             <Check className="size-4" />
-                            Готово
+                            {doneLabel}
                           </>
                         )}
                       </Button>
@@ -98,7 +105,7 @@ export function EscapePlanActiveDirection({
 
         <div className="flex flex-wrap gap-2">
           <Link href="/actions">
-            <Button size="sm">Все шаги в «Что делать»</Button>
+            <Button size="sm">{allActionsLabel}</Button>
           </Link>
           {!showFailureForm && (
             <Button
@@ -107,7 +114,7 @@ export function EscapePlanActiveDirection({
               className="text-muted"
               onClick={() => setShowFailureForm(true)}
             >
-              Не получилось
+              {failedLabel}
             </Button>
           )}
         </div>

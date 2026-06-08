@@ -5,6 +5,7 @@ import {
   deleteTask,
   postponeTask,
 } from "@/lib/actions/tasks";
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -274,6 +275,11 @@ export function ActionsPageClient({
   const activeTasks = pending
     .filter((task) => task.id !== primary?.id)
     .concat(postponed.filter((task) => task.id !== primary?.id));
+  const pageTitle = useCopy("page.actions.title");
+  const pageDescription = useCopy(
+    cleanupMode ? "page.actions.description_cleanup" : "page.actions.description"
+  );
+
   const hiddenActiveCount = Math.max(
     0,
     activeTasks.length - VISIBLE_ACTIVE_TASKS
@@ -315,14 +321,7 @@ export function ActionsPageClient({
         taskId={feedbackTaskId}
         onClose={() => setFeedbackTaskId(null)}
       />
-      <PageHeader
-        title="Что делать сейчас"
-        description={
-          cleanupMode
-            ? "Конкретные шаги — что сделать сегодня, чтобы продвинуться"
-            : "Дела из ИИ-разбора — сначала самое важное, потом остальное"
-        }
-      />
+      <PageHeader title={pageTitle} description={pageDescription} />
 
       {tasks.length === 0 ? (
         <Card>

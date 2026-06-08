@@ -7,6 +7,7 @@ import { EscapePlanOptionCard } from "@/components/escape-plan/escape-plan-optio
 import { EscapePlanPrimaryCard } from "@/components/escape-plan/escape-plan-primary-card";
 import { RescuePlanCard } from "@/components/escape-plan/rescue-plan-card";
 import { RescueProgressCard } from "@/components/escape-plan/rescue-progress-card";
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { Button } from "@/components/ui/button";
 import {
   chooseEscapeOption,
@@ -64,6 +65,7 @@ export function EscapePlanResults({
   const [chooseError, setChooseError] = useState("");
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const backupOptionsLabel = useCopy("escape.backup_options");
 
   const failedPlans = useMemo(
     () =>
@@ -241,7 +243,7 @@ export function EscapePlanResults({
 
           {backupOptions.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted">Запасные варианты</h2>
+              <h2 className="text-sm font-medium text-muted">{backupOptionsLabel}</h2>
               {chooseError && (
                 <p className="text-sm text-red-400">{chooseError}</p>
               )}

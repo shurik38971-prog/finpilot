@@ -5,6 +5,7 @@ import { CapabilitiesProfileSummary } from "@/components/escape-plan/capabilitie
 import { EscapePlanResults } from "@/components/escape-plan/escape-plan-results";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { saveUserCapabilities } from "@/lib/actions/capabilities";
 import type {
   CapabilitiesFormInput,
@@ -69,13 +70,14 @@ export function EscapePlanPageClient({
   }
 
   const showProfileSummary = Boolean(plan && capabilities && !formExpanded);
+  const pageTitle = useCopy("page.escape_plan.title");
+  const pageDescription = useCopy("page.escape_plan.description");
+  const surveyTitle = useCopy("escape.survey_title");
+  const surveyDescription = useCopy("escape.survey_description");
 
   return (
     <div>
-      <PageHeader
-        title="Выход из ситуации"
-        description="Где вы сейчас, что мешает и что делать дальше — без лишних цифр"
-      />
+      <PageHeader title={pageTitle} description={pageDescription} />
 
       <div className="space-y-8 max-w-2xl">
         {showProfileSummary ? (
@@ -86,10 +88,8 @@ export function EscapePlanPageClient({
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Анкета возможностей</CardTitle>
-              <CardDescription>
-                Ответьте на вопросы — подберём варианты под вашу ситуацию
-              </CardDescription>
+              <CardTitle className="text-base">{surveyTitle}</CardTitle>
+              <CardDescription>{surveyDescription}</CardDescription>
             </CardHeader>
             <div className="px-5 pb-5">
               <CapabilitiesForm

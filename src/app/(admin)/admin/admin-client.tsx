@@ -331,6 +331,11 @@ export function AdminDashboardClient({
                 Система
               </Button>
             </Link>
+            <Link href="/admin/copy">
+              <Button size="sm" variant="secondary">
+                Тексты
+              </Button>
+            </Link>
           </div>
         </Card>
       </div>

@@ -1,5 +1,6 @@
 import { CashFlowChart } from "@/components/dashboard/cash-flow-chart";
 import { CleanupActionsCard } from "@/components/dashboard/cleanup-actions-card";
+import { EscapePlanLinkCard } from "@/components/dashboard/escape-plan-link-card";
 import { DashboardAutoRefresh } from "@/components/dashboard/dashboard-auto-refresh";
 import { DemoDataBanner } from "@/components/dashboard/demo-data-banner";
 import { FinancialIndexGauge } from "@/components/dashboard/financial-index-gauge";
@@ -212,6 +213,7 @@ export default async function DashboardPage() {
               />
               <MainProblemCard problem={primaryFinancialRisk} />
               <CleanupActionsCard tasks={cleanupActions} />
+              <EscapePlanLinkCard />
             </>
           ) : (
             <>

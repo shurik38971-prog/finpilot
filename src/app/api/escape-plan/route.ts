@@ -1,0 +1,198 @@
+import { getAnalysisContext } from "@/lib/actions/finance";
+import {
+  getUserCapabilities,
+  saveEscapePlanResult,
+} from "@/lib/actions/capabilities";
+import {
+  buildEscapePlanGuardrailRules,
+  buildEscapePlanSystemPrompt,
+  sanitizeEscapePlanResult,
+} from "@/lib/ai/escape-plan-guardrails";
+import { getGptunnelConfig, gptunnelChat } from "@/lib/ai/gptunnel";
+import { getPrimaryFinancialRisk } from "@/lib/finance/primary-financial-risk";
+import { getGoals } from "@/lib/actions/goals";
+import { getFinancialData } from "@/lib/actions/finance";
+import { getUserFinancialProfile } from "@/lib/actions/profile";
+import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
+import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+
+function extractJsonFromText(text: string) {
+  const cleaned = text
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) {
+      throw new Error("ИИ вернул ответ без JSON");
+    }
+    return JSON.parse(cleaned.slice(start, end + 1));
+  }
+}
+
+function buildEscapePlanPrompt(input: {
+  financial: Awaited<ReturnType<typeof getAnalysisContext>>;
+  capabilities: NonNullable<Awaited<ReturnType<typeof getUserCapabilities>>>;
+  mainProblem: string | null;
+  guardrailRules: string;
+}) {
+  const { financial, capabilities, mainProblem, guardrailRules } = input;
+
+  return `
+Подбери реалистичные варианты улучшения финансовой ситуации для этого пользователя.
+
+${guardrailRules}
+
+ФИНАНСЫ:
+${JSON.stringify(financial, null, 2)}
+
+ГЛАВНАЯ ПРОБЛЕМА:
+${mainProblem ?? "не определена"}
+
+АНКЕТА ВОЗМОЖНОСТЕЙ:
+- Чем занимается: ${capabilities.current_work ?? "не указано"}
+- Навыки (только из списка, не выдумывай другие): ${capabilities.skills.join(", ") || "не указаны"}
+- Часов в неделю: ${capabilities.available_hours_per_week ?? "не указано"}
+- Ограничения: ${capabilities.constraints.join(", ") || "нет"}
+- Цель: ${capabilities.target_result ?? "не указана"}
+
+Свободный остаток (netCashFlow): ${financial.netCashFlow} ₽/мес.
+Если netCashFlow отрицательный, needed_amount ≈ модуль дефицита.
+Учитывай цель «${capabilities.target_result}».
+
+Ответь строго JSON:
+{
+  "situation_summary": "2-3 предложения без паники и без мотивации",
+  "needed_amount": 15000,
+  "main_strategy": "главное направление одной фразой",
+  "options": [
+    {
+      "title": "название",
+      "type": "increase_income | reduce_expenses | debt_action",
+      "why_fits": "почему подходит с учётом навыков и ограничений",
+      "first_step": "конкретный шаг на ближайшие 1-3 дня",
+      "expected_effect": 5000,
+      "difficulty": "low | medium | high",
+      "time_required": "например: 5 ч/нед первый месяц",
+      "risk": "честный риск без запугивания"
+    }
+  ],
+  "not_recommended": [
+    { "title": "что не делать", "reason": "почему" }
+  ],
+  "plan_7_days": ["шаг 1", "шаг 2"]
+}
+
+options — от 3 до 5 штук. expected_effect — число в рублях в месяц.
+Не добавляй markdown.`;
+}
+
+export async function GET() {
+  return NextResponse.json({ ok: true, route: "/api/escape-plan" });
+}
+
+export async function POST() {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const config = getGptunnelConfig();
+    if (!config.ok) {
+      return NextResponse.json({ error: config.error }, { status: 500 });
+    }
+
+    const capabilities = await getUserCapabilities();
+    if (!capabilities) {
+      return NextResponse.json(
+        { error: "Сначала заполните анкету возможностей" },
+        { status: 400 }
+      );
+    }
+
+    if (capabilities.skills.length === 0) {
+      return NextResponse.json(
+        { error: "Укажите хотя бы один навык" },
+        { status: 400 }
+      );
+    }
+
+    const [
+      financial,
+      { incomes, expenses, debts, profileIncome },
+      financialProfile,
+      goals,
+    ] = await Promise.all([
+      getAnalysisContext(),
+      getFinancialData(),
+      getUserFinancialProfile(),
+      getGoals(),
+    ]);
+
+    const profileType = financialProfile.profileType ?? DEFAULT_PROFILE_TYPE;
+    const mainProblem = getPrimaryFinancialRisk(
+      incomes,
+      expenses,
+      debts,
+      goals,
+      profileType,
+      profileIncome
+    );
+
+    const fallbackNeeded = Math.max(0, -financial.netCashFlow);
+    const guardrailRules = buildEscapePlanGuardrailRules(capabilities.constraints);
+
+    const chatResult = await gptunnelChat(
+      [
+        { role: "system", content: buildEscapePlanSystemPrompt() },
+        {
+          role: "user",
+          content: buildEscapePlanPrompt({
+            financial,
+            capabilities,
+            mainProblem,
+            guardrailRules,
+          }),
+        },
+      ],
+      0.35
+    );
+
+    if (!chatResult.ok) {
+      return NextResponse.json(
+        { error: chatResult.error, details: chatResult.details },
+        { status: chatResult.status ?? 500 }
+      );
+    }
+
+    const raw = extractJsonFromText(chatResult.content);
+    const plan = sanitizeEscapePlanResult(raw, fallbackNeeded);
+
+    if (plan.options.length === 0) {
+      return NextResponse.json(
+        { error: "Не удалось сформировать варианты — попробуйте ещё раз" },
+        { status: 502 }
+      );
+    }
+
+    await saveEscapePlanResult(plan);
+
+    return NextResponse.json({ plan });
+  } catch (error) {
+    console.error("escape-plan error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Ошибка генерации плана" },
+      { status: 500 }
+    );
+  }
+}

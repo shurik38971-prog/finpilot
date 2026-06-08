@@ -40,6 +40,7 @@ const FINANCIAL_PATHS = [
   "/history",
   "/goals",
   "/actions",
+  "/escape-plan",
 ] as const;
 
 function revalidateFinancialPages() {

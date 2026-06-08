@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
-import { isAdminUser } from "@/lib/admin/is-admin";
+import { canShowAdminNav } from "@/lib/admin/is-admin";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({
@@ -13,7 +13,7 @@ export default async function AppLayout({
   } = await supabase.auth.getUser();
 
   return (
-    <AppShell isAdmin={await isAdminUser(supabase, user?.email)}>
+    <AppShell showAdminNav={canShowAdminNav(user?.email)}>
       {children}
     </AppShell>
   );

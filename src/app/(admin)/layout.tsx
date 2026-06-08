@@ -26,7 +26,7 @@ export default async function AdminLayout({
           <Link href="/admin" className="font-semibold text-accent">
             FinPilot Admin
           </Link>
-          <nav className="flex gap-3 text-sm">
+          <nav className="flex flex-wrap gap-3 text-sm">
             <Link
               href="/admin"
               className="text-muted hover:text-foreground transition-colors"
@@ -38,6 +38,24 @@ export default async function AdminLayout({
               className="text-muted hover:text-foreground transition-colors"
             >
               Инсайты
+            </Link>
+            <Link
+              href="/admin/users"
+              className="text-muted hover:text-foreground transition-colors"
+            >
+              Пользователи
+            </Link>
+            <Link
+              href="/admin/feedback"
+              className="text-muted hover:text-foreground transition-colors"
+            >
+              Отзывы
+            </Link>
+            <Link
+              href="/admin/system"
+              className="text-muted hover:text-foreground transition-colors"
+            >
+              Система
             </Link>
           </nav>
           <span className="text-xs text-muted hidden sm:inline">

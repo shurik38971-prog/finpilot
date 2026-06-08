@@ -9,10 +9,10 @@ import { Sidebar } from "./sidebar";
 
 export function AppShell({
   children,
-  isAdmin = false,
+  showAdminNav = false,
 }: {
   children: React.ReactNode;
-  isAdmin?: boolean;
+  showAdminNav?: boolean;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -22,7 +22,7 @@ export function AppShell({
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
-        isAdmin={isAdmin}
+        showAdminNav={showAdminNav}
       />
       <div className="md:ml-60">
         <MobileHeader onMenuClick={() => setMobileOpen(true)} />

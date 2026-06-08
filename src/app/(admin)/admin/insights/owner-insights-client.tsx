@@ -19,6 +19,7 @@ import {
   ThumbsUp,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 function StatCard({
@@ -234,9 +235,12 @@ export function OwnerInsightsClient({
                     className="border-b border-border/30 last:border-0"
                   >
                     <td className="py-3 pr-4">
-                      <div className="font-medium truncate max-w-[220px]">
+                      <Link
+                        href={`/admin/users/${user.userId}`}
+                        className="font-medium truncate max-w-[220px] block hover:text-accent"
+                      >
                         {user.email ?? `${user.userId.slice(0, 8)}…`}
-                      </div>
+                      </Link>
                     </td>
                     <td className="py-3 pr-4 text-muted whitespace-nowrap">
                       {formatAdminDate(user.registeredAt)}

@@ -50,13 +50,13 @@ const navItems = [
 interface SidebarProps {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
-  isAdmin?: boolean;
+  showAdminNav?: boolean;
 }
 
 export function Sidebar({
   mobileOpen = false,
   onMobileClose,
-  isAdmin = false,
+  showAdminNav = false,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -112,7 +112,7 @@ export function Sidebar({
             {label}
           </Link>
         ))}
-        {isAdmin && (
+        {showAdminNav && (
           <Link
             href="/admin"
             onClick={() => handleNavClick("Админка", "/admin")}

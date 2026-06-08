@@ -295,19 +295,45 @@ export function AdminDashboardClient({
         <StatCard label="Обращений" value={data.feedback.length} icon={MessageCircle} />
       </div>
 
-      <Card className="border-accent/30 bg-accent/5">
-        <CardHeader>
-          <CardTitle className="text-base">Инсайты</CardTitle>
-          <CardDescription>
-            Воронка, рекомендации, цели и сводка для владельца продукта
-          </CardDescription>
-        </CardHeader>
-        <div className="px-5 pb-5">
-          <Link href="/admin/insights">
-            <Button size="sm">Открыть Инсайты →</Button>
-          </Link>
-        </div>
-      </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="border-accent/30 bg-accent/5">
+          <CardHeader>
+            <CardTitle className="text-base">Инсайты</CardTitle>
+            <CardDescription>
+              Воронка, рекомендации, цели и сводка для владельца продукта
+            </CardDescription>
+          </CardHeader>
+          <div className="px-5 pb-5">
+            <Link href="/admin/insights">
+              <Button size="sm">Открыть Инсайты →</Button>
+            </Link>
+          </div>
+        </Card>
+
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardHeader>
+            <CardTitle className="text-base">Управление данными</CardTitle>
+            <CardDescription>
+              Полное редактирование пользователей, отзывов и админов
+            </CardDescription>
+          </CardHeader>
+          <div className="px-5 pb-5 flex flex-wrap gap-2">
+            <Link href="/admin/users">
+              <Button size="sm">Пользователи</Button>
+            </Link>
+            <Link href="/admin/feedback">
+              <Button size="sm" variant="secondary">
+                Отзывы
+              </Button>
+            </Link>
+            <Link href="/admin/system">
+              <Button size="sm" variant="secondary">
+                Система
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

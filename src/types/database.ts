@@ -169,3 +169,19 @@ export const EXPENSE_CATEGORY_LABELS: Record<
   business: "Бизнес",
   other: "Другое",
 };
+
+const EXPENSE_CATEGORY_ALIASES: Record<string, string> = {
+  subscription: "Подписки",
+  debt: "Долги",
+  education: "Обучение",
+};
+
+export function getExpenseCategoryLabel(category: string): string {
+  if (
+    (EXPENSE_CATEGORIES as readonly string[]).includes(category) &&
+    category in EXPENSE_CATEGORY_LABELS
+  ) {
+    return EXPENSE_CATEGORY_LABELS[category as (typeof EXPENSE_CATEGORIES)[number]];
+  }
+  return EXPENSE_CATEGORY_ALIASES[category] ?? category;
+}

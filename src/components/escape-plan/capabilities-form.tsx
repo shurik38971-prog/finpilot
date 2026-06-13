@@ -17,6 +17,7 @@ import {
   type UserCapabilities,
 } from "@/types/escape-plan";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface CapabilitiesFormProps {
   initial?: UserCapabilities | null;
@@ -123,8 +124,13 @@ export function CapabilitiesForm({
     CUSTOM_SECONDARY_GOAL,
   ];
 
-  const checkboxLabelClass =
-    "flex items-center gap-3 min-h-[44px] rounded-lg border border-border px-3 py-2.5 text-sm cursor-pointer hover:bg-surface-hover";
+  const checkboxLabelClass = (checked: boolean) =>
+    cn(
+      "flex items-center gap-3 min-h-[44px] rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors",
+      checked
+        ? "border-accent/50 bg-accent/10 text-foreground"
+        : "border-border hover:bg-surface-hover"
+    );
 
   const fieldsetClass =
     "space-y-2.5 rounded-xl border border-border/70 bg-surface-hover/20 p-3.5 sm:p-4";
@@ -147,7 +153,7 @@ export function CapabilitiesForm({
         <p className="text-xs text-muted -mt-1 mb-1">Что умеете делать для доп.дохода</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ESCAPE_SKILLS.map((skill) => (
-            <label key={skill} className={checkboxLabelClass}>
+            <label key={skill} className={checkboxLabelClass(skills.includes(skill))}>
               <input
                 type="checkbox"
                 checked={skills.includes(skill)}
@@ -185,7 +191,7 @@ export function CapabilitiesForm({
           </p>
           <div className="grid grid-cols-1 gap-2">
             {secondaryOptions.map((goal) => (
-              <label key={goal} className={checkboxLabelClass}>
+              <label key={goal} className={checkboxLabelClass(secondaryGoals.includes(goal))}>
                 <input
                   type="checkbox"
                   checked={secondaryGoals.includes(goal)}
@@ -231,7 +237,7 @@ export function CapabilitiesForm({
         <p className="text-xs text-muted -mt-1 mb-1">Формат работы и условия, которые важны</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ESCAPE_CONSTRAINTS.map((constraint) => (
-            <label key={constraint} className={checkboxLabelClass}>
+            <label key={constraint} className={checkboxLabelClass(constraints.includes(constraint))}>
               <input
                 type="checkbox"
                 checked={constraints.includes(constraint)}

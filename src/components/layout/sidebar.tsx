@@ -64,14 +64,14 @@ function navItemClassName(active: boolean) {
     "relative flex min-h-[44px] items-center gap-3 rounded-lg border px-3 py-2.5 text-[15px] font-medium leading-snug transition-colors md:text-sm",
     active
       ? "border-blue-500/35 bg-blue-500/15 text-white shadow-[inset_3px_0_0_0_#3b82f6]"
-      : "border-transparent text-gray-300 md:hover:border-border/50 md:hover:bg-surface-hover md:hover:text-foreground"
+      : "border-transparent text-gray-200 md:hover:border-border/50 md:hover:bg-surface-hover md:hover:text-foreground"
   );
 }
 
 function navIconClassName(active: boolean) {
   return cn(
     "h-[18px] w-[18px] shrink-0 md:h-4 md:w-4",
-    active ? "text-blue-400" : "text-gray-400"
+    active ? "text-blue-400" : "text-gray-300"
   );
 }
 
@@ -138,7 +138,7 @@ export function Sidebar({
         {onMobileClose && (
           <button
             onClick={onMobileClose}
-            className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-300 hover:bg-surface-hover hover:text-white"
+            className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-200 hover:bg-surface-hover hover:text-white"
             aria-label="Закрыть меню"
           >
             <X className="h-5 w-5" />
@@ -178,9 +178,9 @@ export function Sidebar({
       <div className="border-t border-border p-3">
         <button
           onClick={handleLogout}
-          className="flex min-h-[44px] w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-[15px] font-medium text-gray-300 transition-colors md:text-sm md:hover:border-border/50 md:hover:bg-surface-hover md:hover:text-foreground"
+          className="flex min-h-[44px] w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-[15px] font-medium text-gray-200 transition-colors md:text-sm md:hover:border-border/50 md:hover:bg-surface-hover md:hover:text-foreground"
         >
-          <LogOut className="h-[18px] w-[18px] shrink-0 text-gray-400 md:h-4 md:w-4" />
+          <LogOut className="h-[18px] w-[18px] shrink-0 text-gray-300 md:h-4 md:w-4" />
           Выйти
         </button>
       </div>

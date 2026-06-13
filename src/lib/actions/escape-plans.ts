@@ -172,7 +172,7 @@ async function repairEscapeRouteStepOrderForPlan(
     .single();
 
   if (planError) throw planError;
-  await repairEscapeRouteStepOrder(
+  await ensureEscapeRouteStepsForPlan(
     supabase,
     userId,
     escapePlanId,
@@ -353,6 +353,63 @@ async function repairEscapeRouteStepOrder(
   }
 }
 
+async function ensureEscapeRouteStepsForPlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  escapePlanId: string,
+  option: EscapePlanOption
+) {
+  if (!isIncomeRouteOption(option)) return;
+
+  const { count, error } = await supabase
+    .from("financial_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .neq("status", "archived");
+
+  if (error) throw error;
+  if ((count ?? 0) === 0) {
+    await createEscapePlanTasks(supabase, userId, escapePlanId, option);
+    return;
+  }
+
+  await repairEscapeRouteStepOrder(supabase, userId, escapePlanId, option);
+}
+
+/** Create missing route steps for the active plan (sync escape-plan ↔ actions). */
+export async function ensureActiveEscapeRouteSteps(): Promise<UserEscapePlan | null> {
+  const active = await getActiveEscapePlan();
+  if (!active) return null;
+
+  const { supabase, userId } = await getUserId();
+  await ensureEscapeRouteStepsForPlan(
+    supabase,
+    userId,
+    active.id,
+    active.option_snapshot as EscapePlanOption
+  );
+  revalidateEscapePages();
+  revalidatePath("/actions");
+  return active;
+}
+
+export async function activatePrimaryIncomeRouteAfterAnalysis(
+  plan: EscapePlanOption[]
+): Promise<UserEscapePlan | null> {
+  const active = await getActiveEscapePlan();
+  if (active) {
+    await ensureActiveEscapeRouteSteps();
+    return active;
+  }
+
+  const primaryIncome =
+    plan.find((option) => isIncomeRouteOption(option)) ?? null;
+  if (!primaryIncome) return null;
+
+  return chooseEscapeOption(primaryIncome);
+}
+
 async function findExistingRouteByTitle(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -507,7 +564,7 @@ export async function getEscapePlanTasks(
 
   const option = plan.option_snapshot as EscapePlanOption;
   await repairArchivedEscapeRouteSteps(supabase, userId, escapePlanId);
-  await repairEscapeRouteStepOrder(supabase, userId, escapePlanId, option);
+  await ensureEscapeRouteStepsForPlan(supabase, userId, escapePlanId, option);
 
   const { data, error } = await supabase
     .from("financial_tasks")

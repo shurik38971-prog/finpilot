@@ -6,6 +6,7 @@ import {
   getEscapePlanTasks,
   getPendingEscapeFollowUp,
   getUserEscapePlans,
+  ensureActiveEscapeRouteSteps,
   syncFinancialMeasureTasks,
 } from "@/lib/actions/escape-plans";
 import { getFinancialMeasureTasks } from "@/lib/actions/tasks";
@@ -31,6 +32,15 @@ export default async function EscapePlanPage() {
   ]);
 
   const activePlan = escapePlans.find((p) => isActiveEscapeAttempt(p)) ?? null;
+
+  if (activePlan) {
+    try {
+      await ensureActiveEscapeRouteSteps();
+    } catch (error) {
+      console.error("Failed to ensure active route steps:", error);
+    }
+  }
+
   const activePlanTasks = activePlan
     ? await getEscapePlanTasks(activePlan.id).catch(() => [])
     : [];

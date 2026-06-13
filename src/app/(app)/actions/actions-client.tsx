@@ -5,6 +5,7 @@ import {
   deleteTask,
   postponeTask,
 } from "@/lib/actions/tasks";
+import { ensureActiveEscapeRouteSteps } from "@/lib/actions/escape-plans";
 import { useCopy } from "@/components/copy/site-copy-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -258,18 +259,21 @@ interface ActionsPageClientProps {
   tasks: FinancialTaskWithGoal[];
   additionalTasks?: FinancialTaskWithGoal[];
   cleanupMode?: boolean;
+  hasActiveRoute?: boolean;
 }
 
 export function ActionsPageClient({
   tasks,
   additionalTasks = [],
   cleanupMode = false,
+  hasActiveRoute = false,
 }: ActionsPageClientProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showAllActive, setShowAllActive] = useState(false);
   const [feedbackTaskId, setFeedbackTaskId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [ensuringSteps, setEnsuringSteps] = useState(false);
 
   const orderedTasks = cleanupMode ? sortEscapeRouteTasks(tasks) : tasks;
   const pending = cleanupMode
@@ -288,6 +292,7 @@ export function ActionsPageClient({
   const pendingMeasures = additionalTasks.filter((t) => t.status === "pending");
   const doneMeasures = additionalTasks.filter((t) => t.status === "done");
   const primary = pending[0] ?? null;
+  const futureRouteSteps = cleanupMode ? pending.slice(1) : [];
   const activeTasks = cleanupMode
     ? postponed
     : pending
@@ -341,6 +346,21 @@ export function ActionsPageClient({
     }
   }
 
+  async function handleEnsureRouteSteps() {
+    setEnsuringSteps(true);
+    try {
+      await ensureActiveEscapeRouteSteps();
+      router.refresh();
+    } finally {
+      setEnsuringSteps(false);
+    }
+  }
+
+  const showRouteMissingSteps =
+    cleanupMode && hasActiveRoute && tasks.length === 0;
+  const showEmpty =
+    tasks.length === 0 && additionalTasks.length === 0 && !showRouteMissingSteps;
+
   return (
     <div>
       <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
@@ -351,7 +371,7 @@ export function ActionsPageClient({
       />
       <PageHeader title={pageTitle} description={pageDescription} />
 
-      {tasks.length === 0 && additionalTasks.length === 0 ? (
+      {showEmpty ? (
         <Card>
           <div className="flex flex-col items-center py-16 text-center px-6">
             <div className="rounded-full bg-surface-hover p-4 mb-4">
@@ -370,6 +390,59 @@ export function ActionsPageClient({
             </Link>
           </div>
         </Card>
+      ) : showRouteMissingSteps ? (
+        <>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-base">Маршрут найден, но шаги не сформированы</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Активный маршрут есть в «Выходе из ситуации», но пошаговый план ещё не
+                синхронизирован с этим разделом.
+              </CardDescription>
+            </CardHeader>
+            <div className="px-5 pb-5 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={() => void handleEnsureRouteSteps()}
+                disabled={ensuringSteps}
+              >
+                {ensuringSteps ? "Формирование..." : "Сформировать шаги маршрута"}
+              </Button>
+              <Link href="/escape-plan">
+                <Button size="sm" variant="secondary">
+                  Выход из ситуации
+                </Button>
+              </Link>
+            </div>
+          </Card>
+
+          {cleanupMode && (pendingMeasures.length > 0 || doneMeasures.length > 0) && (
+            <Card className="border-border/80">
+              <CardHeader>
+                <CardTitle className="text-base">Дополнительные действия</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Финансовые меры отдельно от пошагового маршрута доп.дохода.
+                </CardDescription>
+              </CardHeader>
+              <div>
+                {[...pendingMeasures, ...doneMeasures].map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    loadingId={loadingId}
+                    onComplete={handleComplete}
+                    onPostpone={(id) => runAction(id, postponeTask)}
+                    onDelete={(id) => {
+                      if (!confirm("Удалить задачу?")) return;
+                      runAction(id, deleteTask);
+                    }}
+                    cleanupMode={false}
+                  />
+                ))}
+              </div>
+            </Card>
+          )}
+        </>
       ) : (
         <>
           {routeComplete && (
@@ -403,6 +476,33 @@ export function ActionsPageClient({
               onComplete={handleComplete}
               cleanupMode={cleanupMode}
             />
+          )}
+
+          {cleanupMode && futureRouteSteps.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base">Шаги маршрута</CardTitle>
+                <CardDescription className="text-sm">
+                  Ближайшие шаги активного маршрута в порядке выполнения.
+                </CardDescription>
+              </CardHeader>
+              <div>
+                {futureRouteSteps.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    loadingId={loadingId}
+                    onComplete={handleComplete}
+                    onPostpone={(id) => runAction(id, postponeTask)}
+                    onDelete={(id) => {
+                      if (!confirm("Удалить задачу?")) return;
+                      runAction(id, deleteTask);
+                    }}
+                    cleanupMode={cleanupMode}
+                  />
+                ))}
+              </div>
+            </Card>
           )}
 
           {activeTasks.length > 0 && (

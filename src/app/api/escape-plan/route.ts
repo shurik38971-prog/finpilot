@@ -14,7 +14,11 @@ import { getGoals } from "@/lib/actions/goals";
 import { getFinancialData } from "@/lib/actions/finance";
 import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
-import { getFailedEscapeAttempts } from "@/lib/actions/escape-plans";
+import {
+  getFailedEscapeAttempts,
+  activatePrimaryIncomeRouteAfterAnalysis,
+  syncFinancialMeasureTasks,
+} from "@/lib/actions/escape-plans";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
 import { buildRescuePlan } from "@/lib/escape-plan/build-rescue-plan";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
@@ -26,6 +30,7 @@ import {
 } from "@/types/escape-plan";
 import { ESCAPE_FAILURE_REASONS } from "@/types/rescue-plan";
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 function extractJsonFromText(text: string) {
@@ -282,6 +287,12 @@ export async function POST() {
     });
 
     await saveEscapePlanResult(plan, rescuePlan);
+    await syncFinancialMeasureTasks(plan.options);
+    await activatePrimaryIncomeRouteAfterAnalysis(rankedOptions);
+
+    revalidatePath("/escape-plan");
+    revalidatePath("/actions");
+    revalidatePath("/dashboard");
 
     return NextResponse.json({ plan, rescuePlan });
   } catch (error) {

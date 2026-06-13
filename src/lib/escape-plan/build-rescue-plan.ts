@@ -6,6 +6,7 @@ import {
   type RescueProgressSnapshot,
 } from "@/types/rescue-plan";
 import type { RescuePlanOptionLike } from "@/types/rescue-plan";
+import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 
 function formatOptionIncomeRange(option: RescuePlanOptionLike): string | null {
   const min = option.income_min;
@@ -98,7 +99,10 @@ export function buildRescuePlan(input: BuildRescuePlanInput): RescuePlan {
   const recommendedPath =
     activePlan?.option_title ?? topOption?.title ?? escapePlan.main_strategy;
 
-  const nextPendingTask = pendingTasks.find((t) => t.status === "pending");
+  const sortedPending = sortEscapeRouteTasks(
+    pendingTasks.filter((task) => task.status === "pending")
+  );
+  const nextPendingTask = sortedPending[0] ?? null;
   const nextAction =
     nextPendingTask?.title ??
     topOption?.first_step ??

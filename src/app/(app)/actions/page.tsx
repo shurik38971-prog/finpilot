@@ -1,3 +1,7 @@
+import {
+  ensureActiveEscapeRouteSteps,
+  getActiveEscapePlan,
+} from "@/lib/actions/escape-plans";
 import { getFinancialMeasureTasks, getFinancialTasks } from "@/lib/actions/tasks";
 import { deduplicateUserTasksForUser } from "@/lib/finance/deduplicate-user-tasks";
 import { isCleanupMode } from "@/lib/feature-flags";
@@ -21,15 +25,27 @@ export default async function ActionsPage() {
   }
 
   const cleanupMode = isCleanupMode();
+  const activePlan = cleanupMode ? await getActiveEscapePlan() : null;
+
+  if (cleanupMode && activePlan) {
+    try {
+      await ensureActiveEscapeRouteSteps();
+    } catch (error) {
+      console.error("Failed to ensure active route steps:", error);
+    }
+  }
+
   const [tasks, additionalTasks] = await Promise.all([
     getFinancialTasks({ activeEscapePlanOnly: cleanupMode }),
     cleanupMode ? getFinancialMeasureTasks() : Promise.resolve([]),
   ]);
+
   return (
     <ActionsPageClient
       tasks={tasks}
       additionalTasks={additionalTasks}
       cleanupMode={cleanupMode}
+      hasActiveRoute={Boolean(activePlan)}
     />
   );
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { getActiveEscapePlanId, repairArchivedEscapeRouteStepsForActivePlan } from "@/lib/actions/escape-plans";
+import { getActiveEscapePlanId, ensureActiveEscapeRouteSteps, repairArchivedEscapeRouteStepsForActivePlan } from "@/lib/actions/escape-plans";
 import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -26,7 +26,7 @@ import type {
   PrimaryGoalFocus,
 } from "@/types/tasks";
 
-const TASK_PATHS = ["/actions", "/dashboard", "/analyze", "/goals", "/simulator"] as const;
+const TASK_PATHS = ["/actions", "/dashboard", "/analyze", "/goals", "/simulator", "/escape-plan"] as const;
 
 const TASK_SELECT = `
   *,
@@ -76,6 +76,7 @@ export async function getFinancialTasks(options?: {
 }): Promise<FinancialTaskWithGoal[]> {
   if (options?.activeEscapePlanOnly) {
     await repairArchivedEscapeRouteStepsForActivePlan();
+    await ensureActiveEscapeRouteSteps();
   }
 
   const { supabase, userId } = await getUserId();

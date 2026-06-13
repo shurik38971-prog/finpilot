@@ -18,6 +18,7 @@ import type {
 import { AnalysisDataSourceBadge } from "@/components/analysis/analysis-confidence-badge";
 import { PreliminaryAnalysisBanner } from "@/components/analysis/preliminary-analysis-banner";
 import { AnalysisDisclaimer } from "@/components/early-access/analysis-disclaimer";
+import { TesterFeedbackSurvey } from "@/components/feedback/tester-feedback-survey";
 import { EmptyState } from "@/components/ui/empty-state";
 import { trackButtonClick } from "@/lib/analytics/client";
 import { markAnalysisCompleted } from "@/lib/feedback/post-analysis-engagement";
@@ -365,6 +366,8 @@ export function AnalyzePageClient({
           </div>
 
           <AnalysisDisclaimer />
+
+          <TesterFeedbackSurvey />
         </div>
       )}
     </div>

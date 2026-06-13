@@ -12,9 +12,17 @@ import { useEffect, useState } from "react";
 const SESSION_DISMISS_KEY = "finpilot:value_feedback_dismissed_session";
 const CHECK_INTERVAL_MS = 60_000;
 
-export function ValueFeedbackPrompt() {
+export function ValueFeedbackPrompt({
+  onOpenChange,
+}: {
+  onOpenChange?: (open: boolean) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   useEffect(() => {
     if (checked) return;

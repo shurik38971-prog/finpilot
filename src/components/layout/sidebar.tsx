@@ -54,6 +54,27 @@ interface SidebarProps {
   showAdminNav?: boolean;
 }
 
+function isNavItemActive(pathname: string, href: string): boolean {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function navItemClassName(active: boolean) {
+  return cn(
+    "relative flex min-h-[44px] items-center gap-3 rounded-lg border px-3 py-2.5 text-[15px] font-medium leading-snug transition-colors md:text-sm",
+    active
+      ? "border-blue-500/35 bg-blue-500/15 text-white shadow-[inset_3px_0_0_0_#3b82f6]"
+      : "border-transparent text-gray-300 md:hover:border-border/50 md:hover:bg-surface-hover md:hover:text-foreground"
+  );
+}
+
+function navIconClassName(active: boolean) {
+  return cn(
+    "h-[18px] w-[18px] shrink-0 md:h-4 md:w-4",
+    active ? "text-blue-400" : "text-gray-400"
+  );
+}
+
 function SidebarNavItem({
   href,
   copyKey,
@@ -68,6 +89,7 @@ function SidebarNavItem({
   onNavigate: (label: string, href: string) => void;
 }) {
   const label = useCopy(copyKey);
+  const active = isNavItemActive(pathname, href);
 
   return (
     <Link
@@ -75,15 +97,11 @@ function SidebarNavItem({
       onClick={() => onNavigate(label, href)}
       data-analytics-id={`nav-${href}`}
       data-analytics-label={label}
-      className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-        pathname === href
-          ? "bg-accent/10 text-accent"
-          : "text-muted hover:bg-surface-hover hover:text-foreground"
-      )}
+      aria-current={active ? "page" : undefined}
+      className={navItemClassName(active)}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      {label}
+      <Icon className={navIconClassName(active)} />
+      <span className="min-w-0 break-words">{label}</span>
     </Link>
   );
 }
@@ -96,6 +114,7 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const adminNavLabel = useCopy("nav.admin", "Админка");
+  const adminActive = pathname.startsWith("/admin");
 
   async function handleLogout() {
     const supabase = createClient();
@@ -114,12 +133,12 @@ export function Sidebar({
 
   const content = (
     <>
-      <div className="flex items-center justify-between px-6 py-5 border-b border-border">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border md:px-6 md:py-5">
         <Logo variant="wordmark" href="/dashboard" iconSize={28} />
         {onMobileClose && (
           <button
             onClick={onMobileClose}
-            className="md:hidden rounded-lg p-1.5 text-muted hover:bg-surface-hover hover:text-foreground"
+            className="md:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-300 hover:bg-surface-hover hover:text-white"
             aria-label="Закрыть меню"
           >
             <X className="h-5 w-5" />
@@ -127,7 +146,7 @@ export function Sidebar({
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
+      <nav className="flex-1 space-y-1.5 px-3 py-4 overflow-y-auto">
         {navItems
           .filter(({ href }) => !isNavHiddenInCleanup(href))
           .map((item) => (
@@ -143,15 +162,15 @@ export function Sidebar({
             href="/admin"
             onClick={() => handleNavClick(adminNavLabel, "/admin")}
             data-analytics-id="nav-admin"
+            aria-current={adminActive ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors mt-2 border border-dashed border-accent/30",
-              pathname.startsWith("/admin")
-                ? "bg-accent/10 text-accent"
-                : "text-muted hover:bg-surface-hover hover:text-foreground"
+              navItemClassName(adminActive),
+              "mt-2 border-dashed",
+              !adminActive && "border-accent/20"
             )}
           >
-            <BarChart3 className="h-4 w-4 shrink-0" />
-            {adminNavLabel}
+            <BarChart3 className={navIconClassName(adminActive)} />
+            <span className="min-w-0 break-words">{adminNavLabel}</span>
           </Link>
         )}
       </nav>
@@ -159,9 +178,9 @@ export function Sidebar({
       <div className="border-t border-border p-3">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted hover:bg-surface-hover hover:text-foreground transition-colors"
+          className="flex min-h-[44px] w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-[15px] font-medium text-gray-300 transition-colors md:text-sm md:hover:border-border/50 md:hover:bg-surface-hover md:hover:text-foreground"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-[18px] w-[18px] shrink-0 text-gray-400 md:h-4 md:w-4" />
           Выйти
         </button>
       </div>
@@ -170,12 +189,10 @@ export function Sidebar({
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed left-0 top-0 z-40 h-screen w-60 flex-col border-r border-border bg-surface">
         {content}
       </aside>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
@@ -184,12 +201,12 @@ export function Sidebar({
         />
       )}
 
-      {/* Mobile drawer */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 flex h-screen w-72 max-w-[85vw] flex-col border-r border-border bg-surface transition-transform duration-300 md:hidden",
+          "fixed left-0 top-0 z-50 flex h-screen w-[min(18rem,88vw)] flex-col border-r border-border bg-surface transition-transform duration-300 md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        aria-hidden={!mobileOpen}
       >
         {content}
       </aside>

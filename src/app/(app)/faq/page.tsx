@@ -61,22 +61,22 @@ export default function FaqPage() {
         {" — "}там чеклист проведёт через первые шаги.
       </div>
 
-      <div className="space-y-2 max-w-3xl sm:space-y-2.5">
+      <div className="space-y-2 max-w-3xl sm:space-y-2">
         {FAQ_ITEMS.map(({ q, a }) => (
           <Card key={q} className="p-0 overflow-hidden">
             <details className="group">
-              <summary className="cursor-pointer list-none px-3.5 py-3 font-medium text-[15px] leading-snug hover:bg-surface-hover/40 transition-colors sm:px-4 sm:py-3.5 [&::-webkit-details-marker]:hidden">
-                <span className="flex items-center justify-between gap-2.5">
+              <summary className="cursor-pointer list-none px-3.5 py-2.5 font-medium text-[15px] leading-snug hover:bg-surface-hover/40 transition-colors sm:px-4 sm:py-3 [&::-webkit-details-marker]:hidden min-h-[44px] flex items-center">
+                <span className="flex w-full items-center justify-between gap-2.5">
                   <span>{q}</span>
                   <span
-                    className="shrink-0 text-foreground/50 text-lg leading-none group-open:rotate-45 transition-transform"
+                    className="shrink-0 text-foreground/55 text-lg leading-none group-open:rotate-45 transition-transform"
                     aria-hidden
                   >
                     +
                   </span>
                 </span>
               </summary>
-              <p className="px-3.5 pb-3 text-sm text-foreground/85 leading-relaxed border-t border-border/50 pt-2.5 sm:px-4 sm:pb-3.5 sm:pt-3">
+              <p className="px-3.5 pb-2.5 text-sm text-foreground/90 leading-relaxed border-t border-border/50 pt-2 sm:px-4 sm:pb-3 sm:pt-2.5">
                 {a}
               </p>
             </details>

@@ -154,14 +154,14 @@ export function SettingsPageClient({
           </CardDescription>
         </CardHeader>
 
-        <div className="space-y-3 px-5 pb-5">
+        <div className="space-y-4 px-5 pb-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/60 bg-surface-hover/30 p-4">
             <div>
               <p className="text-sm font-medium flex items-center gap-2">
                 <RotateCcw className="h-4 w-4 text-accent" />
                 Перезапустить настройку
               </p>
-              <p className="text-sm text-muted mt-1">
+              <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
                 Сбрасывает профиль, онбординг, анализы, рекомендации и задачи.
                 Доходы, расходы, долги и цели сохраняются. После сброса откроется
                 мастер настройки.
@@ -170,7 +170,7 @@ export function SettingsPageClient({
             <Button
               variant="secondary"
               size="sm"
-              className="shrink-0"
+              className="shrink-0 min-h-[44px] w-full sm:w-auto"
               onClick={() => {
                 setError("");
                 setModalAction("restart");
@@ -186,7 +186,7 @@ export function SettingsPageClient({
                 <Trash2 className="h-4 w-4 text-red-400" />
                 Полный сброс данных
               </p>
-              <p className="text-sm text-muted mt-1">
+              <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
                 Удаляет доходы, расходы, долги, цели, анализы, задачи и
                 историю. Аккаунт станет полностью чистым.
               </p>
@@ -194,7 +194,7 @@ export function SettingsPageClient({
             <Button
               variant="danger"
               size="sm"
-              className="shrink-0"
+              className="shrink-0 min-h-[44px] w-full sm:w-auto"
               onClick={() => {
                 setError("");
                 setConfirmText("");
@@ -215,18 +215,18 @@ export function SettingsPageClient({
           </CardDescription>
         </CardHeader>
 
-        <div className="space-y-3 px-5 pb-5">
+        <div className="space-y-4 px-5 pb-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/60 bg-surface-hover/30 p-4">
             <div>
               <p className="text-sm font-medium">Очистить историю анализов</p>
-              <p className="text-sm text-muted mt-1">
+              <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
                 Удаляет записи из раздела «История».
               </p>
             </div>
             <Button
               variant="danger"
               size="sm"
-              className="shrink-0"
+              className="shrink-0 min-h-[44px] w-full sm:w-auto"
               onClick={() => {
                 setError("");
                 setModalAction("analyses");
@@ -239,14 +239,14 @@ export function SettingsPageClient({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/60 bg-surface-hover/30 p-4">
             <div>
               <p className="text-sm font-medium">Очистить задачи</p>
-              <p className="text-sm text-muted mt-1">
+              <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
                 Удаляет все задачи из раздела «Что делать».
               </p>
             </div>
             <Button
               variant="danger"
               size="sm"
-              className="shrink-0"
+              className="shrink-0 min-h-[44px] w-full sm:w-auto"
               onClick={() => {
                 setError("");
                 setModalAction("tasks");
@@ -264,7 +264,7 @@ export function SettingsPageClient({
         title="Перезапустить настройку?"
       >
         <div className="space-y-4">
-          <p className="text-sm text-muted leading-relaxed">
+          <p className="text-sm text-foreground/85 leading-relaxed">
             Будут сброшены финансовый профиль, статус онбординга, результаты
             анализа, рекомендации и задачи. Доходы, расходы, долги и цели
             останутся.
@@ -297,7 +297,7 @@ export function SettingsPageClient({
         title="Полный сброс данных?"
       >
         <div className="space-y-4">
-          <p className="text-sm text-muted leading-relaxed">
+          <p className="text-sm text-foreground/85 leading-relaxed">
             Будут безвозвратно удалены все доходы, расходы, долги, цели,
             анализы, задачи, оценки рекомендаций и обратная связь.
           </p>
@@ -329,7 +329,7 @@ export function SettingsPageClient({
         title="Подтвердите полный сброс"
       >
         <div className="space-y-4">
-          <p className="text-sm text-muted leading-relaxed">
+          <p className="text-sm text-foreground/85 leading-relaxed">
             Чтобы удалить все данные, введите{" "}
             <span className="font-mono text-foreground">
               {FULL_RESET_CONFIRM_TEXT}
@@ -377,7 +377,7 @@ export function SettingsPageClient({
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-muted leading-relaxed">
+          <p className="text-sm text-foreground/85 leading-relaxed">
             {modalAction === "analyses"
               ? "Будут удалены все записи из истории ИИ-анализов."
               : "Будут удалены все задачи из раздела «Что делать»."}

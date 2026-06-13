@@ -19,6 +19,8 @@ export function AppShell({
   siteCopy: ResolvedSiteCopy;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [helpHiddenByFeedback, setHelpHiddenByFeedback] = useState(false);
+  const [helpHiddenByValuePrompt, setHelpHiddenByValuePrompt] = useState(false);
 
   return (
     <SiteCopyProvider copy={siteCopy}>
@@ -31,12 +33,15 @@ export function AppShell({
       />
       <div className="md:ml-60">
         <MobileHeader onMenuClick={() => setMobileOpen(true)} />
-        <main className="p-4 pb-28 sm:p-6 sm:pb-28 md:p-8 md:pb-8">
+        <main className="p-4 pb-[7.5rem] sm:p-6 sm:pb-[7.5rem] md:p-8 md:pb-8">
           {children}
         </main>
       </div>
-      <FeedbackWidget hidden={mobileOpen} />
-      <ValueFeedbackPrompt />
+      <FeedbackWidget
+        hidden={mobileOpen || helpHiddenByFeedback || helpHiddenByValuePrompt}
+        onOverlayChange={setHelpHiddenByFeedback}
+      />
+      <ValueFeedbackPrompt onOpenChange={setHelpHiddenByValuePrompt} />
     </div>
     </SiteCopyProvider>
   );

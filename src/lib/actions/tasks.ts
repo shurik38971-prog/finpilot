@@ -75,6 +75,28 @@ function mapTask(row: Record<string, unknown>): FinancialTaskWithGoal {
   return { ...task, goal: goal ?? null, impact };
 }
 
+async function assertCurrentEscapeRouteStep(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  task: Pick<FinancialTask, "id" | "escape_plan_id" | "status">
+) {
+  if (!task.escape_plan_id || task.status !== "pending") return;
+
+  const { data, error } = await supabase
+    .from("financial_tasks")
+    .select("id, order_index, normalized_title, status")
+    .eq("user_id", userId)
+    .eq("escape_plan_id", task.escape_plan_id)
+    .eq("status", "pending");
+
+  if (error) throw error;
+
+  const current = sortEscapeRouteTasks((data ?? []) as FinancialTask[])[0];
+  if (current && current.id !== task.id) {
+    throw new Error("Сначала выполните текущий шаг маршрута");
+  }
+}
+
 export async function getFinancialTasks(options?: {
   activeEscapePlanOnly?: boolean;
 }): Promise<FinancialTaskWithGoal[]> {
@@ -340,6 +362,8 @@ export async function completeTask(
 
   const task = mapTask(taskRow as Record<string, unknown>);
 
+  await assertCurrentEscapeRouteStep(supabase, userId, task);
+
   const { error } = await supabase
     .from("financial_tasks")
     .update({
@@ -403,6 +427,19 @@ export async function completeTask(
 
 export async function postponeTask(id: string) {
   const { supabase, userId } = await getUserId();
+
+  const { data: taskRow, error: fetchError } = await supabase
+    .from("financial_tasks")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const task = taskRow as FinancialTask;
+  await assertCurrentEscapeRouteStep(supabase, userId, task);
+
   const { error } = await supabase
     .from("financial_tasks")
     .update({ status: "postponed" })

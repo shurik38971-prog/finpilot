@@ -65,6 +65,114 @@ function statusVariant(
   return "default";
 }
 
+function RouteCurrentStepCard({
+  task,
+  loadingId,
+  onComplete,
+  onPostpone,
+}: {
+  task: FinancialTaskWithGoal;
+  loadingId: string | null;
+  onComplete: (id: string) => void;
+  onPostpone: (id: string) => void;
+}) {
+  return (
+    <Card className="border-accent/40 bg-accent/5 mb-6">
+      <CardHeader>
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <p className="text-xs text-muted">Текущий шаг</p>
+          <Badge variant="default">Сейчас</Badge>
+        </div>
+        <CardTitle className="text-lg">{task.title}</CardTitle>
+        {task.description && (
+          <CardDescription className="text-sm leading-relaxed mt-2">
+            {task.description}
+          </CardDescription>
+        )}
+        <TaskRecommendationContext
+          title={task.title}
+          description={task.description}
+          explanation={task.explanation}
+          className="mt-3"
+        />
+      </CardHeader>
+      <div className="px-5 pb-5 flex flex-wrap items-center gap-3">
+        {task.due_date && (
+          <span className="text-xs text-muted flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            до {formatHistoryDate(task.due_date)}
+          </span>
+        )}
+        <Button
+          size="sm"
+          disabled={loadingId === task.id}
+          onClick={() => onComplete(task.id)}
+        >
+          {loadingId === task.id ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" />
+          )}
+          Выполнено
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={loadingId === task.id}
+          onClick={() => onPostpone(task.id)}
+        >
+          Отложить
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function FutureRouteStepRow({ task }: { task: FinancialTaskWithGoal }) {
+  return (
+    <div className="p-4 border-b border-border/50 last:border-0 opacity-80">
+      <div className="flex flex-wrap items-center gap-2 mb-1">
+        <p className="font-medium text-sm text-foreground/90">{task.title}</p>
+        <Badge variant="default">Дальше</Badge>
+      </div>
+      {task.description && (
+        <p className="text-sm text-muted leading-relaxed">{task.description}</p>
+      )}
+      <p className="text-xs text-muted/80 mt-2">
+        Откроется после выполнения предыдущего шага
+      </p>
+    </div>
+  );
+}
+
+function CompletedRouteStepRow({ task }: { task: FinancialTaskWithGoal }) {
+  return (
+    <div className="p-4 border-b border-border/50 last:border-0 opacity-70">
+      <div className="flex flex-wrap items-center gap-2 mb-1">
+        <p className="font-medium text-sm line-through text-muted">{task.title}</p>
+        <Badge variant="success">Выполнено</Badge>
+      </div>
+      {task.description && (
+        <p className="text-xs text-muted leading-relaxed">{task.description}</p>
+      )}
+    </div>
+  );
+}
+
+function PostponedRouteStepRow({ task }: { task: FinancialTaskWithGoal }) {
+  return (
+    <div className="p-4 border-b border-border/50 last:border-0">
+      <div className="flex flex-wrap items-center gap-2 mb-1">
+        <p className="font-medium text-sm">{task.title}</p>
+        <Badge variant="warning">Отложена</Badge>
+      </div>
+      {task.description && (
+        <p className="text-sm text-muted leading-relaxed">{task.description}</p>
+      )}
+    </div>
+  );
+}
+
 function PrimaryActionCard({
   task,
   loadingId,
@@ -337,6 +445,12 @@ export function ActionsPageClient({
         setToastMessage("Шаг выполнен. Следующий шаг готов.");
       }
       router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Не удалось отметить шаг выполненным";
+      setToastMessage(message);
     } finally {
       setLoadingId(null);
     }
@@ -445,11 +559,10 @@ export function ActionsPageClient({
             <Card className="mb-6 border-emerald-500/30 bg-emerald-500/5">
               <CardHeader>
                 <CardTitle className="text-base text-emerald-400">
-                  Все шаги маршрута выполнены
+                  Маршрут выполнен
                 </CardTitle>
                 <CardDescription className="text-sm leading-relaxed">
-                  Запишите полученный доход в разделе «Доходы» или пересчитайте
-                  маршрут в «Выходе из ситуации», если нужен новый план.
+                  Запишите полученный доход и пересчитайте прогресс.
                 </CardDescription>
               </CardHeader>
               <div className="px-5 pb-5 flex flex-wrap gap-2">
@@ -465,104 +578,133 @@ export function ActionsPageClient({
             </Card>
           )}
 
-          {primary && (
-            <PrimaryActionCard
-              task={primary}
-              loadingId={loadingId}
-              onComplete={handleComplete}
-              cleanupMode={cleanupMode}
-            />
-          )}
-
-          {cleanupMode && futureRouteSteps.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="text-base">Шаги маршрута</CardTitle>
-                <CardDescription className="text-sm">
-                  Ближайшие шаги активного маршрута в порядке выполнения.
-                </CardDescription>
-              </CardHeader>
-              <div>
-                {futureRouteSteps.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    loadingId={loadingId}
-                    onComplete={handleComplete}
-                    onPostpone={(id) => runAction(id, postponeTask)}
-                    onDelete={(id) => {
-                      if (!confirm("Удалить задачу?")) return;
-                      runAction(id, deleteTask);
-                    }}
-                    cleanupMode={cleanupMode}
-                    routeStepQueue="queued"
-                  />
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {activeTasks.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {cleanupMode ? "Отложенные шаги" : "Активные задачи"}
-                </CardTitle>
-              </CardHeader>
-              <div>
-                {visibleActiveTasks.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    loadingId={loadingId}
-                    onComplete={handleComplete}
-                    onPostpone={(id) => runAction(id, postponeTask)}
-                    onDelete={(id) => {
-                      if (!confirm("Удалить задачу?")) return;
-                      runAction(id, deleteTask);
-                    }}
-                    cleanupMode={cleanupMode}
-                  />
-                ))}
-              </div>
-              {hiddenActiveCount > 0 && !showAllActive && (
-                <div className="px-5 pb-5">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setShowAllActive(true)}
-                  >
-                    Показать ещё ({hiddenActiveCount})
-                  </Button>
-                </div>
+          {cleanupMode ? (
+            <>
+              {primary && (
+                <RouteCurrentStepCard
+                  task={primary}
+                  loadingId={loadingId}
+                  onComplete={handleComplete}
+                  onPostpone={(id) => runAction(id, postponeTask)}
+                />
               )}
-            </Card>
-          )}
 
-          {done.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base text-emerald-400">
-                  {cleanupMode ? "Выполненные шаги маршрута" : "Выполненные задачи"}
-                </CardTitle>
-              </CardHeader>
-              <div>
-                {done.map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    loadingId={loadingId}
-                    onComplete={() => {}}
-                    onPostpone={() => {}}
-                    onDelete={(id) => {
-                      if (!confirm("Удалить задачу?")) return;
-                      runAction(id, deleteTask);
-                    }}
-                    cleanupMode={cleanupMode}
-                  />
-                ))}
-              </div>
-            </Card>
+              {futureRouteSteps.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-base">Дальше по маршруту</CardTitle>
+                    <CardDescription className="text-sm">
+                      Следующие шаги откроются по очереди после текущего.
+                    </CardDescription>
+                  </CardHeader>
+                  <div>
+                    {futureRouteSteps.map((task) => (
+                      <FutureRouteStepRow key={task.id} task={task} />
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {postponed.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-base">Отложенные шаги</CardTitle>
+                  </CardHeader>
+                  <div>
+                    {postponed.map((task) => (
+                      <PostponedRouteStepRow key={task.id} task={task} />
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {done.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-base text-emerald-400">
+                      Выполненные шаги
+                    </CardTitle>
+                  </CardHeader>
+                  <div>
+                    {done.map((task) => (
+                      <CompletedRouteStepRow key={task.id} task={task} />
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </>
+          ) : (
+            <>
+              {primary && (
+                <PrimaryActionCard
+                  task={primary}
+                  loadingId={loadingId}
+                  onComplete={handleComplete}
+                  cleanupMode={false}
+                />
+              )}
+
+              {activeTasks.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-base">Активные задачи</CardTitle>
+                  </CardHeader>
+                  <div>
+                    {visibleActiveTasks.map((task) => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        loadingId={loadingId}
+                        onComplete={handleComplete}
+                        onPostpone={(id) => runAction(id, postponeTask)}
+                        onDelete={(id) => {
+                          if (!confirm("Удалить задачу?")) return;
+                          runAction(id, deleteTask);
+                        }}
+                        cleanupMode={false}
+                      />
+                    ))}
+                  </div>
+                  {hiddenActiveCount > 0 && !showAllActive && (
+                    <div className="px-5 pb-5">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowAllActive(true)}
+                      >
+                        Показать ещё ({hiddenActiveCount})
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {done.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base text-emerald-400">
+                      Выполненные задачи
+                    </CardTitle>
+                  </CardHeader>
+                  <div>
+                    {done.map((task) => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        loadingId={loadingId}
+                        onComplete={() => {}}
+                        onPostpone={() => {}}
+                        onDelete={(id) => {
+                          if (!confirm("Удалить задачу?")) return;
+                          runAction(id, deleteTask);
+                        }}
+                        cleanupMode={false}
+                      />
+                    ))}
+                  </div>
+                </Card>
+              )}
+            </>
           )}
 
           {cleanupMode && (pendingMeasures.length > 0 || doneMeasures.length > 0) && (

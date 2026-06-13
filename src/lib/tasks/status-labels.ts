@@ -8,14 +8,14 @@ export function getTaskStatusLabel(
 ): string {
   switch (status) {
     case "done":
-      return "Выполнена";
+      return options?.routeStep !== undefined ? "Выполнено" : "Выполнена";
     case "postponed":
       return "Отложена";
     case "archived":
       return "В архиве";
     case "pending":
-      if (options?.routeStep === "current") return "Следующий";
-      if (options?.routeStep === "queued") return "В очереди";
+      if (options?.routeStep === "current") return "Сейчас";
+      if (options?.routeStep === "queued") return "Дальше";
       return "Активна";
   }
 }

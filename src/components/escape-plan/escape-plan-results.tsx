@@ -1,14 +1,15 @@
 "use client";
 
-import { EscapePlanActiveDirection } from "@/components/escape-plan/escape-plan-active-direction";
+import { EscapePlanActiveRouteBlock } from "@/components/escape-plan/escape-plan-active-route-block";
+import { EscapePlanAlternativeRoutesBlock } from "@/components/escape-plan/escape-plan-alternative-routes-block";
+import { EscapePlanFinancialMeasuresBlock } from "@/components/escape-plan/escape-plan-financial-measures-block";
 import { EscapePlanFollowUp } from "@/components/escape-plan/escape-plan-follow-up";
 import { EscapePlanNotRecommendedList } from "@/components/escape-plan/escape-plan-not-recommended";
 import { EscapePlanOptionCard } from "@/components/escape-plan/escape-plan-option-card";
 import { EscapePlanPrimaryCard } from "@/components/escape-plan/escape-plan-primary-card";
-import { EscapePlanSavedAlternatives } from "@/components/escape-plan/escape-plan-saved-alternatives";
-import { EscapeRouteConflictModal } from "@/components/escape-plan/escape-route-conflict-modal";
+import { EscapePlanQuickActionsBlock } from "@/components/escape-plan/escape-plan-quick-actions-block";
+import { EscapeRouteActivateModal } from "@/components/escape-plan/escape-route-activate-modal";
 import { RescuePlanCard } from "@/components/escape-plan/rescue-plan-card";
-import { RescueProgressCard } from "@/components/escape-plan/rescue-progress-card";
 import { Button } from "@/components/ui/button";
 import { useCopy } from "@/components/copy/site-copy-provider";
 import {
@@ -21,6 +22,7 @@ import {
 import { buildRescuePlan, buildRescueProgressFromPlan } from "@/lib/escape-plan/build-rescue-plan";
 import { computeRouteStepProgress } from "@/lib/escape-plan/route-progress";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
+import { partitionEscapePlanOptions } from "@/lib/escape-plan/recommendation-types";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
 import { ESCAPE_VISIBLE_OPTIONS } from "@/lib/escape-plan/situation-brief";
 import {
@@ -52,6 +54,7 @@ interface EscapePlanResultsProps {
   initialEscapePlans?: UserEscapePlan[];
   initialPendingFollowUp?: UserEscapePlan | null;
   initialActivePlanTasks?: FinancialTask[];
+  initialFinancialMeasureTasks?: FinancialTask[];
   mainFinancialGoal?: string;
   onRegenerate?: () => void;
 }
@@ -64,18 +67,19 @@ export function EscapePlanResults({
   initialEscapePlans = [],
   initialPendingFollowUp = null,
   initialActivePlanTasks = [],
+  initialFinancialMeasureTasks = [],
   mainFinancialGoal,
   onRegenerate,
 }: EscapePlanResultsProps) {
   const [escapePlans, setEscapePlans] = useState(initialEscapePlans);
   const [pendingFollowUp, setPendingFollowUp] = useState(initialPendingFollowUp);
   const [activePlanTasks, setActivePlanTasks] = useState(initialActivePlanTasks);
+  const [financialMeasureTasks] = useState(initialFinancialMeasureTasks);
   const [choosingTitle, setChoosingTitle] = useState<string | null>(null);
   const [activatingPlanId, setActivatingPlanId] = useState<string | null>(null);
   const [chooseError, setChooseError] = useState("");
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [showAlternatives, setShowAlternatives] = useState(false);
-  const [pendingRouteChoice, setPendingRouteChoice] = useState<
+  const [pendingActivate, setPendingActivate] = useState<
     | { kind: "option"; option: EscapePlanOption }
     | { kind: "saved"; plan: UserEscapePlan }
     | null
@@ -99,6 +103,11 @@ export function EscapePlanResults({
     );
   }, [plan.options, capabilities, failedPlans]);
 
+  const { incomeRoutes: rankedIncomeRoutes, financialMeasures } = useMemo(
+    () => partitionEscapePlanOptions(rankedOptions),
+    [rankedOptions]
+  );
+
   const activePlan =
     escapePlans.find((p) => isActiveEscapeAttempt(p)) ?? null;
   const activeTitle = activePlan?.option_title ?? null;
@@ -106,22 +115,24 @@ export function EscapePlanResults({
     () => escapePlans.filter((plan) => isAlternativeEscapePlan(plan)),
     [escapePlans]
   );
-  const reservedTitles = useMemo(() => {
+  const reservedIncomeTitles = useMemo(() => {
     const titles = new Set<string>();
     if (activeTitle) titles.add(activeTitle);
-    for (const plan of savedAlternativePlans) {
-      titles.add(plan.option_title);
+    for (const item of savedAlternativePlans) {
+      titles.add(item.option_title);
     }
     return titles;
   }, [activeTitle, savedAlternativePlans]);
 
-  const availableOptions = useMemo(() => {
-    return rankedOptions.filter((option) => !reservedTitles.has(option.title));
-  }, [rankedOptions, reservedTitles]);
+  const availableIncomeRoutes = useMemo(
+    () =>
+      rankedIncomeRoutes.filter((option) => !reservedIncomeTitles.has(option.title)),
+    [rankedIncomeRoutes, reservedIncomeTitles]
+  );
 
-  const primaryOption = availableOptions[0] ?? null;
-  const backupOptions = availableOptions.slice(1, ESCAPE_VISIBLE_OPTIONS);
-  const hiddenOptions = availableOptions.slice(ESCAPE_VISIBLE_OPTIONS);
+  const primaryIncomeRoute = availableIncomeRoutes[0] ?? null;
+  const backupIncomeRoutes = availableIncomeRoutes.slice(1, ESCAPE_VISIBLE_OPTIONS);
+  const hiddenIncomeRoutes = availableIncomeRoutes.slice(ESCAPE_VISIBLE_OPTIONS);
 
   const rescuePlan = useMemo(() => {
     if (initialRescuePlan && !activePlan) return initialRescuePlan;
@@ -129,7 +140,7 @@ export function EscapePlanResults({
       ...financialSnapshot,
       primaryGoal: mainFinancialGoal ?? resolvePrimaryGoal(capabilities),
       escapePlan: plan,
-      topOption: primaryOption ?? rankedOptions[0] ?? null,
+      topOption: primaryIncomeRoute ?? rankedIncomeRoutes[0] ?? null,
       activePlan,
       pendingTasks: activePlanTasks,
     });
@@ -139,8 +150,8 @@ export function EscapePlanResults({
     financialSnapshot,
     capabilities,
     plan,
-    primaryOption,
-    rankedOptions,
+    primaryIncomeRoute,
+    rankedIncomeRoutes,
     activePlanTasks,
     mainFinancialGoal,
   ]);
@@ -166,19 +177,18 @@ export function EscapePlanResults({
     setEscapePlans((prev) => [
       saved,
       ...prev
-        .filter((plan) => plan.id !== saved.id)
-        .map((plan) => {
-          if (plan.id === activePlan?.id || isActiveEscapeAttempt(plan)) {
-            return { ...plan, status: "archived" as const };
+        .filter((item) => item.id !== saved.id)
+        .map((item) => {
+          if (item.id === activePlan?.id || isActiveEscapeAttempt(item)) {
+            return { ...item, status: "alternative" as const };
           }
-          return plan;
+          return item;
         }),
     ]);
     setActivePlanTasks(tasks);
     setPendingFollowUp(null);
     setShowMoreOptions(false);
-    setShowAlternatives(false);
-    setPendingRouteChoice(null);
+    setPendingActivate(null);
   }
 
   async function handleChoose(option: EscapePlanOption) {
@@ -194,13 +204,14 @@ export function EscapePlanResults({
     }
   }
 
-  async function handleMakeActive() {
-    if (!pendingRouteChoice || !activePlan) return;
+  async function handleConfirmActivate() {
+    if (!pendingActivate) return;
     setChooseError("");
-    if (pendingRouteChoice.kind === "option") {
-      setChoosingTitle(pendingRouteChoice.option.title);
+
+    if (pendingActivate.kind === "option") {
+      setChoosingTitle(pendingActivate.option.title);
       try {
-        const saved = await activateEscapeOption(pendingRouteChoice.option);
+        const saved = await activateEscapeOption(pendingActivate.option);
         await applyActiveRoute(saved);
       } catch (err) {
         setChooseError(err instanceof Error ? err.message : "Не удалось переключить");
@@ -210,9 +221,9 @@ export function EscapePlanResults({
       return;
     }
 
-    setActivatingPlanId(pendingRouteChoice.plan.id);
+    setActivatingPlanId(pendingActivate.plan.id);
     try {
-      const saved = await activateSavedEscapeRoute(pendingRouteChoice.plan.id);
+      const saved = await activateSavedEscapeRoute(pendingActivate.plan.id);
       await applyActiveRoute(saved);
     } catch (err) {
       setChooseError(err instanceof Error ? err.message : "Не удалось переключить");
@@ -221,15 +232,12 @@ export function EscapePlanResults({
     }
   }
 
-  async function handleSaveAsAlternative() {
-    if (!pendingRouteChoice || pendingRouteChoice.kind !== "option") return;
-    setChoosingTitle(pendingRouteChoice.option.title);
+  async function handleSaveAsAlternative(option: EscapePlanOption) {
+    setChoosingTitle(option.title);
     setChooseError("");
     try {
-      const saved = await saveEscapeOptionAsAlternative(pendingRouteChoice.option);
-      setEscapePlans((prev) => [saved, ...prev.filter((plan) => plan.id !== saved.id)]);
-      setPendingRouteChoice(null);
-      setShowAlternatives(true);
+      const saved = await saveEscapeOptionAsAlternative(option);
+      setEscapePlans((prev) => [saved, ...prev.filter((item) => item.id !== saved.id)]);
     } catch (err) {
       setChooseError(err instanceof Error ? err.message : "Не удалось сохранить");
     } finally {
@@ -237,13 +245,13 @@ export function EscapePlanResults({
     }
   }
 
-  function requestChoose(option: EscapePlanOption) {
-    if (activePlan) {
-      setChooseError("");
-      setPendingRouteChoice({ kind: "option", option });
+  function requestActivateOption(option: EscapePlanOption) {
+    if (!activePlan) {
+      void handleChoose(option);
       return;
     }
-    void handleChoose(option);
+    setChooseError("");
+    setPendingActivate({ kind: "option", option });
   }
 
   function requestActivateSaved(plan: UserEscapePlan) {
@@ -262,14 +270,14 @@ export function EscapePlanResults({
       return;
     }
     setChooseError("");
-    setPendingRouteChoice({ kind: "saved", plan });
+    setPendingActivate({ kind: "saved", plan });
   }
 
-  const conflictNewTitle =
-    pendingRouteChoice?.kind === "option"
-      ? pendingRouteChoice.option.title
-      : pendingRouteChoice?.kind === "saved"
-        ? pendingRouteChoice.plan.option_title
+  const activateNewTitle =
+    pendingActivate?.kind === "option"
+      ? pendingActivate.option.title
+      : pendingActivate?.kind === "saved"
+        ? pendingActivate.plan.option_title
         : "";
   const routeActionLoading =
     choosingTitle != null || activatingPlanId != null;
@@ -290,36 +298,23 @@ export function EscapePlanResults({
   }
 
   return (
-    <div className="space-y-6">
-      <EscapeRouteConflictModal
-        open={pendingRouteChoice != null && activePlan != null}
+    <div className="space-y-8">
+      <EscapeRouteActivateModal
+        open={pendingActivate != null && activePlan != null}
         currentRouteTitle={activePlan?.option_title ?? ""}
-        newRouteTitle={conflictNewTitle}
+        newRouteTitle={activateNewTitle}
         error={chooseError}
         loading={routeActionLoading}
-        showSaveAsAlternative={pendingRouteChoice?.kind === "option"}
         onClose={() => {
           if (!routeActionLoading) {
-            setPendingRouteChoice(null);
+            setPendingActivate(null);
             setChooseError("");
           }
         }}
-        onKeepCurrent={() => {
-          setPendingRouteChoice(null);
-          setChooseError("");
-        }}
-        onMakeActive={() => void handleMakeActive()}
-        onSaveAsAlternative={() => void handleSaveAsAlternative()}
+        onConfirm={() => void handleConfirmActivate()}
       />
 
       <RescuePlanCard plan={rescuePlan} />
-
-      {progress && activePlan && (
-        <RescueProgressCard
-          progress={progress}
-          activeGoal={activePlan.active_goal}
-        />
-      )}
 
       {pendingFollowUp && (
         <EscapePlanFollowUp
@@ -330,116 +325,98 @@ export function EscapePlanResults({
         />
       )}
 
-      {activePlan ? (
-        <>
-          <EscapePlanActiveDirection
-            activePlan={activePlan}
-            steps={activePlanTasks}
-            mainFinancialGoal={mainFinancialGoal}
-            onFailed={handleAttemptFailed}
-          />
-
-          <EscapePlanSavedAlternatives
-            plans={savedAlternativePlans}
-            activatingId={activatingPlanId}
-            onActivate={requestActivateSaved}
-          />
-
-          {availableOptions.length > 0 && (
-            <div className="space-y-3">
-              {!showAlternatives ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAlternatives(true)}
-                  className="text-muted"
-                >
-                  Посмотреть альтернативные варианты
-                </Button>
-              ) : (
-                <>
-                  <h2 className="text-base font-semibold text-muted">
-                    Альтернативные варианты
-                  </h2>
-                  {chooseError && (
-                    <p className="text-sm text-red-400">{chooseError}</p>
-                  )}
-                  <div className="grid gap-3">
-                    {availableOptions.map((option, index) => (
-                      <EscapePlanOptionCard
-                        key={option.title}
-                        option={option}
-                        fitIndex={index}
-                        choosing={choosingTitle === option.title}
-                        onChoose={requestChoose}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </>
+      {activePlan && progress ? (
+        <EscapePlanActiveRouteBlock
+          activePlan={activePlan}
+          steps={activePlanTasks}
+          mainFinancialGoal={mainFinancialGoal}
+          progress={progress}
+          onFailed={handleAttemptFailed}
+        />
       ) : (
-        <>
-          {primaryOption && (
+        primaryIncomeRoute && (
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold">Выберите маршрут доп.дохода</h2>
             <EscapePlanPrimaryCard
-              option={primaryOption}
-              choosing={choosingTitle === primaryOption.title}
+              option={primaryIncomeRoute}
+              choosing={choosingTitle === primaryIncomeRoute.title}
               onChoose={handleChoose}
             />
-          )}
-
-          {backupOptions.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-sm font-medium text-muted">{backupOptionsLabel}</h2>
-              {chooseError && (
-                <p className="text-sm text-red-400">{chooseError}</p>
-              )}
-              <div className="grid gap-3">
-                {backupOptions.map((option, index) => (
-                  <EscapePlanOptionCard
-                    key={option.title}
-                    option={option}
-                    fitIndex={index + 1}
-                    choosing={choosingTitle === option.title}
-                    onChoose={handleChoose}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {hiddenOptions.length > 0 && (
-            <div className="space-y-3">
-              {!showMoreOptions ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowMoreOptions(true)}
-                  className="text-muted"
-                >
-                  Показать ещё варианты ({hiddenOptions.length})
-                </Button>
-              ) : (
+            {backupIncomeRoutes.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-muted">{backupOptionsLabel}</h3>
+                {chooseError && (
+                  <p className="text-sm text-red-400">{chooseError}</p>
+                )}
                 <div className="grid gap-3">
-                  {hiddenOptions.map((option, index) => (
+                  {backupIncomeRoutes.map((option, index) => (
                     <EscapePlanOptionCard
                       key={option.title}
                       option={option}
-                      fitIndex={ESCAPE_VISIBLE_OPTIONS + index}
+                      fitIndex={index + 1}
                       choosing={choosingTitle === option.title}
                       onChoose={handleChoose}
                     />
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-        </>
+              </div>
+            )}
+            {hiddenIncomeRoutes.length > 0 && (
+              <div className="space-y-3">
+                {!showMoreOptions ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMoreOptions(true)}
+                    className="text-muted"
+                  >
+                    Показать ещё маршруты ({hiddenIncomeRoutes.length})
+                  </Button>
+                ) : (
+                  <div className="grid gap-3">
+                    {hiddenIncomeRoutes.map((option, index) => (
+                      <EscapePlanOptionCard
+                        key={option.title}
+                        option={option}
+                        fitIndex={ESCAPE_VISIBLE_OPTIONS + index}
+                        choosing={choosingTitle === option.title}
+                        onChoose={handleChoose}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )
       )}
 
-      {!activePlan && <EscapePlanNotRecommendedList items={plan.not_recommended} />}
+      <EscapePlanAlternativeRoutesBlock
+        savedPlans={savedAlternativePlans}
+        incomeOptions={activePlan ? availableIncomeRoutes : []}
+        activatingId={activatingPlanId}
+        choosingTitle={choosingTitle}
+        onActivateSaved={requestActivateSaved}
+        onChooseOption={requestActivateOption}
+        onSaveOptionAsAlternative={
+          activePlan ? (option) => void handleSaveAsAlternative(option) : undefined
+        }
+      />
+
+      <EscapePlanFinancialMeasuresBlock
+        options={financialMeasures}
+        tasks={financialMeasureTasks}
+      />
+
+      <EscapePlanQuickActionsBlock />
+
+      {!activePlan && (
+        <EscapePlanNotRecommendedList items={plan.not_recommended} />
+      )}
+
+      {chooseError && !pendingActivate && (
+        <p className="text-sm text-red-400">{chooseError}</p>
+      )}
 
       {onRegenerate && (
         <p className="text-sm text-muted">

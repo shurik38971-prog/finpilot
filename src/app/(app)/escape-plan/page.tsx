@@ -6,7 +6,9 @@ import {
   getEscapePlanTasks,
   getPendingEscapeFollowUp,
   getUserEscapePlans,
+  syncFinancialMeasureTasks,
 } from "@/lib/actions/escape-plans";
+import { getFinancialMeasureTasks } from "@/lib/actions/tasks";
 import { buildRescuePlan } from "@/lib/escape-plan/build-rescue-plan";
 import { formatMainFinancialGoal } from "@/lib/escape-plan/format-financial-goal";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
@@ -32,6 +34,16 @@ export default async function EscapePlanPage() {
   const activePlanTasks = activePlan
     ? await getEscapePlanTasks(activePlan.id).catch(() => [])
     : [];
+
+  if (capabilities?.last_plan?.options?.length) {
+    try {
+      await syncFinancialMeasureTasks(capabilities.last_plan.options);
+    } catch (error) {
+      console.error("Failed to sync financial measure tasks:", error);
+    }
+  }
+
+  const financialMeasureTasks = await getFinancialMeasureTasks().catch(() => []);
 
   const financialSnapshot = {
     monthlyIncome: summary?.totalIncome ?? 0,
@@ -77,6 +89,7 @@ export default async function EscapePlanPage() {
       initialEscapePlans={escapePlans}
       initialPendingFollowUp={pendingFollowUp}
       initialActivePlanTasks={activePlanTasks}
+      initialFinancialMeasureTasks={financialMeasureTasks}
       hasActiveRoute={Boolean(activePlan)}
       mainFinancialGoal={mainFinancialGoal}
     />

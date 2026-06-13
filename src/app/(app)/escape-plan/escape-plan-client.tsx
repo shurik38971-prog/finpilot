@@ -32,6 +32,7 @@ interface EscapePlanPageClientProps {
   initialEscapePlans?: UserEscapePlan[];
   initialPendingFollowUp?: UserEscapePlan | null;
   initialActivePlanTasks?: FinancialTask[];
+  initialFinancialMeasureTasks?: FinancialTask[];
   hasActiveRoute?: boolean;
   mainFinancialGoal?: string;
 }
@@ -43,6 +44,7 @@ export function EscapePlanPageClient({
   initialEscapePlans = [],
   initialPendingFollowUp = null,
   initialActivePlanTasks = [],
+  initialFinancialMeasureTasks = [],
   hasActiveRoute = false,
   mainFinancialGoal,
 }: EscapePlanPageClientProps) {
@@ -198,6 +200,7 @@ export function EscapePlanPageClient({
             initialEscapePlans={escapePlans}
             initialPendingFollowUp={initialPendingFollowUp}
             initialActivePlanTasks={activePlanTasks}
+            initialFinancialMeasureTasks={initialFinancialMeasureTasks}
             mainFinancialGoal={mainFinancialGoal}
             onRegenerate={() => {
               if (hasActiveRoute || escapePlans.some((p) => p.status === "active")) {

@@ -1,7 +1,9 @@
 "use server";
 
 import { buildActiveGoalTitle } from "@/lib/escape-plan/build-active-goal";
-import { buildEscapeRouteSteps } from "@/lib/escape-plan/route-steps";
+import { buildFinancialMeasureTaskRow, filterFinancialMeasureOptions } from "@/lib/escape-plan/financial-measures";
+import { isIncomeRouteOption, measureTaskKey } from "@/lib/escape-plan/recommendation-types";
+import { buildEscapeRouteSteps, sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type {
@@ -12,7 +14,6 @@ import type {
 } from "@/types/escape-plan";
 import type { EscapeFailureReason } from "@/types/rescue-plan";
 import { isActiveEscapeAttempt, resolveAttemptStatus } from "@/types/rescue-plan";
-import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import type { FinancialTask, TaskCategory } from "@/types/tasks";
 
 const ESCAPE_PATHS = ["/escape-plan", "/dashboard", "/actions"];
@@ -96,7 +97,7 @@ async function archiveAllEscapeRouteTasks(
   if (error) throw error;
 }
 
-/** Analysis/orphan tasks without escape_plan_id (cleanup mode). */
+/** Analysis orphan tasks without escape_plan_id (not financial measures). */
 async function archiveOrphanActionTasks(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
@@ -106,7 +107,8 @@ async function archiveOrphanActionTasks(
     .update({ status: "archived" })
     .eq("user_id", userId)
     .neq("status", "archived")
-    .is("escape_plan_id", null);
+    .is("escape_plan_id", null)
+    .not("normalized_title", "like", "measure:%");
 
   if (error) throw error;
 }
@@ -207,6 +209,10 @@ async function createEscapePlanTasks(
   escapePlanId: string,
   option: EscapePlanOption
 ) {
+  if (!isIncomeRouteOption(option)) {
+    throw new Error("Пошаговый план доступен только для маршрутов доп.дохода");
+  }
+
   const steps = buildEscapeRouteSteps(option);
   const category = OPTION_TASK_CATEGORY[option.type] ?? "other";
 
@@ -324,7 +330,7 @@ async function switchToEscapeOption(
     const { error: archiveError } = await supabase
       .from("user_escape_plans")
       .update({
-        status: "archived",
+        status: "alternative",
         updated_at: new Date().toISOString(),
       })
       .eq("id", active.id)
@@ -404,9 +410,48 @@ export async function getPendingEscapeFollowUp(): Promise<UserEscapePlan | null>
   return data ? normalizeEscapePlan(data as UserEscapePlan) : null;
 }
 
+function assertIncomeRouteOption(option: EscapePlanOption) {
+  if (!isIncomeRouteOption(option)) {
+    throw new Error("Этот вариант — финансовая мера, а не маршрут доп.дохода");
+  }
+}
+
+export async function syncFinancialMeasureTasks(
+  options: EscapePlanOption[]
+): Promise<void> {
+  const measures = filterFinancialMeasureOptions(options);
+  if (measures.length === 0) return;
+
+  const { supabase, userId } = await getUserId();
+
+  for (const option of measures) {
+    const key = measureTaskKey(option.title);
+    const { data: existing, error: fetchError } = await supabase
+      .from("financial_tasks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("normalized_title", key)
+      .neq("status", "archived")
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (existing) continue;
+
+    const { error } = await supabase
+      .from("financial_tasks")
+      .insert(buildFinancialMeasureTaskRow(userId, option));
+
+    if (error) throw error;
+  }
+
+  revalidateEscapePages();
+  revalidatePath("/actions");
+}
+
 export async function chooseEscapeOption(
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
+  assertIncomeRouteOption(option);
   const { supabase, userId } = await getUserId();
   const active = await getActiveEscapePlan();
   const saved = active
@@ -421,6 +466,7 @@ export async function chooseEscapeOption(
 export async function saveEscapeOptionAsAlternative(
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
+  assertIncomeRouteOption(option);
   const { supabase, userId } = await getUserId();
 
   const existing = await findExistingRouteByTitle(supabase, userId, option.title, [
@@ -454,6 +500,7 @@ export async function saveEscapeOptionAsAlternative(
 export async function activateEscapeOption(
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
+  assertIncomeRouteOption(option);
   const { supabase, userId } = await getUserId();
   const saved = await switchToEscapeOption(supabase, userId, option);
 

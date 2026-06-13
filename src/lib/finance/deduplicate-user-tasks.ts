@@ -11,6 +11,11 @@ interface ActiveTaskRow {
   task_category: string | null;
   status: string;
   escape_plan_id: string | null;
+  normalized_title: string | null;
+}
+
+function isFinancialMeasureTask(task: ActiveTaskRow): boolean {
+  return task.normalized_title?.startsWith("measure:") ?? false;
 }
 
 export interface DeduplicateUserTasksResult {
@@ -25,7 +30,7 @@ export async function deduplicateUserTasksForUser(
   const { data: tasks, error } = await supabase
     .from("financial_tasks")
     .select(
-      "id, title, description, impact_score, priority_score, task_category, status, escape_plan_id"
+      "id, title, description, impact_score, priority_score, task_category, status, escape_plan_id, normalized_title"
     )
     .eq("user_id", userId)
     .in("status", ["pending", "postponed"]);
@@ -39,10 +44,12 @@ export async function deduplicateUserTasksForUser(
 
   const routeTasks = activeTasks.filter((task) => task.escape_plan_id);
   const regularTasks = activeTasks.filter((task) => !task.escape_plan_id);
+  const measureTasks = regularTasks.filter(isFinancialMeasureTask);
+  const otherRegular = regularTasks.filter((task) => !isFinancialMeasureTask(task));
 
   const groups = new Map<string, ActiveTaskRow[]>();
 
-  for (const task of regularTasks) {
+  for (const task of otherRegular) {
     const category =
       task.task_category ??
       detectTaskCategory(task.title, task.description);
@@ -52,7 +59,7 @@ export async function deduplicateUserTasksForUser(
   }
 
   const toArchive: string[] = [];
-  let keptCount = routeTasks.length;
+  let keptCount = routeTasks.length + measureTasks.length;
 
   for (const group of groups.values()) {
     const keeper = [...group].sort(

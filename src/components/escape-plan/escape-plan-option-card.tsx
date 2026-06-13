@@ -31,7 +31,9 @@ interface EscapePlanOptionCardProps {
   fitIndex: number;
   fitLevel?: EscapeFitLevel;
   choosing: boolean;
+  actionLabel?: string;
   onChoose: (option: EscapePlanOption) => void;
+  onSaveAsAlternative?: (option: EscapePlanOption) => void;
 }
 
 export function EscapePlanOptionCard({
@@ -39,12 +41,15 @@ export function EscapePlanOptionCard({
   fitIndex,
   fitLevel,
   choosing,
+  actionLabel,
   onChoose,
+  onSaveAsAlternative,
 }: EscapePlanOptionCardProps) {
   const [expanded, setExpanded] = useState(false);
   const level = fitLevel ?? (fitIndex <= 1 ? "excellent" : fitIndex === 2 ? "good" : "low");
   const fitLabel = fitIndex <= 2 ? getTop3FitLabel(fitIndex) : "Запасной вариант";
-  const tryLabel = useCopy("btn.try_option");
+  const defaultTryLabel = useCopy("btn.try_option");
+  const tryLabel = actionLabel ?? defaultTryLabel;
   const creatingLabel = useCopy("btn.creating_plan");
   const incomeRange = formatEscapeIncomeRange(option);
   const whyReasons = compactWhyReasons(option, 4);
@@ -99,22 +104,35 @@ export function EscapePlanOptionCard({
             {compactRisk(option, 80)}
           </p>
 
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={choosing}
-            onClick={() => onChoose(option)}
-            className="w-full sm:w-fit"
-          >
-            {choosing ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                {creatingLabel}
-              </>
-            ) : (
-              tryLabel
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={choosing}
+              onClick={() => onChoose(option)}
+              className="w-full sm:w-fit"
+            >
+              {choosing ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  {creatingLabel}
+                </>
+              ) : (
+                tryLabel
+              )}
+            </Button>
+            {onSaveAsAlternative && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={choosing}
+                onClick={() => onSaveAsAlternative(option)}
+                className="w-full sm:w-fit text-muted"
+              >
+                Сохранить в альтернативы
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       </CardHeader>
     </Card>

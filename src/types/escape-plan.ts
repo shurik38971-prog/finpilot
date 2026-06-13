@@ -100,9 +100,12 @@ export function isAlternativeEscapePlan(plan: { status: string }): boolean {
   return plan.status === "alternative";
 }
 
-export function isArchivedEscapePlan(plan: { status: string }): boolean {
-  return plan.status === "archived" || plan.status === "abandoned";
-}
+export type { RecommendationType } from "@/lib/escape-plan/recommendation-types";
+export {
+  getRecommendationType,
+  isFinancialMeasureOption,
+  isIncomeRouteOption,
+} from "@/lib/escape-plan/recommendation-types";
 export type EscapeFollowUpAnswer = "yes" | "partial" | "no";
 
 export const ESCAPE_CONFIDENCE_LABELS: Record<EscapePlanConfidence, string> = {

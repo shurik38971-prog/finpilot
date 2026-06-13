@@ -1,4 +1,4 @@
-import { getFinancialTasks } from "@/lib/actions/tasks";
+import { getFinancialMeasureTasks, getFinancialTasks } from "@/lib/actions/tasks";
 import { deduplicateUserTasksForUser } from "@/lib/finance/deduplicate-user-tasks";
 import { isCleanupMode } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
@@ -20,8 +20,16 @@ export default async function ActionsPage() {
     }
   }
 
-  const tasks = await getFinancialTasks({
-    activeEscapePlanOnly: isCleanupMode(),
-  });
-  return <ActionsPageClient tasks={tasks} cleanupMode={isCleanupMode()} />;
+  const cleanupMode = isCleanupMode();
+  const [tasks, additionalTasks] = await Promise.all([
+    getFinancialTasks({ activeEscapePlanOnly: cleanupMode }),
+    cleanupMode ? getFinancialMeasureTasks() : Promise.resolve([]),
+  ]);
+  return (
+    <ActionsPageClient
+      tasks={tasks}
+      additionalTasks={additionalTasks}
+      cleanupMode={cleanupMode}
+    />
+  );
 }

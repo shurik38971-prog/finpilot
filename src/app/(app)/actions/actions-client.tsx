@@ -256,11 +256,13 @@ const VISIBLE_ACTIVE_TASKS = 5;
 
 interface ActionsPageClientProps {
   tasks: FinancialTaskWithGoal[];
+  additionalTasks?: FinancialTaskWithGoal[];
   cleanupMode?: boolean;
 }
 
 export function ActionsPageClient({
   tasks,
+  additionalTasks = [],
   cleanupMode = false,
 }: ActionsPageClientProps) {
   const router = useRouter();
@@ -281,6 +283,8 @@ export function ActionsPageClient({
     );
   const postponed = orderedTasks.filter((t) => t.status === "postponed");
   const done = orderedTasks.filter((t) => t.status === "done");
+  const pendingMeasures = additionalTasks.filter((t) => t.status === "pending");
+  const doneMeasures = additionalTasks.filter((t) => t.status === "done");
   const primary = pending[0] ?? null;
   const activeTasks = cleanupMode
     ? postponed
@@ -345,7 +349,7 @@ export function ActionsPageClient({
       />
       <PageHeader title={pageTitle} description={pageDescription} />
 
-      {tasks.length === 0 ? (
+      {tasks.length === 0 && additionalTasks.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center py-16 text-center px-6">
             <div className="rounded-full bg-surface-hover p-4 mb-4">
@@ -440,7 +444,7 @@ export function ActionsPageClient({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base text-emerald-400">
-                  Выполненные задачи
+                  {cleanupMode ? "Выполненные шаги маршрута" : "Выполненные задачи"}
                 </CardTitle>
               </CardHeader>
               <div>
@@ -456,6 +460,33 @@ export function ActionsPageClient({
                       runAction(id, deleteTask);
                     }}
                     cleanupMode={cleanupMode}
+                  />
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {cleanupMode && (pendingMeasures.length > 0 || doneMeasures.length > 0) && (
+            <Card className="mt-6 border-border/80">
+              <CardHeader>
+                <CardTitle className="text-base">Дополнительные действия</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Финансовые меры отдельно от пошагового маршрута доп.дохода.
+                </CardDescription>
+              </CardHeader>
+              <div>
+                {[...pendingMeasures, ...doneMeasures].map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    loadingId={loadingId}
+                    onComplete={handleComplete}
+                    onPostpone={(id) => runAction(id, postponeTask)}
+                    onDelete={(id) => {
+                      if (!confirm("Удалить задачу?")) return;
+                      runAction(id, deleteTask);
+                    }}
+                    cleanupMode={false}
                   />
                 ))}
               </div>

@@ -104,6 +104,25 @@ export async function getFinancialTasks(options?: {
   return tasks;
 }
 
+export async function getFinancialMeasureTasks(): Promise<FinancialTaskWithGoal[]> {
+  const { supabase, userId } = await getUserId();
+  const { data, error } = await supabase
+    .from("financial_tasks")
+    .select(TASK_SELECT)
+    .eq("user_id", userId)
+    .neq("status", "archived")
+    .is("escape_plan_id", null)
+    .like("normalized_title", "measure:%")
+    .order("priority_score", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? [])
+    .map((row) => mapTask(row as Record<string, unknown>))
+    .filter((task) => Boolean(task.explanation?.trim()));
+}
+
 export async function getCleanupActions(
   limit = 3
 ): Promise<FinancialTaskWithGoal[]> {

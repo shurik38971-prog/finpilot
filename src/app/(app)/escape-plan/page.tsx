@@ -1,28 +1,31 @@
 import { EscapePlanPageClient } from "@/app/(app)/escape-plan/escape-plan-client";
 import { getUserCapabilities } from "@/lib/actions/capabilities";
 import { getDashboardSummary } from "@/lib/actions/finance";
+import { getGoals } from "@/lib/actions/goals";
 import {
   getEscapePlanTasks,
   getPendingEscapeFollowUp,
   getUserEscapePlans,
 } from "@/lib/actions/escape-plans";
 import { buildRescuePlan } from "@/lib/escape-plan/build-rescue-plan";
+import { formatMainFinancialGoal } from "@/lib/escape-plan/format-financial-goal";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
 import {
   getEffectiveSkills,
-  resolvePrimaryGoal,
 } from "@/types/escape-plan";
 import { isActiveEscapeAttempt, resolveAttemptStatus } from "@/types/rescue-plan";
 
 export const dynamic = "force-dynamic";
 
 export default async function EscapePlanPage() {
-  const [capabilities, escapePlans, pendingFollowUp, summary] = await Promise.all([
+  const [capabilities, escapePlans, pendingFollowUp, summary, goals] =
+    await Promise.all([
     getUserCapabilities(),
     getUserEscapePlans().catch(() => []),
     getPendingEscapeFollowUp().catch(() => null),
     getDashboardSummary().catch(() => null),
+    getGoals().catch(() => []),
   ]);
 
   const activePlan = escapePlans.find((p) => isActiveEscapeAttempt(p)) ?? null;
@@ -35,6 +38,11 @@ export default async function EscapePlanPage() {
     netCashFlow: summary?.netCashFlow ?? 0,
     totalDebt: summary?.totalDebt ?? 0,
   };
+  const mainFinancialGoal = formatMainFinancialGoal(
+    goals,
+    capabilities,
+    financialSnapshot.totalDebt
+  );
 
   let initialRescuePlan = capabilities?.last_rescue_plan ?? null;
 
@@ -53,7 +61,7 @@ export default async function EscapePlanPage() {
 
     initialRescuePlan = buildRescuePlan({
       ...financialSnapshot,
-      primaryGoal: resolvePrimaryGoal(capabilities),
+      primaryGoal: mainFinancialGoal,
       escapePlan: capabilities.last_plan,
       topOption: ranked[0] ?? null,
       activePlan,
@@ -70,6 +78,7 @@ export default async function EscapePlanPage() {
       initialPendingFollowUp={pendingFollowUp}
       initialActivePlanTasks={activePlanTasks}
       hasActiveRoute={Boolean(activePlan)}
+      mainFinancialGoal={mainFinancialGoal}
     />
   );
 }

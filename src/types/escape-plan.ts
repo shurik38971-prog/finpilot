@@ -112,6 +112,8 @@ export interface EscapePlanOption {
   priority_rank?: number;
   rank_score?: number;
   rank_reasons?: string[];
+  /** Пошаговый план только для этого варианта (не общий plan_7_days). */
+  action_steps?: string[];
 }
 
 export type EscapeNotRecommendedReasonType = "not_worth" | "not_suitable";

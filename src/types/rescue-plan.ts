@@ -114,7 +114,7 @@ export interface BuildRescuePlanInput {
   topOption?: RescuePlanOptionLike | null;
   activePlan?: {
     option_title: string;
-    option_snapshot: RescuePlanOptionLike;
+    option_snapshot: RescuePlanOptionLike & { first_step?: string };
   } | null;
   pendingTasks?: FinancialTask[];
 }

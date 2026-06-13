@@ -133,6 +133,7 @@ ${buildFailedAttemptsBlock(failedAttempts)}
       "why_fits": "одно короткое предложение",
       "why_chosen": ["Уже есть навык", "Можно начать сразу", "Без вложений"],
       "first_step": "один конкретный шаг на сегодня",
+      "action_steps": ["шаг 1 только для этого варианта", "шаг 2", "шаг 3"],
       "risk": "одна короткая фраза",
       "income_min": 5000,
       "income_max": 15000,
@@ -153,6 +154,7 @@ ${buildFailedAttemptsBlock(failedAttempts)}
 }
 
 options — от 3 до 5 штук, отсортированы по priority_rank (1 = самый вероятный и быстрый).
+action_steps — только шаги выбранного варианта, без шагов из других направлений.
 income_min/income_max — реалистичная вилка в рублях в месяц, не точная цифра.
 Не добавляй markdown.`;
 }

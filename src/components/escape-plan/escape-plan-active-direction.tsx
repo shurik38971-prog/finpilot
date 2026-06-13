@@ -15,12 +15,14 @@ import { useState } from "react";
 interface EscapePlanActiveDirectionProps {
   activePlan: UserEscapePlan;
   steps: FinancialTask[];
+  mainFinancialGoal?: string;
   onFailed: (updated: UserEscapePlan) => void;
 }
 
 export function EscapePlanActiveDirection({
   activePlan,
   steps,
+  mainFinancialGoal,
   onFailed,
 }: EscapePlanActiveDirectionProps) {
   const router = useRouter();
@@ -32,6 +34,7 @@ export function EscapePlanActiveDirection({
   const allSteps = steps.filter(
     (s) => s.escape_plan_id === activePlan.id && s.status !== "archived"
   );
+  const nextStep = pendingSteps[0] ?? null;
   const activeGoalLabel = useCopy("escape.active_goal");
   const directionLabel = useCopy("escape.direction_label");
   const actionPlanLabel = useCopy("escape.action_plan");
@@ -53,6 +56,12 @@ export function EscapePlanActiveDirection({
     <Card className="border-accent/40 bg-accent/5">
       <CardHeader className="space-y-4">
         <div>
+          {mainFinancialGoal && (
+            <p className="text-xs text-muted mb-2">
+              Главная цель:{" "}
+              <span className="text-foreground font-medium">{mainFinancialGoal}</span>
+            </p>
+          )}
           <p className="text-xs text-muted mb-1">{activeGoalLabel}</p>
           <CardTitle className="text-lg">
             {activePlan.active_goal ?? activePlan.option_title}
@@ -60,6 +69,12 @@ export function EscapePlanActiveDirection({
           <CardDescription className="mt-1">
             {directionLabel} {activePlan.option_title}
           </CardDescription>
+          {nextStep && (
+            <p className="text-sm mt-3 rounded-lg border border-border/50 bg-surface/50 p-3">
+              <span className="text-muted">Следующий шаг: </span>
+              {nextStep.title}
+            </p>
+          )}
         </div>
 
         {allSteps.length > 0 && (

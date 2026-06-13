@@ -102,7 +102,7 @@ export function buildRescuePlan(input: BuildRescuePlanInput): RescuePlan {
   const nextAction =
     nextPendingTask?.title ??
     topOption?.first_step ??
-    escapePlan.plan_7_days[0] ??
+    activePlan?.option_snapshot?.first_step ??
     "Выберите направление и сделайте первый шаг сегодня";
 
   const optionForResult = activePlan?.option_snapshot ?? topOption;

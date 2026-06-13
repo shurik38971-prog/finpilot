@@ -33,6 +33,7 @@ interface EscapePlanPageClientProps {
   initialPendingFollowUp?: UserEscapePlan | null;
   initialActivePlanTasks?: FinancialTask[];
   hasActiveRoute?: boolean;
+  mainFinancialGoal?: string;
 }
 
 export function EscapePlanPageClient({
@@ -43,6 +44,7 @@ export function EscapePlanPageClient({
   initialPendingFollowUp = null,
   initialActivePlanTasks = [],
   hasActiveRoute = false,
+  mainFinancialGoal,
 }: EscapePlanPageClientProps) {
   const router = useRouter();
   const [capabilities, setCapabilities] = useState(initialCapabilities);
@@ -195,6 +197,7 @@ export function EscapePlanPageClient({
             initialEscapePlans={escapePlans}
             initialPendingFollowUp={initialPendingFollowUp}
             initialActivePlanTasks={activePlanTasks}
+            mainFinancialGoal={mainFinancialGoal}
             onRegenerate={() => {
               if (hasActiveRoute || escapePlans.some((p) => p.status === "active")) {
                 setPendingFormInput(null);

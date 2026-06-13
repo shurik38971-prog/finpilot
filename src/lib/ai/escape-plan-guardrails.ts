@@ -38,6 +38,7 @@ export function buildEscapePlanSystemPrompt(): string {
 - why_chosen: 3–4 коротких причины (до 6 слов), без повторов в why_fits
 - situation_summary: максимум 2 коротких предложения, без воды
 - first_step и risk: одна короткая фраза каждый
+- action_steps: 5–8 шагов ТОЛЬКО для этого варианта (не смешивать с другими направлениями)
 - income_min и income_max: реалистичная вилка в рублях в месяц, не одна точная цифра
 - confidence: high если навык есть и нет конфликтов; medium если нужна подготовка; low если долгий старт или высокая конкуренция
 - предлагать варианты на основе ВСЕХ навыков пользователя — и стандартных, и customSkills; не выдумывать навыки
@@ -165,6 +166,7 @@ export function sanitizeEscapePlanResult(
         difficulty: asDifficulty(o.difficulty),
         time_required: asString(o.time_required),
         risk: asString(o.risk),
+        action_steps: asStringArray(o.action_steps),
       };
     }),
     rankingContext

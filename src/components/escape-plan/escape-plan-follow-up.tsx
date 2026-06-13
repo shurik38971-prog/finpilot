@@ -22,7 +22,6 @@ interface EscapePlanFollowUpProps {
 
 export function EscapePlanFollowUp({
   pending,
-  plan,
   onAnswered,
   onFailed,
 }: EscapePlanFollowUpProps) {
@@ -30,7 +29,10 @@ export function EscapePlanFollowUp({
   const [error, setError] = useState("");
 
   const snapshot = pending.option_snapshot;
-  const nextPlanStep = plan.plan_7_days[1] ?? plan.plan_7_days[0];
+  const nextPlanStep =
+    snapshot?.action_steps?.find(Boolean) ??
+    snapshot?.first_step ??
+    "закрепите результат";
   const needsFailureReason =
     pending.follow_up_answer === "no" &&
     resolveAttemptStatus(pending) !== "failed";

@@ -15,6 +15,7 @@ import {
   getEscapePlanTasks,
 } from "@/lib/actions/escape-plans";
 import { buildRescuePlan, buildRescueProgressFromPlan } from "@/lib/escape-plan/build-rescue-plan";
+import { computeRouteStepProgress } from "@/lib/escape-plan/route-progress";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
 import { ESCAPE_VISIBLE_OPTIONS } from "@/lib/escape-plan/situation-brief";
@@ -46,6 +47,7 @@ interface EscapePlanResultsProps {
   initialEscapePlans?: UserEscapePlan[];
   initialPendingFollowUp?: UserEscapePlan | null;
   initialActivePlanTasks?: FinancialTask[];
+  mainFinancialGoal?: string;
   onRegenerate?: () => void;
 }
 
@@ -57,6 +59,7 @@ export function EscapePlanResults({
   initialEscapePlans = [],
   initialPendingFollowUp = null,
   initialActivePlanTasks = [],
+  mainFinancialGoal,
   onRegenerate,
 }: EscapePlanResultsProps) {
   const [escapePlans, setEscapePlans] = useState(initialEscapePlans);
@@ -104,7 +107,7 @@ export function EscapePlanResults({
     if (initialRescuePlan && !activePlan) return initialRescuePlan;
     return buildRescuePlan({
       ...financialSnapshot,
-      primaryGoal: resolvePrimaryGoal(capabilities),
+      primaryGoal: mainFinancialGoal ?? resolvePrimaryGoal(capabilities),
       escapePlan: plan,
       topOption: primaryOption ?? rankedOptions[0] ?? null,
       activePlan,
@@ -119,21 +122,30 @@ export function EscapePlanResults({
     primaryOption,
     rankedOptions,
     activePlanTasks,
+    mainFinancialGoal,
   ]);
 
   const progress = useMemo(() => {
     if (!activePlan) return null;
-    return buildRescueProgressFromPlan(
+    const routeTasks = activePlanTasks.filter(
+      (task) => task.escape_plan_id === activePlan.id
+    );
+    const incomeSnapshot = buildRescueProgressFromPlan(
       rescuePlan,
       activePlan.income_found ?? 0
     );
-  }, [activePlan, rescuePlan]);
+    const stepProgress = computeRouteStepProgress(routeTasks);
+    return {
+      ...incomeSnapshot,
+      percent: stepProgress.percent,
+    };
+  }, [activePlan, rescuePlan, activePlanTasks]);
 
   async function handleChoose(option: EscapePlanOption) {
     setChoosingTitle(option.title);
     setChooseError("");
     try {
-      const saved = await chooseEscapeOption(option, plan.plan_7_days);
+      const saved = await chooseEscapeOption(option);
       const tasks = await getEscapePlanTasks(saved.id);
       setEscapePlans((prev) => [
         saved,
@@ -238,6 +250,7 @@ export function EscapePlanResults({
           <EscapePlanActiveDirection
             activePlan={activePlan}
             steps={activePlanTasks}
+            mainFinancialGoal={mainFinancialGoal}
             onFailed={handleAttemptFailed}
           />
 

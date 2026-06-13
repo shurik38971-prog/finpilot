@@ -137,10 +137,9 @@ async function createEscapePlanTasks(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   escapePlanId: string,
-  option: EscapePlanOption,
-  plan7Days: string[]
+  option: EscapePlanOption
 ) {
-  const steps = buildEscapeActionSteps(option, plan7Days);
+  const steps = buildEscapeActionSteps(option);
   const category = OPTION_TASK_CATEGORY[option.type] ?? "other";
 
   const rows = steps.map((title, index) => ({
@@ -219,8 +218,7 @@ export async function getPendingEscapeFollowUp(): Promise<UserEscapePlan | null>
 }
 
 export async function chooseEscapeOption(
-  option: EscapePlanOption,
-  plan7Days: string[] = []
+  option: EscapePlanOption
 ): Promise<UserEscapePlan> {
   const { supabase, userId } = await getUserId();
 
@@ -248,7 +246,7 @@ export async function chooseEscapeOption(
 
   if (error) throw error;
 
-  await createEscapePlanTasks(supabase, userId, data.id, option, plan7Days);
+  await createEscapePlanTasks(supabase, userId, data.id, option);
 
   revalidateEscapePages();
   revalidatePath("/actions");

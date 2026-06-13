@@ -35,8 +35,15 @@ function checkboxClass(checked: boolean) {
   return radioClass(checked);
 }
 
-export function TesterFeedbackSurvey() {
+export function TesterFeedbackSurvey({
+  initialSubmitted = false,
+  onSubmitted,
+}: {
+  initialSubmitted?: boolean;
+  onSubmitted?: () => void;
+}) {
   const [submitted, setSubmitted] = useState(() => {
+    if (initialSubmitted) return true;
     if (typeof window === "undefined") return false;
     return sessionStorage.getItem(SESSION_KEY) === "1";
   });
@@ -119,6 +126,7 @@ export function TesterFeedbackSurvey() {
 
       sessionStorage.setItem(SESSION_KEY, "1");
       setSubmitted(true);
+      onSubmitted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось отправить отзыв");
     } finally {

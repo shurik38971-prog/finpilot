@@ -55,6 +55,8 @@ interface AnalyzePageClientProps {
   canAnalyze: boolean;
   hasIncome: boolean;
   hasExpense: boolean;
+  initialResult: AnalysisApiResponse | null;
+  testerSurveySubmitted: boolean;
 }
 
 function PlanList({
@@ -89,15 +91,18 @@ export function AnalyzePageClient({
   canAnalyze,
   hasIncome,
   hasExpense,
+  initialResult,
+  testerSurveySubmitted,
 }: AnalyzePageClientProps) {
   const fillDataHref = !hasIncome ? "/income" : "/expenses";
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnalysisApiResponse | null>(null);
+  const [result, setResult] = useState<AnalysisApiResponse | null>(initialResult);
   const [createdTasksCount, setCreatedTasksCount] = useState<number | null>(null);
   const [updatedTasksCount, setUpdatedTasksCount] = useState<number | null>(null);
   const [skippedDuplicateTasksCount, setSkippedDuplicateTasksCount] =
     useState<number | null>(null);
   const [error, setError] = useState("");
+  const [surveyDismissed, setSurveyDismissed] = useState(testerSurveySubmitted);
   async function handleAnalyze() {
     setLoading(true);
     setError("");
@@ -190,6 +195,23 @@ export function AnalyzePageClient({
         <div className="space-y-6">
           {result.analysis_mode === "preliminary" && (
             <PreliminaryAnalysisBanner />
+          )}
+
+          {!surveyDismissed && (
+            <Card className="border-accent/30 bg-accent/5">
+              <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className="text-sm text-foreground/90 leading-relaxed">
+                  Короткий опрос для первых пользователей — помогите улучшить
+                  диагностику. Он ниже, сразу после разбора.
+                </p>
+                <a
+                  href="#tester-feedback-survey"
+                  className="text-sm font-medium text-accent hover:underline shrink-0"
+                >
+                  Перейти к опросу ↓
+                </a>
+              </div>
+            </Card>
           )}
 
           {result.data_source && (
@@ -367,7 +389,12 @@ export function AnalyzePageClient({
 
           <AnalysisDisclaimer />
 
-          <TesterFeedbackSurvey />
+          <div id="tester-feedback-survey" className="scroll-mt-24">
+            <TesterFeedbackSurvey
+              initialSubmitted={testerSurveySubmitted}
+              onSubmitted={() => setSurveyDismissed(true)}
+            />
+          </div>
         </div>
       )}
     </div>

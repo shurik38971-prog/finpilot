@@ -7,7 +7,7 @@ import {
 } from "@/lib/finance/analysis-data-maturity";
 import { dedupeAnalysesByDay } from "@/lib/finance/history-groups";
 import { revalidatePath } from "next/cache";
-import type { AnalysisRecord } from "@/types/analysis";
+import type { AnalysisApiResponse, AnalysisRecord } from "@/types/analysis";
 
 const ANALYSIS_SELECT =
   "id, user_id, financial_index, main_problem, main_problem_short, next_step, analysis_date, recommendations, model_used, index_delta, comparison_comment, created_at";
@@ -46,6 +46,26 @@ export async function getAnalysesHistory(): Promise<AnalysisRecord[]> {
 
   if (error) throw error;
   return dedupeAnalysesByDay((data ?? []) as AnalysisRecord[]);
+}
+
+export async function getLatestAnalysisResult(): Promise<AnalysisApiResponse | null> {
+  try {
+    const { supabase, userId } = await getUserId();
+
+    const { data, error } = await supabase
+      .from("analyses")
+      .select("recommendations")
+      .eq("user_id", userId)
+      .order("analysis_date", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data?.recommendations) return null;
+    return data.recommendations as AnalysisApiResponse;
+  } catch {
+    return null;
+  }
 }
 
 export async function deleteAnalysis(id: string) {

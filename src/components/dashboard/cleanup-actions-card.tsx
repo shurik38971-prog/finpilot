@@ -15,7 +15,7 @@ export function CleanupActionsCard({ tasks }: CleanupActionsCardProps) {
       <CardHeader className="!p-0 mb-3">
         <CardTitle className="text-base">Что делать сейчас</CardTitle>
         <CardDescription className="text-xs">
-          До трёх шагов с понятным основанием из ваших данных
+          До трёх ближайших шагов с пояснением, зачем они нужны
         </CardDescription>
       </CardHeader>
 
@@ -36,7 +36,7 @@ export function CleanupActionsCard({ tasks }: CleanupActionsCardProps) {
                 {index + 1}. {task.title}
               </p>
               <p className="text-xs text-muted leading-relaxed">
-                <span className="text-foreground/80">Почему: </span>
+                <span className="text-foreground/80">Почему это важно: </span>
                 {task.explanation}
               </p>
             </li>

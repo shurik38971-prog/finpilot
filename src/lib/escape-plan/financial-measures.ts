@@ -21,9 +21,12 @@ export function buildFinancialMeasureTaskRow(
     user_id: userId,
     title: option.title,
     description:
+      option.first_step?.trim() ||
       option.why_fits?.trim() ||
-      `Финансовая мера: ${option.first_step || option.title}`,
-    explanation: option.first_step || "Выполните первый шаг по этой мере.",
+      `Первый шаг по мере «${option.title}».`,
+    explanation:
+      option.why_fits?.trim() ||
+      "Это поможет быстрее закрыть финансовый разрыв без смены основного маршрута доп.дохода.",
     impact_score: Math.min(90, 50 + Math.round((option.expected_effect ?? 0) / 1000)),
     impact_label: "Заметно поможет",
     priority_score: 400,

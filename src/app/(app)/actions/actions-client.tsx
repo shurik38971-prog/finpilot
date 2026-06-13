@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatHistoryDate } from "@/lib/utils";
 import type { FinancialTaskWithGoal } from "@/types/tasks";
-import { TASK_STATUS_LABELS } from "@/types/tasks";
+import { getTaskStatusLabel, type RouteStepQueuePosition } from "@/lib/tasks/status-labels";
 import { GOAL_TYPE_LABELS } from "@/types/goals";
 import {
   CheckCircle2,
@@ -106,25 +106,18 @@ function PrimaryActionCard({
             {task.description}
           </CardDescription>
         )}
-        {cleanupMode && task.explanation && (
-          <p className="text-sm text-muted mt-2">
-            <span className="text-foreground/80">Ожидаемый результат: </span>
-            {task.explanation}
-          </p>
-        )}
+        <TaskRecommendationContext
+          title={task.title}
+          description={task.description}
+          explanation={task.explanation}
+          className="mt-3"
+          compact={cleanupMode}
+        />
         {!cleanupMode && displayImpact && (
           <div className="mt-3">
             <TaskImpactPreview impact={displayImpact} />
           </div>
         )}
-        <TaskRecommendationContext
-          title={task.title}
-          description={task.description}
-          explanation={task.explanation}
-          taskCategory={task.task_category}
-          className="mt-3"
-          compact={cleanupMode}
-        />
       </CardHeader>
       <div className="px-5 pb-5 flex flex-wrap items-center gap-3">
         {!cleanupMode && (
@@ -162,6 +155,7 @@ function TaskRow({
   onPostpone,
   onDelete,
   cleanupMode = false,
+  routeStepQueue,
 }: {
   task: FinancialTaskWithGoal;
   loadingId: string | null;
@@ -169,6 +163,7 @@ function TaskRow({
   onPostpone: (id: string) => void;
   onDelete: (id: string) => void;
   cleanupMode?: boolean;
+  routeStepQueue?: RouteStepQueuePosition;
 }) {
   const isDone = task.status === "done";
   const displayImpact = getDisplayableTaskImpact(task);
@@ -191,7 +186,9 @@ function TaskRow({
             {task.title}
           </p>
           <Badge variant={statusVariant(task.status)}>
-            {TASK_STATUS_LABELS[task.status]}
+            {getTaskStatusLabel(task.status, {
+              routeStep: cleanupMode ? routeStepQueue : undefined,
+            })}
           </Badge>
           {!isDone && !cleanupMode && (
             <Badge variant={impactVariant(task.impact_score)}>
@@ -210,7 +207,6 @@ function TaskRow({
           title={task.title}
           description={task.description}
           explanation={task.explanation}
-          taskCategory={task.task_category}
           compact
         />
         <p className="text-xs text-muted">
@@ -499,6 +495,7 @@ export function ActionsPageClient({
                       runAction(id, deleteTask);
                     }}
                     cleanupMode={cleanupMode}
+                    routeStepQueue="queued"
                   />
                 ))}
               </div>

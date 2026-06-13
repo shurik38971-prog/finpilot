@@ -38,6 +38,12 @@ export function EscapeRoutePlanPreview({ steps }: EscapeRoutePlanPreviewProps) {
                 {nextStep.description}
               </p>
             )}
+            {nextStep.explanation && (
+              <p className="text-muted mt-2 text-xs leading-relaxed">
+                <span className="text-foreground/80">Почему это важно: </span>
+                {nextStep.explanation}
+              </p>
+            )}
           </li>
         )}
         {upcoming.map((step) => (

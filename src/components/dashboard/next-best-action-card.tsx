@@ -333,7 +333,6 @@ export function NextBestActionCard({
             title={action.title}
             description={action.description}
             explanation={action.explanation}
-            taskCategory={action.task_category}
           />
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">

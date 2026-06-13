@@ -99,7 +99,6 @@ export function GoalFocusCard({ focus }: GoalFocusCardProps) {
               title={task.title}
               description={task.description}
               explanation={task.explanation}
-              taskCategory={task.task_category}
               compact
             />
           </div>

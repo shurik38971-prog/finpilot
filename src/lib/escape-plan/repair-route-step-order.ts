@@ -68,6 +68,16 @@ export function pickRouteStepAssignments(
   return assignments;
 }
 
+function routeStepContentMatches(
+  task: FinancialTask,
+  canonicalStep: ReturnType<typeof buildEscapeRouteSteps>[number]
+): boolean {
+  return (
+    task.description === canonicalStep.description &&
+    task.explanation === canonicalStep.why_important
+  );
+}
+
 export function needsRouteStepOrderRepair(
   tasks: FinancialTask[],
   option: EscapePlanOption
@@ -87,10 +97,22 @@ export function needsRouteStepOrderRepair(
   );
   for (let i = 0; i < ordered.length; i += 1) {
     if (ordered[i].order_index !== i + 1) return true;
-    const canonicalTitle = canonical[i]?.title ?? "";
+    const canonicalStep = canonical[i];
+    const canonicalTitle = canonicalStep?.title ?? "";
     if (
       scoreRouteStepTitleMatch(ordered[i].title, canonicalTitle) < MATCH_THRESHOLD
     ) {
+      return true;
+    }
+    if (canonicalStep && !routeStepContentMatches(ordered[i], canonicalStep)) {
+      return true;
+    }
+  }
+
+  for (const [taskId, orderIndex] of assignments) {
+    const task = active.find((row) => row.id === taskId);
+    const canonicalStep = canonical[orderIndex - 1];
+    if (task && canonicalStep && !routeStepContentMatches(task, canonicalStep)) {
       return true;
     }
   }

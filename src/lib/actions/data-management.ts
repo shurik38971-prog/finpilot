@@ -1,5 +1,6 @@
 "use server";
 
+import { syncOnboardingAfterRestart } from "@/lib/actions/onboarding";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -60,11 +61,6 @@ async function resetUserProfileType(
     .from("user_profiles")
     .update({
       profile_type: null,
-      average_month_income: null,
-      bad_month_income: null,
-      good_month_income: null,
-      expected_monthly_income: null,
-      use_actual_income_only: false,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);
@@ -137,6 +133,7 @@ export async function restartOnboardingSetup(): Promise<void> {
   await deleteUserRows(supabase, userId, [...ANALYSIS_AND_TASK_TABLES]);
   await resetUserProfileType(supabase, userId);
   await resetOnboardingProgress(supabase, userId);
+  await syncOnboardingAfterRestart(supabase, userId);
 
   revalidateDataPaths();
 }

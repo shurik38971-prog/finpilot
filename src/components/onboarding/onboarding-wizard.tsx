@@ -8,17 +8,12 @@ import { ProfileStep } from "@/components/onboarding/steps/profile-step";
 import { WizardProgress } from "@/components/onboarding/wizard-progress";
 import { Logo } from "@/components/brand/logo";
 import { DEFAULT_PROFILE_TYPE, type ProfileType } from "@/types/profile";
+import {
+  advanceOnboardingStep,
+  resolveOnboardingStep,
+} from "@/lib/onboarding/resolve-step";
 import type { OnboardingProgress } from "@/types/onboarding";
 import { useMemo, useState } from "react";
-
-function resolveInitialStep(progress: OnboardingProgress | null): number {
-  if (!progress?.profile_done) return 1;
-  if (!progress.income_done) return 2;
-  if (!progress.expenses_done) return 3;
-  if (!progress.debts_done) return 4;
-  if (!progress.goal_done) return 5;
-  return 5;
-}
 
 export function OnboardingWizard({
   progress,
@@ -27,7 +22,7 @@ export function OnboardingWizard({
   progress: OnboardingProgress | null;
   initialProfileType: ProfileType | null;
 }) {
-  const [step, setStep] = useState(() => resolveInitialStep(progress));
+  const [step, setStep] = useState(() => resolveOnboardingStep(progress));
   const [profileType, setProfileType] = useState<ProfileType>(
     initialProfileType ?? DEFAULT_PROFILE_TYPE
   );
@@ -39,7 +34,7 @@ export function OnboardingWizard({
           <ProfileStep
             onComplete={(type) => {
               setProfileType(type);
-              setStep(2);
+              setStep(advanceOnboardingStep(progress, 1));
             }}
           />
         );
@@ -47,19 +42,27 @@ export function OnboardingWizard({
         return (
           <IncomeStep
             profileType={profileType}
-            onComplete={() => setStep(3)}
+            onComplete={() => setStep(advanceOnboardingStep(progress, 2))}
           />
         );
       case 3:
-        return <ExpensesStep onComplete={() => setStep(4)} />;
+        return (
+          <ExpensesStep
+            onComplete={() => setStep(advanceOnboardingStep(progress, 3))}
+          />
+        );
       case 4:
-        return <DebtsStep onComplete={() => setStep(5)} />;
+        return (
+          <DebtsStep
+            onComplete={() => setStep(advanceOnboardingStep(progress, 4))}
+          />
+        );
       case 5:
-        return <GoalStep />;
+        return <GoalStep skipGoalCreation={progress?.goal_done ?? false} />;
       default:
         return null;
     }
-  }, [step, profileType]);
+  }, [step, profileType, progress]);
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">

@@ -223,3 +223,61 @@ export async function markOnboardingSteps(
     await markOnboardingStep(step);
   }
 }
+
+/** After «Перезапустить настройку»: keep financial rows, reopen wizard from profile. */
+export async function syncOnboardingAfterRestart(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const [profile, incomes, expenses, debts, goals] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select(
+        "expected_monthly_income, bad_month_income, good_month_income, income_bad_month, income_good_month"
+      )
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("incomes")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_profile_parameter", false),
+    supabase
+      .from("expenses")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+    supabase
+      .from("debts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+    supabase
+      .from("financial_goals")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+  ]);
+
+  const hasIncome =
+    (incomes.count ?? 0) > 0 ||
+    (profile.data?.expected_monthly_income ?? 0) > 0 ||
+    ((profile.data?.bad_month_income ?? profile.data?.income_bad_month ?? 0) >
+      0 &&
+      (profile.data?.good_month_income ?? profile.data?.income_good_month ?? 0) >
+        0);
+
+  const hasExpenses = (expenses.count ?? 0) > 0;
+  const hasDebts = (debts.count ?? 0) > 0;
+  const hasGoals = (goals.count ?? 0) > 0;
+
+  const { error } = await supabase.from("onboarding_progress").update({
+    profile_done: false,
+    income_done: hasIncome,
+    expenses_done: hasExpenses,
+    debts_done: hasDebts || hasGoals,
+    goal_done: hasGoals,
+    analysis_done: false,
+    completed: false,
+    updated_at: new Date().toISOString(),
+  }).eq("user_id", userId);
+
+  if (error) throw error;
+}

@@ -8,7 +8,7 @@ import type { GoalType } from "@/types/goals";
 import { GOAL_TYPE_LABELS } from "@/types/goals";
 import { Loader2, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const GOAL_OPTIONS: {
   type: GoalType;
@@ -20,8 +20,9 @@ const GOAL_OPTIONS: {
   { type: "custom", title: "Накопить на цель", defaultTarget: 300000 },
 ];
 
-export function GoalStep() {
+export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: boolean }) {
   const router = useRouter();
+  const analysisStarted = useRef(false);
   const [selected, setSelected] = useState(GOAL_OPTIONS[0]);
   const [targetAmount, setTargetAmount] = useState(
     String(GOAL_OPTIONS[0].defaultTarget)
@@ -30,6 +31,28 @@ export function GoalStep() {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<"form" | "analyzing">("form");
   const [error, setError] = useState("");
+
+  const runAnalysisAndFinish = useCallback(async () => {
+    setPhase("analyzing");
+    setError("");
+
+    const result = await runAnalysis();
+    if (!result.ok) {
+      setPhase("form");
+      setError(result.error || "Не удалось выполнить анализ");
+      setLoading(false);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
+  }, [router]);
+
+  useEffect(() => {
+    if (!skipGoalCreation || analysisStarted.current) return;
+    analysisStarted.current = true;
+    void runAnalysisAndFinish();
+  }, [skipGoalCreation, runAnalysisAndFinish]);
 
   function selectGoal(option: (typeof GOAL_OPTIONS)[number]) {
     setSelected(option);
@@ -63,18 +86,7 @@ export function GoalStep() {
         targetAmount: target,
       });
 
-      setPhase("analyzing");
-
-      const result = await runAnalysis();
-      if (!result.ok) {
-        setPhase("form");
-        setError(result.error || "Не удалось выполнить анализ");
-        setLoading(false);
-        return;
-      }
-
-      router.push("/dashboard");
-      router.refresh();
+      await runAnalysisAndFinish();
     } catch {
       setPhase("form");
       setError("Не удалось завершить настройку");
@@ -87,13 +99,19 @@ export function GoalStep() {
       <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-accent" />
         <div>
-          <h2 className="text-xl font-semibold">Строим ваш план</h2>
+          <h2 className="text-xl font-semibold">
+            {skipGoalCreation ? "Обновляем ваш план" : "Строим ваш план"}
+          </h2>
           <p className="text-sm text-muted mt-1">
             ИИ-анализируем финансы и готовим рекомендации...
           </p>
         </div>
       </div>
     );
+  }
+
+  if (skipGoalCreation) {
+    return null;
   }
 
   return (

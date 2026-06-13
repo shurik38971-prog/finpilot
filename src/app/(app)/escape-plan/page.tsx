@@ -6,7 +6,7 @@ import {
   getEscapePlanTasks,
   getPendingEscapeFollowUp,
   getUserEscapePlans,
-  ensureActiveEscapeRouteSteps,
+  syncActiveEscapeRouteSteps,
   syncFinancialMeasureTasks,
 } from "@/lib/actions/escape-plans";
 import { getFinancialMeasureTasks } from "@/lib/actions/tasks";
@@ -35,7 +35,7 @@ export default async function EscapePlanPage() {
 
   if (activePlan) {
     try {
-      await ensureActiveEscapeRouteSteps();
+      await syncActiveEscapeRouteSteps();
     } catch (error) {
       console.error("Failed to ensure active route steps:", error);
     }

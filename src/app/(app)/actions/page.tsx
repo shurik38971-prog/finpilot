@@ -1,6 +1,6 @@
 import {
-  ensureActiveEscapeRouteSteps,
   getActiveEscapePlan,
+  syncActiveEscapeRouteSteps,
 } from "@/lib/actions/escape-plans";
 import { getFinancialMeasureTasks, getFinancialTasks } from "@/lib/actions/tasks";
 import { deduplicateUserTasksForUser } from "@/lib/finance/deduplicate-user-tasks";
@@ -29,7 +29,7 @@ export default async function ActionsPage() {
 
   if (cleanupMode && activePlan) {
     try {
-      await ensureActiveEscapeRouteSteps();
+      await syncActiveEscapeRouteSteps();
     } catch (error) {
       console.error("Failed to ensure active route steps:", error);
     }

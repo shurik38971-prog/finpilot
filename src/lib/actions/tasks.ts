@@ -1,6 +1,10 @@
 "use server";
 
-import { getActiveEscapePlanId, ensureActiveEscapeRouteSteps, repairArchivedEscapeRouteStepsForActivePlan } from "@/lib/actions/escape-plans";
+import {
+  getActiveEscapePlanId,
+  repairArchivedEscapeRouteStepsForActivePlan,
+  syncActiveEscapeRouteSteps,
+} from "@/lib/actions/escape-plans";
 import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/server";
@@ -76,7 +80,7 @@ export async function getFinancialTasks(options?: {
 }): Promise<FinancialTaskWithGoal[]> {
   if (options?.activeEscapePlanOnly) {
     await repairArchivedEscapeRouteStepsForActivePlan();
-    await ensureActiveEscapeRouteSteps();
+    await syncActiveEscapeRouteSteps();
   }
 
   const { supabase, userId } = await getUserId();

@@ -377,8 +377,8 @@ async function ensureEscapeRouteStepsForPlan(
   await repairEscapeRouteStepOrder(supabase, userId, escapePlanId, option);
 }
 
-/** Create missing route steps for the active plan (sync escape-plan ↔ actions). */
-export async function ensureActiveEscapeRouteSteps(): Promise<UserEscapePlan | null> {
+/** Create missing route steps for the active plan (safe during RSC render). */
+export async function syncActiveEscapeRouteSteps(): Promise<UserEscapePlan | null> {
   const active = await getActiveEscapePlan();
   if (!active) return null;
 
@@ -389,8 +389,16 @@ export async function ensureActiveEscapeRouteSteps(): Promise<UserEscapePlan | n
     active.id,
     active.option_snapshot as EscapePlanOption
   );
-  revalidateEscapePages();
-  revalidatePath("/actions");
+  return active;
+}
+
+/** Server action: sync route steps and invalidate cached pages. */
+export async function ensureActiveEscapeRouteSteps(): Promise<UserEscapePlan | null> {
+  const active = await syncActiveEscapeRouteSteps();
+  if (active) {
+    revalidateEscapePages();
+    revalidatePath("/actions");
+  }
   return active;
 }
 
@@ -399,7 +407,7 @@ export async function activatePrimaryIncomeRouteAfterAnalysis(
 ): Promise<UserEscapePlan | null> {
   const active = await getActiveEscapePlan();
   if (active) {
-    await ensureActiveEscapeRouteSteps();
+    await syncActiveEscapeRouteSteps();
     return active;
   }
 

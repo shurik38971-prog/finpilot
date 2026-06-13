@@ -4,6 +4,10 @@ import { buildActiveGoalTitle } from "@/lib/escape-plan/build-active-goal";
 import { buildFinancialMeasureTaskRow, filterFinancialMeasureOptions } from "@/lib/escape-plan/financial-measures";
 import { isIncomeRouteOption, measureTaskKey } from "@/lib/escape-plan/recommendation-types";
 import { buildEscapeRouteSteps, sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
+import {
+  needsRouteStepOrderRepair,
+  pickRouteStepAssignments,
+} from "@/lib/escape-plan/repair-route-step-order";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type {
@@ -145,6 +149,35 @@ export async function repairArchivedEscapeRouteStepsForActivePlan(): Promise<voi
   if (!activePlanId) return;
   const { supabase, userId } = await getUserId();
   await repairArchivedEscapeRouteSteps(supabase, userId, activePlanId);
+  await repairEscapeRouteStepOrderForPlan(supabase, userId, activePlanId);
+}
+
+export async function repairEscapeRouteStepOrderForActivePlan(): Promise<void> {
+  const activePlanId = await getActiveEscapePlanId();
+  if (!activePlanId) return;
+  const { supabase, userId } = await getUserId();
+  await repairEscapeRouteStepOrderForPlan(supabase, userId, activePlanId);
+}
+
+async function repairEscapeRouteStepOrderForPlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  escapePlanId: string
+) {
+  const { data: plan, error: planError } = await supabase
+    .from("user_escape_plans")
+    .select("option_snapshot")
+    .eq("id", escapePlanId)
+    .eq("user_id", userId)
+    .single();
+
+  if (planError) throw planError;
+  await repairEscapeRouteStepOrder(
+    supabase,
+    userId,
+    escapePlanId,
+    plan.option_snapshot as EscapePlanOption
+  );
 }
 
 async function repairArchivedEscapeRouteSteps(
@@ -227,12 +260,97 @@ async function createEscapePlanTasks(
     financial_impact: 0,
     task_category: category,
     escape_plan_id: escapePlanId,
+    order_index: index + 1,
     normalized_title: `escape:${escapePlanId}:${index}`,
     status: "pending" as const,
   }));
 
   const { error } = await supabase.from("financial_tasks").insert(rows);
   if (error) throw error;
+}
+
+async function repairEscapeRouteStepOrder(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  escapePlanId: string,
+  option: EscapePlanOption
+) {
+  const { data: tasks, error } = await supabase
+    .from("financial_tasks")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .neq("status", "archived");
+
+  if (error) throw error;
+
+  const active = (tasks ?? []) as FinancialTask[];
+  if (!needsRouteStepOrderRepair(active, option)) return;
+
+  const canonical = buildEscapeRouteSteps(option);
+  const assignments = pickRouteStepAssignments(active, option);
+  const category = OPTION_TASK_CATEGORY[option.type] ?? "other";
+  const used = new Set(assignments.keys());
+
+  const toArchive = active.filter((task) => !used.has(task.id)).map((task) => task.id);
+  if (toArchive.length > 0) {
+    const { error: archiveError } = await supabase
+      .from("financial_tasks")
+      .update({ status: "archived" })
+      .eq("user_id", userId)
+      .in("id", toArchive);
+    if (archiveError) throw archiveError;
+  }
+
+  for (const [taskId, orderIndex] of assignments) {
+    const routeStep = canonical[orderIndex - 1];
+    if (!routeStep) continue;
+
+    const { error: updateError } = await supabase
+      .from("financial_tasks")
+      .update({
+        order_index: orderIndex,
+        title: routeStep.title,
+        description: routeStep.description,
+        explanation: routeStep.expected_result,
+        normalized_title: `escape:${escapePlanId}:${orderIndex - 1}`,
+        priority_score: 1000 - (orderIndex - 1),
+      })
+      .eq("id", taskId)
+      .eq("user_id", userId);
+
+    if (updateError) throw updateError;
+  }
+
+  const assignedOrders = new Set(assignments.values());
+  const missingRows = canonical
+    .map((routeStep, index) => ({ routeStep, orderIndex: index + 1 }))
+    .filter(({ orderIndex }) => !assignedOrders.has(orderIndex))
+    .map(({ routeStep, orderIndex }) => {
+      const index = orderIndex - 1;
+      return {
+        user_id: userId,
+        title: routeStep.title,
+        description: routeStep.description,
+        explanation: routeStep.expected_result,
+        impact_score: Math.max(40, 70 - index * 8),
+        impact_label: "Заметно поможет",
+        priority_score: 1000 - index,
+        financial_impact: 0,
+        task_category: category,
+        escape_plan_id: escapePlanId,
+        order_index: orderIndex,
+        normalized_title: `escape:${escapePlanId}:${index}`,
+        status: "pending" as const,
+      };
+    });
+
+  if (missingRows.length > 0) {
+    const { error: insertError } = await supabase
+      .from("financial_tasks")
+      .insert(missingRows);
+    if (insertError) throw insertError;
+  }
 }
 
 async function findExistingRouteByTitle(
@@ -377,15 +495,27 @@ export async function getEscapePlanTasks(
   escapePlanId: string
 ): Promise<FinancialTask[]> {
   const { supabase, userId } = await getUserId();
+
+  const { data: plan, error: planError } = await supabase
+    .from("user_escape_plans")
+    .select("option_snapshot")
+    .eq("id", escapePlanId)
+    .eq("user_id", userId)
+    .single();
+
+  if (planError) throw planError;
+
+  const option = plan.option_snapshot as EscapePlanOption;
   await repairArchivedEscapeRouteSteps(supabase, userId, escapePlanId);
+  await repairEscapeRouteStepOrder(supabase, userId, escapePlanId, option);
+
   const { data, error } = await supabase
     .from("financial_tasks")
     .select("*")
     .eq("user_id", userId)
     .eq("escape_plan_id", escapePlanId)
     .neq("status", "archived")
-    .order("priority_score", { ascending: false })
-    .order("created_at", { ascending: true });
+    .order("order_index", { ascending: true, nullsFirst: false });
 
   if (error) throw error;
   return sortEscapeRouteTasks((data ?? []) as FinancialTask[]);

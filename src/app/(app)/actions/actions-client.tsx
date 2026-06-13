@@ -272,17 +272,19 @@ export function ActionsPageClient({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const orderedTasks = cleanupMode ? sortEscapeRouteTasks(tasks) : tasks;
-  const pending = orderedTasks
-    .filter((t) => t.status === "pending")
-    .sort(
-      (a, b) =>
-        cleanupMode
-          ? 0
-          : b.priority_score - a.priority_score ||
+  const pending = cleanupMode
+    ? orderedTasks.filter((t) => t.status === "pending")
+    : orderedTasks
+        .filter((t) => t.status === "pending")
+        .sort(
+          (a, b) =>
+            b.priority_score - a.priority_score ||
             b.impact_score - a.impact_score
-    );
+        );
   const postponed = orderedTasks.filter((t) => t.status === "postponed");
-  const done = orderedTasks.filter((t) => t.status === "done");
+  const done = cleanupMode
+    ? sortEscapeRouteTasks(orderedTasks.filter((t) => t.status === "done"))
+    : orderedTasks.filter((t) => t.status === "done");
   const pendingMeasures = additionalTasks.filter((t) => t.status === "pending");
   const doneMeasures = additionalTasks.filter((t) => t.status === "done");
   const primary = pending[0] ?? null;

@@ -16,15 +16,20 @@ function step(
 }
 
 function isOnSiteRepairRoute(title: string): boolean {
-  return /сантех|ремонт|выезд|мастер|руками/i.test(title);
+  return /сантех|ремонт.*выезд|выезд.*ремонт|мастер.*выезд/i.test(title);
 }
 
-function buildOnSiteRepairSteps(option: EscapePlanOption): EscapeRouteStep[] {
+function buildOnSiteRepairSteps(): EscapeRouteStep[] {
   return [
     step(
-      "Подготовить список услуг",
-      "Выберите 3–5 простых услуг, которые можете выполнить: замена смесителя, устранение течи, подключение сифона, мелкий ремонт.",
-      "Понятно, что именно вы предлагаете клиентам."
+      "Определить список простых услуг",
+      "Выберите 3–5 услуг, которые можете выполнить без сложных материалов: замена смесителя, устранение течи, подключение сифона, прочистка, мелкий ремонт.",
+      "Понятно, какие услуги вы предлагаете клиентам."
+    ),
+    step(
+      "Определить районы работы",
+      "Определите 2–3 ближайших района, куда сможете добираться без авто или с минимальными затратами времени.",
+      "Есть понятная зона обслуживания."
     ),
     step(
       "Подготовить базовый набор инструментов",
@@ -32,29 +37,44 @@ function buildOnSiteRepairSteps(option: EscapePlanOption): EscapeRouteStep[] {
       "Вы готовы принять первый небольшой заказ."
     ),
     step(
-      "Составить короткое объявление",
-      `Напишите текст для «${option.title}»: какие услуги делаете, район, примерная цена, как связаться.`,
-      "Готов текст для публикации."
+      "Составить короткое описание услуги",
+      "Напишите простое описание: какие работы выполняете, где работаете, примерные цены и как с вами связаться.",
+      "Готов текст для объявления."
     ),
     step(
-      "Разместить объявление",
-      "Разместите объявление на Авито, в местных чатах, на досках объявлений или в соцсетях.",
-      "Появились первые просмотры и обращения."
+      "Создать объявление",
+      "Подготовьте объявление для Авито, Юлы, Профи.ру или локальных чатов.",
+      "Текст объявления готов к публикации."
+    ),
+    step(
+      "Опубликовать объявление",
+      "Разместите объявление и включите уведомления о новых сообщениях и заказах.",
+      "Объявление опубликовано, ждёте отклики."
     ),
     step(
       "Ответить первым клиентам",
-      "Отвечайте коротко, уточняйте задачу, район, сроки и цену.",
-      "Есть первые реальные диалоги."
+      "Отвечайте коротко: уточните задачу, район, сроки, цену и возможность выезда.",
+      "Есть первые диалоги с клиентами."
     ),
     step(
-      "Получить первый заказ",
-      "Выберите простой заказ, который точно можете выполнить без риска и сложных материалов.",
+      "Взять первый простой заказ",
+      "Выберите заказ, который точно можете выполнить без риска и сложных материалов.",
       "Получен первый дополнительный доход."
     ),
     step(
-      "Записать доход и направить часть на цель",
-      "Внесите полученную сумму в FinPilot и отметьте, сколько направили на долг или цель.",
+      "Попросить отзыв",
+      "После выполнения заказа попросите клиента оставить отзыв или короткую рекомендацию.",
+      "Есть первый отзыв или рекомендация."
+    ),
+    step(
+      "Записать полученный доход",
+      "Внесите доход в ФинПилот и отметьте, сколько денег направляете на финансовую цель.",
       "Прогресс по цели обновлён."
+    ),
+    step(
+      "Пересчитать прогресс",
+      "Обновите маршрут: сколько осталось найти до цели и какой следующий шаг самый важный.",
+      "Понятно, что делать дальше по маршруту."
     ),
   ];
 }
@@ -63,24 +83,30 @@ function buildGenericIncomeSteps(option: EscapePlanOption): EscapeRouteStep[] {
   const title = option.title.trim();
   return [
     step(
-      `Составить описание услуги: «${title}»`,
-      `Коротко опишите, что вы делаете, для кого и в каком формате работаете.`,
-      "Клиенту понятно ваше предложение."
+      "Определить формат услуги",
+      `Коротко опишите, что вы делаете по направлению «${title}»: для кого, в каком формате и с каким результатом.`,
+      "Понятно ваше предложение для клиента."
     ),
     step(
-      "Подготовить текст объявления",
-      `Напишите объявление: услуга, район или формат, цена или вилка, контакт.`,
-      "Готов текст для публикации."
+      "Определить каналы поиска клиентов",
+      "Выберите 2–3 площадки или способа, где ваши клиенты реально ищут исполнителей.",
+      "Есть список каналов для старта."
     ),
     step(
-      "Выбрать 2–3 площадки",
-      "Подберите площадки, где ваши клиенты реально ищут исполнителей.",
-      "Есть список мест для размещения."
+      "Составить короткое описание услуги",
+      "Напишите описание: услуга, район или формат, цена или вилка, контакт.",
+      "Готов текст для объявления."
     ),
     step(
-      "Разместить объявление",
-      option.first_step || "Опубликуйте объявление на выбранных площадках.",
-      "Появились первые просмотры или отклики."
+      "Создать объявление",
+      option.first_step?.trim() ||
+        "Подготовьте текст объявления для выбранных площадок.",
+      "Текст объявления готов к публикации."
+    ),
+    step(
+      "Опубликовать объявление",
+      "Разместите объявление и включите уведомления о новых сообщениях.",
+      "Объявление опубликовано."
     ),
     step(
       "Ответить первым клиентам",
@@ -88,112 +114,29 @@ function buildGenericIncomeSteps(option: EscapePlanOption): EscapeRouteStep[] {
       "Есть первые диалоги с клиентами."
     ),
     step(
-      "Получить первый заказ",
+      "Взять первый простой заказ",
       `Выберите самый простой заказ по направлению «${title}».`,
       "Получен первый дополнительный доход."
     ),
     step(
-      "Записать доход и направить часть на цель",
-      "Внесите сумму в FinPilot и отметьте, сколько направили на главную цель.",
+      "Записать полученный доход",
+      "Внесите сумму в ФинПилот и отметьте, сколько направили на главную цель.",
       "Прогресс по цели обновлён."
     ),
-  ];
-}
-
-function fromAiActionSteps(option: EscapePlanOption): EscapeRouteStep[] | null {
-  if (!option.action_steps?.length) return null;
-  return option.action_steps.map((title, index) =>
     step(
-      title,
-      `Шаг ${index + 1} по маршруту «${option.title}».`,
-      `Вы выполнили шаг и продвинулись по направлению «${option.title}».`
-    )
-  );
-}
-
-function buildDebtActionSteps(option: EscapePlanOption): EscapeRouteStep[] {
-  return [
-    step(
-      "Собрать данные по кредитам",
-      "Выпишите остатки, ставки, ежемесячные платежи и штрафы по каждому обязательству.",
-      "Есть полная картина по долгам."
-    ),
-    step(
-      option.first_step || `Сделать первый шаг: «${option.title}»`,
-      `Действие только по направлению «${option.title}», без смешения с другими вариантами.`,
-      "Понятно, что делать дальше по этому маршруту."
-    ),
-    step(
-      "Сравнить условия",
-      "Сопоставьте предложения банков или варианты реструктуризации.",
-      "Выбран лучший вариант для вашей ситуации."
-    ),
-    step(
-      "Подать заявку или связаться с банком",
-      "Отправьте заявку или созвонитесь для уточнения условий.",
-      "Процесс по выбранному маршруту запущен."
-    ),
-    step(
-      "Зафиксировать результат в FinPilot",
-      "Обновите данные по долгам или платежам после изменений.",
-      "Финансовая картина в приложении актуальна."
+      "Пересчитать прогресс",
+      "Посмотрите, сколько осталось до цели, и выберите следующий шаг маршрута.",
+      "Понятно, что делать дальше."
     ),
   ];
 }
 
-function buildExpenseCutSteps(option: EscapePlanOption): EscapeRouteStep[] {
-  return [
-    step(
-      `Составить список трат: «${option.title}»`,
-      "Выпишите подписки и регулярные траты, которые можно сократить.",
-      "Видно, где можно освободить деньги."
-    ),
-    step(
-      "Выбрать 1–2 статьи для отмены",
-      "Отметьте траты с быстрым эффектом и без критичного ущерба.",
-      "Есть конкретные статьи для сокращения."
-    ),
-    step(
-      "Отменить или пересмотреть траты",
-      option.first_step || "Отмените подписки или договоритесь о снижении платежа.",
-      "Ежемесячные расходы уменьшились."
-    ),
-    step(
-      "Зафиксировать экономию в FinPilot",
-      "Обновите расходы, чтобы видеть эффект в бюджете.",
-      "Экономия отражена в финансовой картине."
-    ),
-  ];
-}
-
+/** Canonical ordered steps for income routes. AI steps are not merged to avoid chaotic order. */
 export function buildEscapeRouteSteps(option: EscapePlanOption): EscapeRouteStep[] {
-  const fromAi = fromAiActionSteps(option);
-  if (fromAi && fromAi.length >= 5) {
-    return fromAi.slice(0, 8);
+  if (isOnSiteRepairRoute(option.title)) {
+    return buildOnSiteRepairSteps();
   }
-
-  let steps: EscapeRouteStep[];
-  if (option.type === "debt_action") {
-    steps = buildDebtActionSteps(option);
-  } else if (option.type === "reduce_expenses") {
-    steps = buildExpenseCutSteps(option);
-  } else if (isOnSiteRepairRoute(option.title)) {
-    steps = buildOnSiteRepairSteps(option);
-  } else {
-    steps = buildGenericIncomeSteps(option);
-  }
-
-  if (fromAi) {
-    const seen = new Set(steps.map((s) => s.title));
-    for (const aiStep of fromAi) {
-      if (!seen.has(aiStep.title)) {
-        steps.push(aiStep);
-        seen.add(aiStep.title);
-      }
-    }
-  }
-
-  return steps.slice(0, 8);
+  return buildGenericIncomeSteps(option);
 }
 
 export function buildEscapeActionSteps(option: EscapePlanOption): string[] {
@@ -201,19 +144,38 @@ export function buildEscapeActionSteps(option: EscapePlanOption): string[] {
 }
 
 export function getEscapeStepOrder(
-  task: Pick<FinancialTask, "normalized_title" | "created_at">
+  task: Pick<FinancialTask, "order_index" | "normalized_title">
 ): number {
+  if (task.order_index != null && task.order_index > 0) {
+    return task.order_index;
+  }
   const match = task.normalized_title?.match(/^escape:[^:]+:(\d+)$/);
-  if (match) return Number(match[1]);
+  if (match) return Number(match[1]) + 1;
   return Number.MAX_SAFE_INTEGER;
 }
 
-export function sortEscapeRouteTasks<T extends Pick<FinancialTask, "normalized_title" | "created_at">>(
-  tasks: T[]
-): T[] {
+export function sortEscapeRouteTasks<
+  T extends Pick<FinancialTask, "order_index" | "normalized_title">,
+>(tasks: T[]): T[] {
   return [...tasks].sort(
-    (a, b) =>
-      getEscapeStepOrder(a) - getEscapeStepOrder(b) ||
-      a.created_at.localeCompare(b.created_at)
+    (a, b) => getEscapeStepOrder(a) - getEscapeStepOrder(b)
   );
+}
+
+export function splitRouteStepsForPreview(tasks: FinancialTask[]): {
+  lastDone: FinancialTask | null;
+  nextStep: FinancialTask | null;
+  upcoming: FinancialTask[];
+} {
+  const ordered = sortEscapeRouteTasks(
+    tasks.filter((task) => task.status !== "archived")
+  );
+  const done = ordered.filter((task) => task.status === "done");
+  const pending = ordered.filter((task) => task.status === "pending");
+
+  return {
+    lastDone: done[done.length - 1] ?? null,
+    nextStep: pending[0] ?? null,
+    upcoming: pending.slice(1, 4),
+  };
 }

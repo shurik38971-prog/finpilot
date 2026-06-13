@@ -29,6 +29,7 @@ export interface FinancialTask {
   status: TaskStatus;
   due_date: string | null;
   escape_plan_id?: string | null;
+  order_index?: number | null;
   created_at: string;
   completed_at: string | null;
 }

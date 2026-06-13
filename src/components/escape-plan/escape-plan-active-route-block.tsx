@@ -3,7 +3,9 @@
 import { EscapePlanFailureFeedback } from "@/components/escape-plan/escape-plan-failure-feedback";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EscapeRoutePlanPreview } from "@/components/escape-plan/escape-route-plan-preview";
 import { formatCurrency } from "@/lib/utils";
+import { splitRouteStepsForPreview } from "@/lib/escape-plan/route-steps";
 import type { UserEscapePlan } from "@/types/escape-plan";
 import type { RescueProgressSnapshot } from "@/types/rescue-plan";
 import type { FinancialTask } from "@/types/tasks";
@@ -29,8 +31,7 @@ export function EscapePlanActiveRouteBlock({
   const routeSteps = steps.filter(
     (step) => step.escape_plan_id === activePlan.id && step.status !== "archived"
   );
-  const nextStep =
-    routeSteps.find((step) => step.status === "pending") ?? null;
+  const { nextStep } = splitRouteStepsForPreview(routeSteps);
 
   return (
     <section className="space-y-3">
@@ -91,9 +92,11 @@ export function EscapePlanActiveRouteBlock({
             </dl>
           )}
 
+          <EscapeRoutePlanPreview steps={routeSteps} />
+
           <div className="flex flex-wrap gap-2">
             <Link href="/actions">
-              <Button size="sm">Перейти к шагам</Button>
+              <Button size="sm">Все шаги в разделе «Что делать»</Button>
             </Link>
             {!showFailureForm && (
               <Button

@@ -16,7 +16,11 @@ const TYPES: { id: FeedbackType; label: string; icon: typeof HelpCircle }[] = [
   { id: "idea", label: "Идея", icon: Lightbulb },
 ];
 
-export function FeedbackWidget() {
+interface FeedbackWidgetProps {
+  hidden?: boolean;
+}
+
+export function FeedbackWidget({ hidden = false }: FeedbackWidgetProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -57,54 +61,62 @@ export function FeedbackWidget() {
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-2">
-        {expanded && !open && (
-          <div className="rounded-lg border border-border bg-surface shadow-lg p-2 text-sm animate-in fade-in">
-            <p className="text-muted px-2 py-1 text-xs">Что-то непонятно?</p>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="w-full justify-start"
-              onClick={() => {
-                setType("confusion");
-                setOpen(true);
-              }}
-            >
-              <HelpCircle className="h-4 w-4" />
-              Не понял, как это работает
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setType("question");
-                setOpen(true);
-              }}
-            >
-              <MessageCircle className="h-4 w-4" />
-              Задать вопрос
-            </Button>
-          </div>
-        )}
+      {!hidden && !open && (
+        <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2 sm:bottom-5 sm:right-5">
+          {expanded && (
+            <div className="rounded-lg border border-border bg-surface shadow-lg p-2 text-sm animate-in fade-in max-w-[min(100vw-2rem,280px)]">
+              <p className="text-foreground/80 px-2 py-1 text-xs">Что-то непонятно?</p>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="w-full justify-start"
+                onClick={() => {
+                  setType("confusion");
+                  setOpen(true);
+                  setExpanded(false);
+                }}
+              >
+                <HelpCircle className="h-4 w-4" />
+                Не понял, как это работает
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  setType("question");
+                  setOpen(true);
+                  setExpanded(false);
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Задать вопрос
+              </Button>
+            </div>
+          )}
 
-        <Button
-          size="sm"
-          className="rounded-full shadow-lg h-11 px-4 md:h-8 md:px-3 md:text-xs md:gap-1.5"
-          onClick={() => {
-            if (open) {
-              setOpen(false);
-              return;
-            }
-            setExpanded((v) => !v);
-          }}
-          data-analytics-id="feedback-fab"
-          data-analytics-label="Кнопка обратной связи"
-        >
-          {expanded ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
-          Помощь
-        </Button>
-      </div>
+          <Button
+            size="sm"
+            className={cn(
+              "rounded-full shadow-lg",
+              "h-12 w-12 p-0 sm:h-11 sm:w-auto sm:px-4 sm:gap-1.5"
+            )}
+            onClick={() => {
+              setExpanded((v) => !v);
+            }}
+            data-analytics-id="feedback-fab"
+            data-analytics-label="Кнопка обратной связи"
+            aria-label="Помощь"
+          >
+            {expanded ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <MessageCircle className="h-5 w-5" />
+            )}
+            <span className="hidden sm:inline">Помощь</span>
+          </Button>
+        </div>
+      )}
 
       <Modal
         open={open}
@@ -146,9 +158,7 @@ export function FeedbackWidget() {
               onChange={(e) => setMessage(e.target.value)}
               maxLength={2000}
             />
-            <p className="text-xs text-muted">
-              Страница: {pathname}
-            </p>
+            <p className="text-xs text-muted">Страница: {pathname}</p>
             <Button
               onClick={handleSubmit}
               disabled={loading || message.trim().length < 3}

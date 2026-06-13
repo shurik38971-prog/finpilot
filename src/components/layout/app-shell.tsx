@@ -31,9 +31,11 @@ export function AppShell({
       />
       <div className="md:ml-60">
         <MobileHeader onMenuClick={() => setMobileOpen(true)} />
-        <main className="p-4 sm:p-6 md:p-8">{children}</main>
+        <main className="p-4 pb-28 sm:p-6 sm:pb-28 md:p-8 md:pb-8">
+          {children}
+        </main>
       </div>
-      <FeedbackWidget />
+      <FeedbackWidget hidden={mobileOpen} />
       <ValueFeedbackPrompt />
     </div>
     </SiteCopyProvider>

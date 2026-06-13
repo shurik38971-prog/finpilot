@@ -9,9 +9,11 @@ import {
   compactWhyReasons,
   getTop3FitLabel,
 } from "@/lib/escape-plan/option-display";
+import { cn } from "@/lib/utils";
 import type { EscapeFitLevel } from "@/lib/escape-plan/rank-options";
 import { formatEscapeIncomeRange, type EscapePlanOption } from "@/types/escape-plan";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
+import { useState } from "react";
 
 function fitVariant(level: EscapeFitLevel): "success" | "warning" | "default" {
   switch (level) {
@@ -30,7 +32,6 @@ interface EscapePlanOptionCardProps {
   fitLevel?: EscapeFitLevel;
   choosing: boolean;
   onChoose: (option: EscapePlanOption) => void;
-  compact?: boolean;
 }
 
 export function EscapePlanOptionCard({
@@ -39,66 +40,82 @@ export function EscapePlanOptionCard({
   fitLevel,
   choosing,
   onChoose,
-  compact = true,
 }: EscapePlanOptionCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const level = fitLevel ?? (fitIndex <= 1 ? "excellent" : fitIndex === 2 ? "good" : "low");
   const fitLabel = fitIndex <= 2 ? getTop3FitLabel(fitIndex) : "Запасной вариант";
   const tryLabel = useCopy("btn.try_option");
   const creatingLabel = useCopy("btn.creating_plan");
   const incomeRange = formatEscapeIncomeRange(option);
-  const whyReasons = compactWhyReasons(option, compact ? 2 : 4);
+  const whyReasons = compactWhyReasons(option, 4);
 
   return (
-    <Card>
-      <CardHeader className="space-y-3">
+    <Card className="!p-0 overflow-hidden">
+      <CardHeader className="space-y-2.5 p-3.5 sm:space-y-3 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <CardTitle className="text-base">{option.title}</CardTitle>
-          <Badge variant={fitVariant(level)}>{fitLabel}</Badge>
+          <CardTitle className="text-base leading-snug">{option.title}</CardTitle>
+          <Badge variant={fitVariant(level)} className="shrink-0">
+            {fitLabel}
+          </Badge>
         </div>
 
-        {whyReasons.length > 0 && (
-          <ul className="text-sm space-y-1 text-muted">
-            {whyReasons.map((reason) => (
-              <li key={reason}>· {reason}</li>
-            ))}
-          </ul>
-        )}
-
-        <dl className="grid gap-2 text-sm">
-          <div>
-            <dt className="text-muted">Первый шаг</dt>
-            <dd>{option.first_step || "—"}</dd>
-          </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-1">
-            <div>
-              <dt className="text-muted inline">Потенциал: </dt>
-              <dd className="inline font-medium">
-                {incomeRange ?? "зависит от рынка"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted inline">Риск: </dt>
-              <dd className="inline">{compactRisk(option, 80)}</dd>
-            </div>
-          </div>
-        </dl>
+        <div className="text-sm space-y-1">
+          <p>
+            <span className="text-muted">Потенциал: </span>
+            <span className="font-medium">
+              {incomeRange ?? "зависит от рынка"}
+            </span>
+          </p>
+          <p className="line-clamp-2 sm:line-clamp-none">
+            <span className="text-muted">Первый шаг: </span>
+            {option.first_step || "—"}
+          </p>
+        </div>
 
         <Button
-          variant="secondary"
+          type="button"
+          variant="ghost"
           size="sm"
-          disabled={choosing}
-          onClick={() => onChoose(option)}
-          className="w-fit"
+          className="h-8 px-2 text-xs text-muted sm:hidden -ml-2"
+          onClick={() => setExpanded((v) => !v)}
         >
-          {choosing ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              {creatingLabel}
-            </>
-          ) : (
-            tryLabel
-          )}
+          {expanded ? "Свернуть" : "Подробнее"}
+          <ChevronDown
+            className={cn("size-3.5 ml-1 transition-transform", expanded && "rotate-180")}
+          />
         </Button>
+
+        <div className={cn("space-y-3", !expanded && "hidden sm:block")}>
+          {whyReasons.length > 0 && (
+            <ul className="text-sm space-y-1 text-foreground/85">
+              {whyReasons.map((reason) => (
+                <li key={reason}>· {reason}</li>
+              ))}
+            </ul>
+          )}
+
+          <p className="text-sm">
+            <span className="text-muted">Риск: </span>
+            {compactRisk(option, 80)}
+          </p>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={choosing}
+            onClick={() => onChoose(option)}
+            className="w-full sm:w-fit"
+          >
+            {choosing ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {creatingLabel}
+              </>
+            ) : (
+              tryLabel
+            )}
+          </Button>
+        </div>
       </CardHeader>
     </Card>
   );

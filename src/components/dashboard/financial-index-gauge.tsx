@@ -20,7 +20,7 @@ export function FinancialIndexGauge({
         <CardHeader className="text-center w-full mb-2">
           <CardTitle className="text-base flex items-center justify-center gap-1">
             {COPY.moneyScore}
-            <HintTooltip hint={HINTS.financialHealth} />
+            <HintTooltip hint={HINTS.financialPicture} />
           </CardTitle>
           <CardDescription className="text-xs">{COPY.moneyScoreHint}</CardDescription>
         </CardHeader>
@@ -40,7 +40,7 @@ export function FinancialIndexGauge({
       <CardHeader className="text-center w-full mb-2">
         <CardTitle className="text-base flex items-center justify-center gap-1">
           {COPY.moneyScore}
-          <HintTooltip hint={HINTS.financialHealth} />
+          <HintTooltip hint={HINTS.financialPicture} />
         </CardTitle>
         <CardDescription className="text-xs">{COPY.moneyScoreHint}</CardDescription>
       </CardHeader>

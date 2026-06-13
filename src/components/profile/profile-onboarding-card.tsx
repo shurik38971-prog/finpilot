@@ -36,8 +36,8 @@ export function ProfileOnboardingCard() {
           Кто вы?
         </CardTitle>
         <CardDescription>
-          Это поможет FinPilot точнее считать финансовое здоровье и подбирать
-          рекомендации. Вы сможете изменить ответ в настройках.
+          Это поможет FinPilot точнее видеть вашу финансовую картину и подбирать
+          варианты доп.дохода. Ответ можно изменить в настройках.
         </CardDescription>
       </CardHeader>
       <div className="px-5 pb-5 space-y-3">

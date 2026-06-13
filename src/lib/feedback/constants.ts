@@ -1,5 +1,5 @@
 export const USEFUL_FEATURES = [
-  { id: "financial_health", label: "Финансовое здоровье" },
+  { id: "financial_health", label: "Финансовая картина" },
   { id: "goal_blockers", label: "Что мешает достигать целей" },
   { id: "main_action", label: "Главное действие" },
   { id: "plan_30_days", label: "План на 30 дней" },

@@ -34,7 +34,7 @@ export function getTaskEffectItems(impact: TaskImpact): TaskEffectItem[] {
   if (indexDelta !== null && indexDelta !== 0) {
     items.push({
       key: "index",
-      label: `${indexDelta > 0 ? "+" : ""}${indexDelta} к здоровью`,
+      label: `${indexDelta > 0 ? "+" : ""}${indexDelta} к картине`,
       className: indexDelta > 0 ? "text-emerald-400" : "text-muted",
     });
   }

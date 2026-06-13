@@ -24,14 +24,14 @@ interface SummaryCardsProps {
 const cards = [
   {
     key: "income",
-    label: "Доходы за месяц",
+    label: "Доход",
     icon: TrendingUp,
     color: "text-emerald-400",
     getValue: (p: SummaryCardsProps) => p.totalIncome,
   },
   {
     key: "expenses",
-    label: "Расходы за месяц",
+    label: "Расходы",
     icon: TrendingDown,
     color: "text-red-400",
     getValue: (p: SummaryCardsProps) => p.totalExpenses,
@@ -45,8 +45,7 @@ const cards = [
   },
   {
     key: "debt",
-    label: "Общий долг",
-    subtitle: "Осталось выплатить",
+    label: "Долг",
     icon: CreditCard,
     color: "text-orange-400",
     getValue: (p: SummaryCardsProps) => p.totalDebt,
@@ -56,28 +55,28 @@ const cards = [
 const cleanupCards = [
   {
     key: "income",
-    label: "Доход за месяц",
+    label: "Доход",
     icon: TrendingUp,
     color: "text-emerald-400",
     getValue: (p: SummaryCardsProps) => p.totalIncome,
   },
   {
     key: "expenses",
-    label: "Расходы за месяц",
+    label: "Расходы",
     icon: TrendingDown,
     color: "text-red-400",
     getValue: (p: SummaryCardsProps) => p.totalExpenses,
   },
   {
     key: "debtPayments",
-    label: "Платежи по долгам",
+    label: "Платежи",
     icon: CreditCard,
     color: "text-orange-400",
     getValue: (p: SummaryCardsProps) => p.debtPayments ?? 0,
   },
   {
     key: "net",
-    label: "Свободный остаток",
+    label: "Остаток",
     icon: Wallet,
     color: "text-accent",
     getValue: (p: SummaryCardsProps) => p.netCashFlow,
@@ -92,7 +91,6 @@ export function SummaryCards(props: SummaryCardsProps) {
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {visibleCards.map((card) => {
         const { key, label, icon: Icon, color, getValue } = card;
-        const subtitle = key === "debt" ? "Осталось выплатить" : undefined;
         const isDebt = key === "debt" || key === "debtPayments";
 
         return (
@@ -104,17 +102,14 @@ export function SummaryCards(props: SummaryCardsProps) {
             )}
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs text-muted flex items-center gap-1">
-                  <span className="truncate">{label}</span>
+                  <span>{label}</span>
                   {key === "income" && (
                     <HintTooltip hint={HINTS.incomeMonth} />
                   )}
                   {key === "net" && <HintTooltip hint={HINTS.freeMoney} />}
                 </p>
-                {subtitle && (
-                  <p className="text-[11px] text-muted/80 mt-0.5">{subtitle}</p>
-                )}
 
                 <p
                   className={cn(
@@ -129,7 +124,7 @@ export function SummaryCards(props: SummaryCardsProps) {
                 </p>
 
                 {key === "income" && income && income.primaryIncome > 0 && (
-                  <p className="text-[11px] text-muted mt-0.5 leading-relaxed">
+                  <p className="text-[11px] text-muted mt-0.5 leading-relaxed hidden sm:block">
                     {income.additionalIncome > 0
                       ? `${formatCurrency(income.primaryIncome)} + ${formatCurrency(income.additionalIncome)} доп.`
                       : "Основной доход из профиля"}

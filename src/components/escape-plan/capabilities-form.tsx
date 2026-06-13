@@ -123,8 +123,16 @@ export function CapabilitiesForm({
     CUSTOM_SECONDARY_GOAL,
   ];
 
+  const checkboxLabelClass =
+    "flex items-center gap-3 min-h-[44px] rounded-lg border border-border px-3 py-2.5 text-sm cursor-pointer hover:bg-surface-hover";
+
+  const fieldsetClass =
+    "space-y-2.5 rounded-xl border border-border/70 bg-surface-hover/20 p-3.5 sm:p-4";
+
+  const legendClass = "text-sm font-medium text-foreground/90 mb-1";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <Input
         id="current_work"
         label="Чем вы сейчас занимаетесь?"
@@ -134,19 +142,17 @@ export function CapabilitiesForm({
         required
       />
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm text-muted">Какие навыки у вас есть?</legend>
+      <fieldset className={fieldsetClass}>
+        <legend className={legendClass}>Навыки</legend>
+        <p className="text-xs text-muted -mt-1 mb-1">Что умеете делать для доп.дохода</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ESCAPE_SKILLS.map((skill) => (
-            <label
-              key={skill}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm cursor-pointer hover:bg-surface-hover"
-            >
+            <label key={skill} className={checkboxLabelClass}>
               <input
                 type="checkbox"
                 checked={skills.includes(skill)}
                 onChange={() => toggleSkill(skill)}
-                className="rounded border-border"
+                className="size-4 shrink-0 rounded border-border"
               />
               {skill}
             </label>
@@ -163,38 +169,37 @@ export function CapabilitiesForm({
         )}
       </fieldset>
 
-      <Select
-        id="primary_goal"
-        label="Главная цель"
-        value={primaryGoal}
-        onChange={(e) => handlePrimaryChange(e.target.value)}
-        options={ESCAPE_GOALS.map((goal) => ({ value: goal, label: goal }))}
-      />
+      <fieldset className={fieldsetClass}>
+        <legend className={legendClass}>Цели</legend>
+        <Select
+          id="primary_goal"
+          label="Главная цель"
+          value={primaryGoal}
+          onChange={(e) => handlePrimaryChange(e.target.value)}
+          options={ESCAPE_GOALS.map((goal) => ({ value: goal, label: goal }))}
+        />
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm text-muted">
-          Что ещё важно?{" "}
-          <span className="text-xs">до {MAX_SECONDARY_GOALS}, по желанию</span>
-        </legend>
-        <div className="grid grid-cols-1 gap-2">
-          {secondaryOptions.map((goal) => (
-            <label
-              key={goal}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm cursor-pointer hover:bg-surface-hover"
-            >
-              <input
-                type="checkbox"
-                checked={secondaryGoals.includes(goal)}
-                onChange={() => toggleSecondaryGoal(goal)}
-                disabled={
-                  !secondaryGoals.includes(goal) &&
-                  secondaryGoals.length >= MAX_SECONDARY_GOALS
-                }
-                className="rounded border-border"
-              />
-              {goal}
-            </label>
-          ))}
+        <div className="space-y-2 pt-1">
+          <p className="text-xs text-muted">
+            Что ещё важно? <span>до {MAX_SECONDARY_GOALS}, по желанию</span>
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {secondaryOptions.map((goal) => (
+              <label key={goal} className={checkboxLabelClass}>
+                <input
+                  type="checkbox"
+                  checked={secondaryGoals.includes(goal)}
+                  onChange={() => toggleSecondaryGoal(goal)}
+                  disabled={
+                    !secondaryGoals.includes(goal) &&
+                    secondaryGoals.length >= MAX_SECONDARY_GOALS
+                  }
+                  className="size-4 shrink-0 rounded border-border"
+                />
+                {goal}
+              </label>
+            ))}
+          </div>
         </div>
         {secondaryGoals.includes(CUSTOM_SECONDARY_GOAL) && (
           <Input
@@ -207,30 +212,31 @@ export function CapabilitiesForm({
         )}
       </fieldset>
 
-      <Select
-        id="hours"
-        label="Сколько времени в неделю готовы выделить?"
-        value={hours}
-        onChange={(e) => setHours(e.target.value)}
-        options={ESCAPE_HOURS_OPTIONS.map((o) => ({
-          value: String(o.value),
-          label: o.label,
-        }))}
-      />
+      <fieldset className={fieldsetClass}>
+        <legend className={legendClass}>Время</legend>
+        <Select
+          id="hours"
+          label="Сколько времени в неделю готовы выделить?"
+          value={hours}
+          onChange={(e) => setHours(e.target.value)}
+          options={ESCAPE_HOURS_OPTIONS.map((o) => ({
+            value: String(o.value),
+            label: o.label,
+          }))}
+        />
+      </fieldset>
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm text-muted">Есть ли ограничения?</legend>
+      <fieldset className={fieldsetClass}>
+        <legend className={legendClass}>Ограничения</legend>
+        <p className="text-xs text-muted -mt-1 mb-1">Формат работы и условия, которые важны</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ESCAPE_CONSTRAINTS.map((constraint) => (
-            <label
-              key={constraint}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm cursor-pointer hover:bg-surface-hover"
-            >
+            <label key={constraint} className={checkboxLabelClass}>
               <input
                 type="checkbox"
                 checked={constraints.includes(constraint)}
                 onChange={() => toggleConstraint(constraint)}
-                className="rounded border-border"
+                className="size-4 shrink-0 rounded border-border"
               />
               {constraint}
             </label>

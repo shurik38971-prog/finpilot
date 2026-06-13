@@ -1,6 +1,7 @@
 "use server";
 
-import { getActiveEscapePlanId } from "@/lib/actions/escape-plans";
+import { getActiveEscapePlanId, repairArchivedEscapeRouteStepsForActivePlan } from "@/lib/actions/escape-plans";
+import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/server";
 import { syncPendingTaskPriorities } from "@/lib/ai/sync-task-priorities";
@@ -73,6 +74,10 @@ function mapTask(row: Record<string, unknown>): FinancialTaskWithGoal {
 export async function getFinancialTasks(options?: {
   activeEscapePlanOnly?: boolean;
 }): Promise<FinancialTaskWithGoal[]> {
+  if (options?.activeEscapePlanOnly) {
+    await repairArchivedEscapeRouteStepsForActivePlan();
+  }
+
   const { supabase, userId } = await getUserId();
   const { data, error } = await supabase
     .from("financial_tasks")
@@ -93,6 +98,7 @@ export async function getFinancialTasks(options?: {
     const activePlanId = await getActiveEscapePlanId();
     if (!activePlanId) return [];
     tasks = tasks.filter((task) => task.escape_plan_id === activePlanId);
+    tasks = sortEscapeRouteTasks(tasks);
   }
 
   return tasks;
@@ -339,10 +345,12 @@ export async function completeTask(
   }
 
   const profileType = await getProfileTypeForUser(supabase, userId);
-  await syncPendingTaskPriorities(supabase, userId, {
-    ...options,
-    profileType,
-  });
+  if (!task.escape_plan_id) {
+    await syncPendingTaskPriorities(supabase, userId, {
+      ...options,
+      profileType,
+    });
+  }
   await trackServerEvent({
     event_name: ANALYTICS_EVENTS.TASK_COMPLETED,
     user_id: userId,
@@ -362,7 +370,11 @@ export async function completeTask(
     getTaskProgressStats(),
   ]);
 
-  return { nextAction, taskProgress, askRecommendationFeedback: true };
+  return {
+    nextAction,
+    taskProgress,
+    askRecommendationFeedback: !task.escape_plan_id,
+  };
 }
 
 export async function postponeTask(id: string) {

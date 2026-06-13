@@ -1,7 +1,7 @@
 "use server";
 
 import { buildActiveGoalTitle } from "@/lib/escape-plan/build-active-goal";
-import { buildEscapeActionSteps } from "@/lib/escape-plan/build-action-steps";
+import { buildEscapeRouteSteps } from "@/lib/escape-plan/route-steps";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type {
@@ -12,6 +12,7 @@ import type {
 } from "@/types/escape-plan";
 import type { EscapeFailureReason } from "@/types/rescue-plan";
 import { isActiveEscapeAttempt, resolveAttemptStatus } from "@/types/rescue-plan";
+import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import type { FinancialTask, TaskCategory } from "@/types/tasks";
 
 const ESCAPE_PATHS = ["/escape-plan", "/dashboard", "/actions"];
@@ -122,6 +123,59 @@ export async function getActiveEscapePlanId(): Promise<string | null> {
   return active?.id ?? null;
 }
 
+/** Restore route steps wrongly archived by category deduplication. */
+export async function repairArchivedEscapeRouteStepsForActivePlan(): Promise<void> {
+  const activePlanId = await getActiveEscapePlanId();
+  if (!activePlanId) return;
+  const { supabase, userId } = await getUserId();
+  await repairArchivedEscapeRouteSteps(supabase, userId, activePlanId);
+}
+
+async function repairArchivedEscapeRouteSteps(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  escapePlanId: string
+) {
+  const { count: pendingCount, error: pendingError } = await supabase
+    .from("financial_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .in("status", ["pending", "postponed"]);
+
+  if (pendingError) throw pendingError;
+  if ((pendingCount ?? 0) > 0) return;
+
+  const { count: doneCount, error: doneError } = await supabase
+    .from("financial_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .eq("status", "done");
+
+  if (doneError) throw doneError;
+  if ((doneCount ?? 0) === 0) return;
+
+  const { count: archivedCount, error: archivedError } = await supabase
+    .from("financial_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .eq("status", "archived");
+
+  if (archivedError) throw archivedError;
+  if ((archivedCount ?? 0) === 0) return;
+
+  const { error } = await supabase
+    .from("financial_tasks")
+    .update({ status: "pending" })
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .eq("status", "archived");
+
+  if (error) throw error;
+}
+
 /** Before a new AI run or full reset — archive route tasks and abandon active plans. */
 export async function abandonActiveEscapeRoute(): Promise<void> {
   const { supabase, userId } = await getUserId();
@@ -139,17 +193,17 @@ async function createEscapePlanTasks(
   escapePlanId: string,
   option: EscapePlanOption
 ) {
-  const steps = buildEscapeActionSteps(option);
+  const steps = buildEscapeRouteSteps(option);
   const category = OPTION_TASK_CATEGORY[option.type] ?? "other";
 
-  const rows = steps.map((title, index) => ({
+  const rows = steps.map((routeStep, index) => ({
     user_id: userId,
-    title,
-    description: `Шаг по направлению «${option.title}»`,
-    explanation: `Вы выбрали это направление в «Поиске выхода». Выполните шаг — так вы приблизитесь к результату.`,
+    title: routeStep.title,
+    description: routeStep.description,
+    explanation: routeStep.expected_result,
     impact_score: Math.max(40, 70 - index * 8),
     impact_label: "Заметно поможет",
-    priority_score: Math.max(50, 95 - index * 10),
+    priority_score: 1000 - index,
     financial_impact: 0,
     task_category: category,
     escape_plan_id: escapePlanId,
@@ -185,6 +239,7 @@ export async function getEscapePlanTasks(
   escapePlanId: string
 ): Promise<FinancialTask[]> {
   const { supabase, userId } = await getUserId();
+  await repairArchivedEscapeRouteSteps(supabase, userId, escapePlanId);
   const { data, error } = await supabase
     .from("financial_tasks")
     .select("*")
@@ -195,7 +250,7 @@ export async function getEscapePlanTasks(
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as FinancialTask[];
+  return sortEscapeRouteTasks((data ?? []) as FinancialTask[]);
 }
 
 export async function getPendingEscapeFollowUp(): Promise<UserEscapePlan | null> {

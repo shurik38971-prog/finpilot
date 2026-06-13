@@ -40,12 +40,14 @@ export async function syncPendingTaskPriorities(
       goal_id,
       priority_score,
       financial_impact,
+      escape_plan_id,
       goal:financial_goals(type),
       impact:task_impacts(*)
     `
     )
     .eq("user_id", userId)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .is("escape_plan_id", null);
 
   if (error || !data?.length) return;
 

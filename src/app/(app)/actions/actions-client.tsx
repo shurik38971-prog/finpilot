@@ -28,7 +28,9 @@ import { TaskRecommendationModal } from "@/components/feedback/task-recommendati
 import { TaskImpactPreview } from "@/components/tasks/task-impact-preview";
 import { TaskRecommendationContext } from "@/components/tasks/task-recommendation-context";
 import { getDisplayableTaskImpact } from "@/lib/finance/task-effect-eligibility";
+import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import { benefitLabel, importanceLabel } from "@/lib/copy/ui";
+import { Toast } from "@/components/ui/toast";
 
 function impactVariant(score: number): "danger" | "warning" | "success" | "default" {
   if (score >= 70) return "danger";
@@ -82,9 +84,7 @@ function PrimaryActionCard({
           <div>
             <p className="text-xs text-muted mb-1">
               {cleanupMode
-                ? task.escape_plan_id
-                  ? "Активный план"
-                  : "Следующий шаг"
+                ? "Следующий шаг"
                 : `Следующее лучшее действие · ${importanceLabel(task.priority_score)}`}
             </p>
             <CardTitle className="text-lg">{task.title}</CardTitle>
@@ -104,6 +104,12 @@ function PrimaryActionCard({
           <CardDescription className="text-sm leading-relaxed">
             {task.description}
           </CardDescription>
+        )}
+        {cleanupMode && task.explanation && (
+          <p className="text-sm text-muted mt-2">
+            <span className="text-foreground/80">Ожидаемый результат: </span>
+            {task.explanation}
+          </p>
         )}
         {!cleanupMode && displayImpact && (
           <div className="mt-3">
@@ -261,20 +267,32 @@ export function ActionsPageClient({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showAllActive, setShowAllActive] = useState(false);
   const [feedbackTaskId, setFeedbackTaskId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const pending = tasks
+  const orderedTasks = cleanupMode ? sortEscapeRouteTasks(tasks) : tasks;
+  const pending = orderedTasks
     .filter((t) => t.status === "pending")
     .sort(
       (a, b) =>
-        b.priority_score - a.priority_score ||
-        b.impact_score - a.impact_score
+        cleanupMode
+          ? 0
+          : b.priority_score - a.priority_score ||
+            b.impact_score - a.impact_score
     );
-  const postponed = tasks.filter((t) => t.status === "postponed");
-  const done = tasks.filter((t) => t.status === "done");
+  const postponed = orderedTasks.filter((t) => t.status === "postponed");
+  const done = orderedTasks.filter((t) => t.status === "done");
   const primary = pending[0] ?? null;
-  const activeTasks = pending
-    .filter((task) => task.id !== primary?.id)
-    .concat(postponed.filter((task) => task.id !== primary?.id));
+  const activeTasks = cleanupMode
+    ? postponed
+    : pending
+        .filter((task) => task.id !== primary?.id)
+        .concat(postponed.filter((task) => task.id !== primary?.id));
+  const routeComplete =
+    cleanupMode &&
+    !primary &&
+    postponed.length === 0 &&
+    done.length > 0 &&
+    tasks.length > 0;
   const pageTitle = useCopy("page.actions.title");
   const pageDescription = useCopy(
     cleanupMode ? "page.actions.description_cleanup" : "page.actions.description"
@@ -308,6 +326,9 @@ export function ActionsPageClient({
       if (result.askRecommendationFeedback) {
         setFeedbackTaskId(id);
       }
+      if (cleanupMode) {
+        setToastMessage("Шаг выполнен. Следующий шаг готов.");
+      }
       router.refresh();
     } finally {
       setLoadingId(null);
@@ -316,6 +337,7 @@ export function ActionsPageClient({
 
   return (
     <div>
+      <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
       <TaskRecommendationModal
         open={feedbackTaskId != null}
         taskId={feedbackTaskId}
@@ -344,6 +366,30 @@ export function ActionsPageClient({
         </Card>
       ) : (
         <>
+          {routeComplete && (
+            <Card className="mb-6 border-emerald-500/30 bg-emerald-500/5">
+              <CardHeader>
+                <CardTitle className="text-base text-emerald-400">
+                  Все шаги маршрута выполнены
+                </CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Запишите полученный доход в разделе «Доходы» или пересчитайте
+                  маршрут в «Выходе из ситуации», если нужен новый план.
+                </CardDescription>
+              </CardHeader>
+              <div className="px-5 pb-5 flex flex-wrap gap-2">
+                <Link href="/income">
+                  <Button size="sm">Записать доход</Button>
+                </Link>
+                <Link href="/escape-plan">
+                  <Button size="sm" variant="secondary">
+                    Выход из ситуации
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          )}
+
           {primary && (
             <PrimaryActionCard
               task={primary}
@@ -356,7 +402,9 @@ export function ActionsPageClient({
           {activeTasks.length > 0 && (
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="text-base">Активные задачи</CardTitle>
+                <CardTitle className="text-base">
+                  {cleanupMode ? "Отложенные шаги" : "Активные задачи"}
+                </CardTitle>
               </CardHeader>
               <div>
                 {visibleActiveTasks.map((task) => (

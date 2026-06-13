@@ -52,8 +52,11 @@ export function resolveAttemptStatus(plan: {
       return "in_progress";
     case "completed":
       return "success";
+    case "archived":
     case "abandoned":
-      return "failed";
+      return "not_started";
+    case "alternative":
+      return "not_started";
     default:
       return "not_started";
   }

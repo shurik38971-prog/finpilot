@@ -86,7 +86,23 @@ export type EscapePlanOptionType =
 
 export type EscapePlanDifficulty = "low" | "medium" | "high";
 export type EscapePlanConfidence = "high" | "medium" | "low";
-export type EscapePlanStatus = "planned" | "active" | "completed" | "abandoned";
+export type EscapePlanStatus =
+  | "active"
+  | "alternative"
+  | "archived"
+  | "completed"
+  /** @deprecated migrated to archived */
+  | "planned"
+  /** @deprecated migrated to archived */
+  | "abandoned";
+
+export function isAlternativeEscapePlan(plan: { status: string }): boolean {
+  return plan.status === "alternative";
+}
+
+export function isArchivedEscapePlan(plan: { status: string }): boolean {
+  return plan.status === "archived" || plan.status === "abandoned";
+}
 export type EscapeFollowUpAnswer = "yes" | "partial" | "no";
 
 export const ESCAPE_CONFIDENCE_LABELS: Record<EscapePlanConfidence, string> = {

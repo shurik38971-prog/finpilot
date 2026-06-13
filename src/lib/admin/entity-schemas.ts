@@ -296,10 +296,12 @@ export const ADMIN_ENTITY_SCHEMAS: AdminEntitySchema[] = [
         label: "Статус",
         type: "select",
         options: [
-          { value: "planned", label: "Запланирован" },
           { value: "active", label: "Активен" },
+          { value: "alternative", label: "Альтернатива" },
+          { value: "archived", label: "В архиве" },
           { value: "completed", label: "Завершён" },
-          { value: "abandoned", label: "Отменён" },
+          { value: "planned", label: "Запланирован (устар.)" },
+          { value: "abandoned", label: "Отменён (устар.)" },
         ],
       },
       {

@@ -60,6 +60,21 @@ function revalidateEscapePages() {
   }
 }
 
+async function archiveEscapePlanTasks(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  escapePlanId: string
+) {
+  const { error } = await supabase
+    .from("financial_tasks")
+    .update({ status: "archived" })
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .neq("status", "archived");
+
+  if (error) throw error;
+}
+
 /** All non-archived escape-route tasks for the user (any status). */
 async function archiveAllEscapeRouteTasks(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -96,15 +111,14 @@ async function archiveOrphanActionTasks(
   if (error) throw error;
 }
 
-async function abandonActiveEscapePlans(
+async function archiveActiveEscapePlans(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
 ) {
   const { error } = await supabase
     .from("user_escape_plans")
     .update({
-      status: "abandoned",
-      attempt_status: "failed",
+      status: "archived",
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
@@ -181,7 +195,7 @@ export async function abandonActiveEscapeRoute(): Promise<void> {
   const { supabase, userId } = await getUserId();
   await archiveAllEscapeRouteTasks(supabase, userId);
   await archiveOrphanActionTasks(supabase, userId);
-  await abandonActiveEscapePlans(supabase, userId);
+  await archiveActiveEscapePlans(supabase, userId);
   revalidateEscapePages();
   revalidatePath("/actions");
   revalidatePath("/dashboard");
@@ -213,6 +227,124 @@ async function createEscapePlanTasks(
 
   const { error } = await supabase.from("financial_tasks").insert(rows);
   if (error) throw error;
+}
+
+async function findExistingRouteByTitle(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  optionTitle: string,
+  statuses: string[]
+) {
+  const { data, error } = await supabase
+    .from("user_escape_plans")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("option_title", optionTitle)
+    .in("status", statuses)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? normalizeEscapePlan(data as UserEscapePlan) : null;
+}
+
+async function createActiveEscapePlan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  option: EscapePlanOption
+): Promise<UserEscapePlan> {
+  const followUpDue = new Date();
+  followUpDue.setDate(followUpDue.getDate() + 7);
+
+  const { data, error } = await supabase
+    .from("user_escape_plans")
+    .insert({
+      user_id: userId,
+      option_title: option.title,
+      option_snapshot: option,
+      status: "active",
+      attempt_status: "in_progress",
+      active_goal: buildActiveGoalTitle(option),
+      income_found: 0,
+      follow_up_due_at: followUpDue.toISOString(),
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  await createEscapePlanTasks(supabase, userId, data.id, option);
+  return normalizeEscapePlan(data as UserEscapePlan);
+}
+
+async function promotePlanToActive(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  planId: string,
+  option: EscapePlanOption
+): Promise<UserEscapePlan> {
+  const followUpDue = new Date();
+  followUpDue.setDate(followUpDue.getDate() + 7);
+
+  await archiveEscapePlanTasks(supabase, userId, planId);
+
+  const { data, error } = await supabase
+    .from("user_escape_plans")
+    .update({
+      status: "active",
+      attempt_status: "in_progress",
+      option_snapshot: option,
+      active_goal: buildActiveGoalTitle(option),
+      income_found: 0,
+      follow_up_due_at: followUpDue.toISOString(),
+      follow_up_answer: null,
+      follow_up_answered_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", planId)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  await createEscapePlanTasks(supabase, userId, planId, option);
+  return normalizeEscapePlan(data as UserEscapePlan);
+}
+
+async function switchToEscapeOption(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  option: EscapePlanOption
+): Promise<UserEscapePlan> {
+  const active = await getActiveEscapePlan();
+  if (active) {
+    await archiveEscapePlanTasks(supabase, userId, active.id);
+    const { error: archiveError } = await supabase
+      .from("user_escape_plans")
+      .update({
+        status: "archived",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", active.id)
+      .eq("user_id", userId);
+    if (archiveError) throw archiveError;
+  }
+
+  await archiveOrphanActionTasks(supabase, userId);
+
+  const existing = await findExistingRouteByTitle(supabase, userId, option.title, [
+    "alternative",
+    "archived",
+    "abandoned",
+  ]);
+
+  if (existing) {
+    return promotePlanToActive(supabase, userId, existing.id, option);
+  }
+
+  return createActiveEscapePlan(supabase, userId, option);
 }
 
 export async function getUserEscapePlans(): Promise<UserEscapePlan[]> {
@@ -276,13 +408,27 @@ export async function chooseEscapeOption(
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
   const { supabase, userId } = await getUserId();
+  const active = await getActiveEscapePlan();
+  const saved = active
+    ? await switchToEscapeOption(supabase, userId, option)
+    : await createActiveEscapePlan(supabase, userId, option);
 
-  await archiveAllEscapeRouteTasks(supabase, userId);
-  await archiveOrphanActionTasks(supabase, userId);
-  await abandonActiveEscapePlans(supabase, userId);
+  revalidateEscapePages();
+  revalidatePath("/actions");
+  return saved;
+}
 
-  const followUpDue = new Date();
-  followUpDue.setDate(followUpDue.getDate() + 7);
+export async function saveEscapeOptionAsAlternative(
+  option: EscapePlanOption
+): Promise<UserEscapePlan> {
+  const { supabase, userId } = await getUserId();
+
+  const existing = await findExistingRouteByTitle(supabase, userId, option.title, [
+    "alternative",
+  ]);
+  if (existing) {
+    return existing;
+  }
 
   const { data, error } = await supabase
     .from("user_escape_plans")
@@ -290,22 +436,53 @@ export async function chooseEscapeOption(
       user_id: userId,
       option_title: option.title,
       option_snapshot: option,
-      status: "active",
-      attempt_status: "in_progress",
+      status: "alternative",
+      attempt_status: "not_started",
       active_goal: buildActiveGoalTitle(option),
       income_found: 0,
-      follow_up_due_at: followUpDue.toISOString(),
+      follow_up_due_at: null,
     })
     .select("*")
     .single();
 
   if (error) throw error;
 
-  await createEscapePlanTasks(supabase, userId, data.id, option);
+  revalidateEscapePages();
+  return normalizeEscapePlan(data as UserEscapePlan);
+}
+
+export async function activateEscapeOption(
+  option: EscapePlanOption
+): Promise<UserEscapePlan> {
+  const { supabase, userId } = await getUserId();
+  const saved = await switchToEscapeOption(supabase, userId, option);
 
   revalidateEscapePages();
   revalidatePath("/actions");
-  return normalizeEscapePlan(data as UserEscapePlan);
+  return saved;
+}
+
+export async function activateSavedEscapeRoute(
+  planId: string
+): Promise<UserEscapePlan> {
+  const { supabase, userId } = await getUserId();
+
+  const { data: plan, error: fetchError } = await supabase
+    .from("user_escape_plans")
+    .select("*")
+    .eq("id", planId)
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError) throw fetchError;
+  if (!plan) throw new Error("Маршрут не найден");
+
+  const snapshot = plan.option_snapshot as EscapePlanOption;
+  const saved = await switchToEscapeOption(supabase, userId, snapshot);
+
+  revalidateEscapePages();
+  revalidatePath("/actions");
+  return saved;
 }
 
 export async function answerEscapeFollowUp(
@@ -378,7 +555,7 @@ export async function reportAttemptFailure(
   const { data, error } = await supabase
     .from("user_escape_plans")
     .update({
-      status: "abandoned",
+      status: "archived",
       attempt_status: "failed",
       failure_reason: reason,
       failure_reason_other:

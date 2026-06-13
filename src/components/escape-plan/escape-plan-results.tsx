@@ -5,14 +5,18 @@ import { EscapePlanFollowUp } from "@/components/escape-plan/escape-plan-follow-
 import { EscapePlanNotRecommendedList } from "@/components/escape-plan/escape-plan-not-recommended";
 import { EscapePlanOptionCard } from "@/components/escape-plan/escape-plan-option-card";
 import { EscapePlanPrimaryCard } from "@/components/escape-plan/escape-plan-primary-card";
+import { EscapePlanSavedAlternatives } from "@/components/escape-plan/escape-plan-saved-alternatives";
+import { EscapeRouteConflictModal } from "@/components/escape-plan/escape-route-conflict-modal";
 import { RescuePlanCard } from "@/components/escape-plan/rescue-plan-card";
 import { RescueProgressCard } from "@/components/escape-plan/rescue-progress-card";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
 import { useCopy } from "@/components/copy/site-copy-provider";
 import {
+  activateEscapeOption,
+  activateSavedEscapeRoute,
   chooseEscapeOption,
   getEscapePlanTasks,
+  saveEscapeOptionAsAlternative,
 } from "@/lib/actions/escape-plans";
 import { buildRescuePlan, buildRescueProgressFromPlan } from "@/lib/escape-plan/build-rescue-plan";
 import { computeRouteStepProgress } from "@/lib/escape-plan/route-progress";
@@ -21,6 +25,7 @@ import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
 import { ESCAPE_VISIBLE_OPTIONS } from "@/lib/escape-plan/situation-brief";
 import {
   getEffectiveSkills,
+  isAlternativeEscapePlan,
   resolvePrimaryGoal,
   type EscapePlanOption,
   type EscapePlanResult,
@@ -66,11 +71,15 @@ export function EscapePlanResults({
   const [pendingFollowUp, setPendingFollowUp] = useState(initialPendingFollowUp);
   const [activePlanTasks, setActivePlanTasks] = useState(initialActivePlanTasks);
   const [choosingTitle, setChoosingTitle] = useState<string | null>(null);
+  const [activatingPlanId, setActivatingPlanId] = useState<string | null>(null);
   const [chooseError, setChooseError] = useState("");
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showAlternatives, setShowAlternatives] = useState(false);
-  const [confirmReplaceOption, setConfirmReplaceOption] =
-    useState<EscapePlanOption | null>(null);
+  const [pendingRouteChoice, setPendingRouteChoice] = useState<
+    | { kind: "option"; option: EscapePlanOption }
+    | { kind: "saved"; plan: UserEscapePlan }
+    | null
+  >(null);
   const backupOptionsLabel = useCopy("escape.backup_options");
 
   const failedPlans = useMemo(
@@ -93,11 +102,22 @@ export function EscapePlanResults({
   const activePlan =
     escapePlans.find((p) => isActiveEscapeAttempt(p)) ?? null;
   const activeTitle = activePlan?.option_title ?? null;
+  const savedAlternativePlans = useMemo(
+    () => escapePlans.filter((plan) => isAlternativeEscapePlan(plan)),
+    [escapePlans]
+  );
+  const reservedTitles = useMemo(() => {
+    const titles = new Set<string>();
+    if (activeTitle) titles.add(activeTitle);
+    for (const plan of savedAlternativePlans) {
+      titles.add(plan.option_title);
+    }
+    return titles;
+  }, [activeTitle, savedAlternativePlans]);
 
   const availableOptions = useMemo(() => {
-    if (!activeTitle) return rankedOptions;
-    return rankedOptions.filter((o) => o.title !== activeTitle);
-  }, [rankedOptions, activeTitle]);
+    return rankedOptions.filter((option) => !reservedTitles.has(option.title));
+  }, [rankedOptions, reservedTitles]);
 
   const primaryOption = availableOptions[0] ?? null;
   const backupOptions = availableOptions.slice(1, ESCAPE_VISIBLE_OPTIONS);
@@ -141,27 +161,75 @@ export function EscapePlanResults({
     };
   }, [activePlan, rescuePlan, activePlanTasks]);
 
+  async function applyActiveRoute(saved: UserEscapePlan) {
+    const tasks = await getEscapePlanTasks(saved.id);
+    setEscapePlans((prev) => [
+      saved,
+      ...prev
+        .filter((plan) => plan.id !== saved.id)
+        .map((plan) => {
+          if (plan.id === activePlan?.id || isActiveEscapeAttempt(plan)) {
+            return { ...plan, status: "archived" as const };
+          }
+          return plan;
+        }),
+    ]);
+    setActivePlanTasks(tasks);
+    setPendingFollowUp(null);
+    setShowMoreOptions(false);
+    setShowAlternatives(false);
+    setPendingRouteChoice(null);
+  }
+
   async function handleChoose(option: EscapePlanOption) {
     setChoosingTitle(option.title);
     setChooseError("");
     try {
       const saved = await chooseEscapeOption(option);
-      const tasks = await getEscapePlanTasks(saved.id);
-      setEscapePlans((prev) => [
-        saved,
-        ...prev
-          .filter((p) => p.id !== saved.id)
-          .map((p) =>
-            isActiveEscapeAttempt(p)
-              ? { ...p, status: "abandoned" as const, attempt_status: "failed" as const }
-              : p
-          ),
-      ]);
-      setActivePlanTasks(tasks);
-      setPendingFollowUp(null);
-      setShowMoreOptions(false);
-      setShowAlternatives(false);
-      setConfirmReplaceOption(null);
+      await applyActiveRoute(saved);
+    } catch (err) {
+      setChooseError(err instanceof Error ? err.message : "Не удалось сохранить");
+    } finally {
+      setChoosingTitle(null);
+    }
+  }
+
+  async function handleMakeActive() {
+    if (!pendingRouteChoice || !activePlan) return;
+    setChooseError("");
+    if (pendingRouteChoice.kind === "option") {
+      setChoosingTitle(pendingRouteChoice.option.title);
+      try {
+        const saved = await activateEscapeOption(pendingRouteChoice.option);
+        await applyActiveRoute(saved);
+      } catch (err) {
+        setChooseError(err instanceof Error ? err.message : "Не удалось переключить");
+      } finally {
+        setChoosingTitle(null);
+      }
+      return;
+    }
+
+    setActivatingPlanId(pendingRouteChoice.plan.id);
+    try {
+      const saved = await activateSavedEscapeRoute(pendingRouteChoice.plan.id);
+      await applyActiveRoute(saved);
+    } catch (err) {
+      setChooseError(err instanceof Error ? err.message : "Не удалось переключить");
+    } finally {
+      setActivatingPlanId(null);
+    }
+  }
+
+  async function handleSaveAsAlternative() {
+    if (!pendingRouteChoice || pendingRouteChoice.kind !== "option") return;
+    setChoosingTitle(pendingRouteChoice.option.title);
+    setChooseError("");
+    try {
+      const saved = await saveEscapeOptionAsAlternative(pendingRouteChoice.option);
+      setEscapePlans((prev) => [saved, ...prev.filter((plan) => plan.id !== saved.id)]);
+      setPendingRouteChoice(null);
+      setShowAlternatives(true);
     } catch (err) {
       setChooseError(err instanceof Error ? err.message : "Не удалось сохранить");
     } finally {
@@ -171,11 +239,40 @@ export function EscapePlanResults({
 
   function requestChoose(option: EscapePlanOption) {
     if (activePlan) {
-      setConfirmReplaceOption(option);
+      setChooseError("");
+      setPendingRouteChoice({ kind: "option", option });
       return;
     }
     void handleChoose(option);
   }
+
+  function requestActivateSaved(plan: UserEscapePlan) {
+    if (!activePlan) {
+      void (async () => {
+        setActivatingPlanId(plan.id);
+        try {
+          const saved = await activateSavedEscapeRoute(plan.id);
+          await applyActiveRoute(saved);
+        } catch (err) {
+          setChooseError(err instanceof Error ? err.message : "Не удалось переключить");
+        } finally {
+          setActivatingPlanId(null);
+        }
+      })();
+      return;
+    }
+    setChooseError("");
+    setPendingRouteChoice({ kind: "saved", plan });
+  }
+
+  const conflictNewTitle =
+    pendingRouteChoice?.kind === "option"
+      ? pendingRouteChoice.option.title
+      : pendingRouteChoice?.kind === "saved"
+        ? pendingRouteChoice.plan.option_title
+        : "";
+  const routeActionLoading =
+    choosingTitle != null || activatingPlanId != null;
 
   function handleFollowUpAnswered(updated: UserEscapePlan) {
     setEscapePlans((prev) =>
@@ -194,38 +291,26 @@ export function EscapePlanResults({
 
   return (
     <div className="space-y-6">
-      <Modal
-        open={confirmReplaceOption != null}
-        onClose={() => setConfirmReplaceOption(null)}
-        title="Создать новый маршрут?"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-foreground/85 leading-relaxed">
-            У вас уже есть активный маршрут. Новый анализ заменит текущий
-            маршрут и сбросит прогресс по старому плану. Продолжить?
-          </p>
-          {chooseError && <p className="text-sm text-red-400">{chooseError}</p>}
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => setConfirmReplaceOption(null)}
-              disabled={choosingTitle != null}
-            >
-              Отмена
-            </Button>
-            <Button
-              onClick={() => {
-                if (confirmReplaceOption) {
-                  void handleChoose(confirmReplaceOption);
-                }
-              }}
-              disabled={choosingTitle != null}
-            >
-              {choosingTitle ? "Создание..." : "Создать новый маршрут"}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      <EscapeRouteConflictModal
+        open={pendingRouteChoice != null && activePlan != null}
+        currentRouteTitle={activePlan?.option_title ?? ""}
+        newRouteTitle={conflictNewTitle}
+        error={chooseError}
+        loading={routeActionLoading}
+        showSaveAsAlternative={pendingRouteChoice?.kind === "option"}
+        onClose={() => {
+          if (!routeActionLoading) {
+            setPendingRouteChoice(null);
+            setChooseError("");
+          }
+        }}
+        onKeepCurrent={() => {
+          setPendingRouteChoice(null);
+          setChooseError("");
+        }}
+        onMakeActive={() => void handleMakeActive()}
+        onSaveAsAlternative={() => void handleSaveAsAlternative()}
+      />
 
       <RescuePlanCard plan={rescuePlan} />
 
@@ -252,6 +337,12 @@ export function EscapePlanResults({
             steps={activePlanTasks}
             mainFinancialGoal={mainFinancialGoal}
             onFailed={handleAttemptFailed}
+          />
+
+          <EscapePlanSavedAlternatives
+            plans={savedAlternativePlans}
+            activatingId={activatingPlanId}
+            onActivate={requestActivateSaved}
           />
 
           {availableOptions.length > 0 && (

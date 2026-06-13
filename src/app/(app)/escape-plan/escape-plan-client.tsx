@@ -139,12 +139,13 @@ export function EscapePlanPageClient({
             setPendingFormInput(null);
           }
         }}
-        title="Создать новый маршрут?"
+        title="Обновить анкету?"
       >
         <div className="space-y-4">
           <p className="text-sm text-foreground/85 leading-relaxed">
-            У вас уже есть активный маршрут. Новый анализ заменит текущий
-            маршрут и сбросит прогресс по старому плану. Продолжить?
+            У вас уже есть активный маршрут. Новый анализ предложит другие
+            варианты, но текущий маршрут останется активным, пока вы сами не
+            переключитесь. Продолжить?
           </p>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex justify-end gap-3">

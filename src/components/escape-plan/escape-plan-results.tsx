@@ -7,8 +7,9 @@ import { EscapePlanOptionCard } from "@/components/escape-plan/escape-plan-optio
 import { EscapePlanPrimaryCard } from "@/components/escape-plan/escape-plan-primary-card";
 import { RescuePlanCard } from "@/components/escape-plan/rescue-plan-card";
 import { RescueProgressCard } from "@/components/escape-plan/rescue-progress-card";
-import { useCopy } from "@/components/copy/site-copy-provider";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { useCopy } from "@/components/copy/site-copy-provider";
 import {
   chooseEscapeOption,
   getEscapePlanTasks,
@@ -65,6 +66,8 @@ export function EscapePlanResults({
   const [chooseError, setChooseError] = useState("");
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const [confirmReplaceOption, setConfirmReplaceOption] =
+    useState<EscapePlanOption | null>(null);
   const backupOptionsLabel = useCopy("escape.backup_options");
 
   const failedPlans = useMemo(
@@ -146,11 +149,20 @@ export function EscapePlanResults({
       setPendingFollowUp(null);
       setShowMoreOptions(false);
       setShowAlternatives(false);
+      setConfirmReplaceOption(null);
     } catch (err) {
       setChooseError(err instanceof Error ? err.message : "Не удалось сохранить");
     } finally {
       setChoosingTitle(null);
     }
+  }
+
+  function requestChoose(option: EscapePlanOption) {
+    if (activePlan) {
+      setConfirmReplaceOption(option);
+      return;
+    }
+    void handleChoose(option);
   }
 
   function handleFollowUpAnswered(updated: UserEscapePlan) {
@@ -170,6 +182,39 @@ export function EscapePlanResults({
 
   return (
     <div className="space-y-6">
+      <Modal
+        open={confirmReplaceOption != null}
+        onClose={() => setConfirmReplaceOption(null)}
+        title="Создать новый маршрут?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-foreground/85 leading-relaxed">
+            У вас уже есть активный маршрут. Новый анализ заменит текущий
+            маршрут и сбросит прогресс по старому плану. Продолжить?
+          </p>
+          {chooseError && <p className="text-sm text-red-400">{chooseError}</p>}
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmReplaceOption(null)}
+              disabled={choosingTitle != null}
+            >
+              Отмена
+            </Button>
+            <Button
+              onClick={() => {
+                if (confirmReplaceOption) {
+                  void handleChoose(confirmReplaceOption);
+                }
+              }}
+              disabled={choosingTitle != null}
+            >
+              {choosingTitle ? "Создание..." : "Создать новый маршрут"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <RescuePlanCard plan={rescuePlan} />
 
       {progress && activePlan && (
@@ -222,7 +267,7 @@ export function EscapePlanResults({
                         option={option}
                         fitIndex={index}
                         choosing={choosingTitle === option.title}
-                        onChoose={handleChoose}
+                        onChoose={requestChoose}
                       />
                     ))}
                   </div>

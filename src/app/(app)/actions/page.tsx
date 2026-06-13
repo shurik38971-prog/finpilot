@@ -20,6 +20,8 @@ export default async function ActionsPage() {
     }
   }
 
-  const tasks = await getFinancialTasks();
+  const tasks = await getFinancialTasks({
+    activeEscapePlanOnly: isCleanupMode(),
+  });
   return <ActionsPageClient tasks={tasks} cleanupMode={isCleanupMode()} />;
 }

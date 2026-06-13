@@ -11,7 +11,7 @@ import type {
   UserEscapePlan,
 } from "@/types/escape-plan";
 import type { EscapeFailureReason } from "@/types/rescue-plan";
-import { resolveAttemptStatus } from "@/types/rescue-plan";
+import { isActiveEscapeAttempt, resolveAttemptStatus } from "@/types/rescue-plan";
 import type { FinancialTask, TaskCategory } from "@/types/tasks";
 
 const ESCAPE_PATHS = ["/escape-plan", "/dashboard", "/actions"];
@@ -59,16 +59,78 @@ function revalidateEscapePages() {
   }
 }
 
-async function archivePendingEscapeTasks(
+/** All non-archived escape-route tasks for the user (any status). */
+async function archiveAllEscapeRouteTasks(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
+  userId: string,
+  exceptPlanId?: string
 ) {
-  await supabase
+  let query = supabase
     .from("financial_tasks")
     .update({ status: "archived" })
     .eq("user_id", userId)
-    .eq("status", "pending")
+    .neq("status", "archived")
     .not("escape_plan_id", "is", null);
+
+  if (exceptPlanId) {
+    query = query.neq("escape_plan_id", exceptPlanId);
+  }
+
+  const { error } = await query;
+  if (error) throw error;
+}
+
+/** Analysis/orphan tasks without escape_plan_id (cleanup mode). */
+async function archiveOrphanActionTasks(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const { error } = await supabase
+    .from("financial_tasks")
+    .update({ status: "archived" })
+    .eq("user_id", userId)
+    .neq("status", "archived")
+    .is("escape_plan_id", null);
+
+  if (error) throw error;
+}
+
+async function abandonActiveEscapePlans(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const { error } = await supabase
+    .from("user_escape_plans")
+    .update({
+      status: "abandoned",
+      attempt_status: "failed",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (error) throw error;
+}
+
+export async function getActiveEscapePlan(): Promise<UserEscapePlan | null> {
+  const plans = await getUserEscapePlans();
+  return plans.find((plan) => isActiveEscapeAttempt(plan)) ?? null;
+}
+
+export async function getActiveEscapePlanId(): Promise<string | null> {
+  const active = await getActiveEscapePlan();
+  return active?.id ?? null;
+}
+
+/** Before a new AI run or full reset — archive route tasks and abandon active plans. */
+export async function abandonActiveEscapeRoute(): Promise<void> {
+  const { supabase, userId } = await getUserId();
+  await archiveAllEscapeRouteTasks(supabase, userId);
+  await archiveOrphanActionTasks(supabase, userId);
+  await abandonActiveEscapePlans(supabase, userId);
+  revalidateEscapePages();
+  revalidatePath("/actions");
+  revalidatePath("/dashboard");
 }
 
 async function createEscapePlanTasks(
@@ -162,17 +224,9 @@ export async function chooseEscapeOption(
 ): Promise<UserEscapePlan> {
   const { supabase, userId } = await getUserId();
 
-  await archivePendingEscapeTasks(supabase, userId);
-
-  await supabase
-    .from("user_escape_plans")
-    .update({
-      status: "abandoned",
-      attempt_status: "failed",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId)
-    .eq("status", "active");
+  await archiveAllEscapeRouteTasks(supabase, userId);
+  await archiveOrphanActionTasks(supabase, userId);
+  await abandonActiveEscapePlans(supabase, userId);
 
   const followUpDue = new Date();
   followUpDue.setDate(followUpDue.getDate() + 7);
@@ -197,6 +251,7 @@ export async function chooseEscapeOption(
   await createEscapePlanTasks(supabase, userId, data.id, option, plan7Days);
 
   revalidateEscapePages();
+  revalidatePath("/actions");
   return normalizeEscapePlan(data as UserEscapePlan);
 }
 
@@ -286,7 +341,9 @@ export async function reportAttemptFailure(
 
   if (error) throw error;
 
-  await archivePendingEscapeTasks(supabase, userId);
+  await archiveAllEscapeRouteTasks(supabase, userId);
+  await archiveOrphanActionTasks(supabase, userId);
   revalidateEscapePages();
+  revalidatePath("/actions");
   return normalizeEscapePlan(data as UserEscapePlan);
 }

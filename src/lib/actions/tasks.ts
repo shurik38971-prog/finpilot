@@ -1,5 +1,6 @@
 "use server";
 
+import { getActiveEscapePlanId } from "@/lib/actions/escape-plans";
 import { getProfileTypeForUser } from "@/lib/actions/profile";
 import { createClient } from "@/lib/supabase/server";
 import { syncPendingTaskPriorities } from "@/lib/ai/sync-task-priorities";
@@ -69,7 +70,9 @@ function mapTask(row: Record<string, unknown>): FinancialTaskWithGoal {
   return { ...task, goal: goal ?? null, impact };
 }
 
-export async function getFinancialTasks(): Promise<FinancialTaskWithGoal[]> {
+export async function getFinancialTasks(options?: {
+  activeEscapePlanOnly?: boolean;
+}): Promise<FinancialTaskWithGoal[]> {
   const { supabase, userId } = await getUserId();
   const { data, error } = await supabase
     .from("financial_tasks")
@@ -81,15 +84,24 @@ export async function getFinancialTasks(): Promise<FinancialTaskWithGoal[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return (data ?? [])
+
+  let tasks = (data ?? [])
     .map((row) => mapTask(row as Record<string, unknown>))
     .filter((task) => Boolean(task.explanation?.trim()));
+
+  if (options?.activeEscapePlanOnly) {
+    const activePlanId = await getActiveEscapePlanId();
+    if (!activePlanId) return [];
+    tasks = tasks.filter((task) => task.escape_plan_id === activePlanId);
+  }
+
+  return tasks;
 }
 
 export async function getCleanupActions(
   limit = 3
 ): Promise<FinancialTaskWithGoal[]> {
-  const tasks = await getFinancialTasks();
+  const tasks = await getFinancialTasks({ activeEscapePlanOnly: true });
   const seen = new Set<string>();
   const result: FinancialTaskWithGoal[] = [];
 

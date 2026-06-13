@@ -26,8 +26,12 @@ export function EscapePlanActiveDirection({
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showFailureForm, setShowFailureForm] = useState(false);
-  const pendingSteps = steps.filter((s) => s.status === "pending");
-  const allSteps = steps.filter((s) => s.status !== "archived");
+  const pendingSteps = steps.filter(
+    (s) => s.escape_plan_id === activePlan.id && s.status === "pending"
+  );
+  const allSteps = steps.filter(
+    (s) => s.escape_plan_id === activePlan.id && s.status !== "archived"
+  );
   const activeGoalLabel = useCopy("escape.active_goal");
   const directionLabel = useCopy("escape.direction_label");
   const actionPlanLabel = useCopy("escape.action_plan");

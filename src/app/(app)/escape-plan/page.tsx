@@ -69,6 +69,7 @@ export default async function EscapePlanPage() {
       initialEscapePlans={escapePlans}
       initialPendingFollowUp={pendingFollowUp}
       initialActivePlanTasks={activePlanTasks}
+      hasActiveRoute={Boolean(activePlan)}
     />
   );
 }

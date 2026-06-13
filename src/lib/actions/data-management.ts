@@ -19,6 +19,7 @@ const REVALIDATE_PATHS = [
   "/expenses",
   "/debts",
   "/crisis",
+  "/escape-plan",
 ] as const;
 
 function revalidateDataPaths() {
@@ -101,6 +102,27 @@ const ANALYSIS_AND_TASK_TABLES = [
   "analysis_ratings",
 ] as const;
 
+async function clearEscapeRouteData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const { error: plansError } = await supabase
+    .from("user_escape_plans")
+    .delete()
+    .eq("user_id", userId);
+  if (plansError) throw new Error(plansError.message);
+
+  const { error: capsError } = await supabase
+    .from("user_capabilities")
+    .update({
+      last_plan: null,
+      last_rescue_plan: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+  if (capsError) throw new Error(capsError.message);
+}
+
 export async function clearAnalysisHistory(): Promise<void> {
   const { supabase, userId } = await getUserId();
   await deleteUserRows(supabase, userId, ["analyses"]);
@@ -131,6 +153,7 @@ export async function restartOnboardingSetup(): Promise<void> {
   const { supabase, userId } = await getUserId();
 
   await deleteUserRows(supabase, userId, [...ANALYSIS_AND_TASK_TABLES]);
+  await clearEscapeRouteData(supabase, userId);
   await resetUserProfileType(supabase, userId);
   await resetOnboardingProgress(supabase, userId);
   await syncOnboardingAfterRestart(supabase, userId);
@@ -144,6 +167,7 @@ export async function fullAccountReset(): Promise<void> {
   await deleteUserRows(supabase, userId, [
     ...ANALYSIS_AND_TASK_TABLES,
     "financial_goals",
+    "user_escape_plans",
     "incomes",
     "expenses",
     "debts",
@@ -152,6 +176,7 @@ export async function fullAccountReset(): Promise<void> {
     "user_feedback",
   ]);
 
+  await deleteUserRows(supabase, userId, ["user_capabilities"]);
   await resetUserProfileType(supabase, userId);
   await resetOnboardingProgress(supabase, userId);
 

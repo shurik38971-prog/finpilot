@@ -332,12 +332,12 @@ export function ActionsPageClient({
             <h3 className="text-lg font-medium mb-1">Шагов пока нет</h3>
             <p className="text-sm text-muted max-w-sm mb-4">
               {cleanupMode
-                ? "Выберите направление в разделе «Поиск выхода» — FinPilot составит персональный план шагов."
+                ? "Пока нет активного маршрута. Пройдите раздел «Выход из ситуации», чтобы получить план."
                 : "Запустите ИИ-анализ — FinPilot создаст персональный список дел из разбора."}
             </p>
             <Link href={cleanupMode ? "/escape-plan" : "/analyze"}>
               <Button>
-                {cleanupMode ? "Поиск выхода" : "Запустить ИИ-анализ"}
+                {cleanupMode ? "Выход из ситуации" : "Запустить ИИ-анализ"}
               </Button>
             </Link>
           </div>

@@ -2,7 +2,6 @@
 
 import { useCopy } from "@/components/copy/site-copy-provider";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Check, Compass, ListChecks, Search } from "lucide-react";
 import Link from "next/link";
@@ -20,11 +19,11 @@ const OUTCOME_COPY_KEYS = [
 
 export interface FinPilotLandingSectionProps {
   ctaHref: string;
-  /** Site copy key for the primary button label */
   ctaCopyKey?: string;
   showCtaHint?: boolean;
   showOutcomes?: boolean;
   showIntro?: boolean;
+  showBadge?: boolean;
   className?: string;
 }
 
@@ -34,8 +33,10 @@ export function FinPilotLandingSection({
   showCtaHint = false,
   showOutcomes = false,
   showIntro = false,
+  showBadge = false,
   className,
 }: FinPilotLandingSectionProps) {
+  const badge = useCopy("page.landing.badge");
   const title = useCopy("page.dashboard.title");
   const subtitle = useCopy("page.dashboard.hero_subtitle");
   const intro = useCopy("page.landing.intro");
@@ -63,71 +64,108 @@ export function FinPilotLandingSection({
   ];
 
   return (
-    <section className={cn("space-y-6 md:space-y-8", className)}>
-      <div className="space-y-4">
-        <div className="space-y-3">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
-            {title}
-          </h1>
-          <p className="text-sm sm:text-base text-foreground/85 leading-relaxed max-w-2xl">
-            {subtitle}
-          </p>
-          {showIntro && (
-            <p className="text-sm text-muted leading-relaxed max-w-2xl">{intro}</p>
-          )}
-          <p className="text-sm text-muted leading-relaxed max-w-2xl">{audience}</p>
-        </div>
+    <section className={cn("space-y-10 md:space-y-14", className)}>
+      <div className="py-6 md:py-10">
+        <div className="mx-auto max-w-xl space-y-8">
+          <div className="space-y-5">
+            {showBadge && (
+              <p className="inline-flex items-center rounded-full border border-border/70 bg-surface/40 px-3 py-1 text-xs font-medium tracking-wide text-muted">
+                {badge}
+              </p>
+            )}
 
-        <div className="space-y-2">
-          <Link href={ctaHref} className="inline-block">
-            <Button size="lg">{cta}</Button>
-          </Link>
-          {showCtaHint && (
-            <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-xl">
-              {ctaHint}
-            </p>
-          )}
+            <h1 className="text-3xl sm:text-[2.125rem] font-semibold tracking-tight leading-[1.18] text-foreground">
+              {title}
+            </h1>
+
+            <div className="space-y-4">
+              <p className="text-base sm:text-[1.0625rem] text-foreground/80 leading-[1.65]">
+                {subtitle}
+              </p>
+              {showIntro && (
+                <p className="text-sm sm:text-[0.9375rem] text-muted leading-[1.7]">
+                  {intro}
+                </p>
+              )}
+              <p className="text-sm sm:text-[0.9375rem] text-muted/90 leading-[1.7]">
+                {audience}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-1">
+            <Link href={ctaHref} className="inline-block">
+              <Button
+                size="lg"
+                className={cn(
+                  "h-12 min-w-[15rem] rounded-xl px-8 text-[0.9375rem] font-medium",
+                  "shadow-[0_8px_28px_-8px_rgba(59,130,246,0.45)]",
+                  "hover:shadow-[0_12px_32px_-8px_rgba(59,130,246,0.55)]",
+                  "transition-[box-shadow,background-color] duration-200"
+                )}
+              >
+                {cta}
+              </Button>
+            </Link>
+            {showCtaHint && (
+              <p className="max-w-md text-xs sm:text-[0.8125rem] text-muted/80 leading-[1.65]">
+                {ctaHint}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3 sm:items-stretch">
         {valueCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className="!p-4 border-border/60 bg-surface/40">
-              <CardHeader className="!mb-2 !p-0 space-y-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                  <Icon className="h-4 w-4" aria-hidden />
-                </div>
-                <CardTitle className="text-sm font-semibold leading-snug">
-                  {card.title}
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm leading-relaxed">
-                  {card.text}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <article
+              key={card.title}
+              className={cn(
+                "flex h-full flex-col rounded-2xl border border-border/50 bg-surface/25 p-5 sm:p-6",
+                "transition-colors duration-200 hover:border-border/70 hover:bg-surface/40"
+              )}
+            >
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-background/40 text-foreground/55">
+                <Icon className="h-[1.125rem] w-[1.125rem]" aria-hidden />
+              </div>
+              <h2 className="text-[0.9375rem] font-semibold leading-snug text-foreground/95">
+                {card.title}
+              </h2>
+              <p className="mt-2 flex-1 text-sm text-muted leading-[1.65]">{card.text}</p>
+            </article>
           );
         })}
       </div>
 
       {showOutcomes && (
-        <Card className="!p-5 border-border/60 bg-surface/30">
-          <CardHeader className="!p-0 !mb-3">
-            <CardTitle className="text-base font-semibold">{outcomesTitle}</CardTitle>
-          </CardHeader>
-          <ul className="space-y-2.5">
+        <div
+          className={cn(
+            "rounded-2xl border border-border/50 bg-surface/20 p-6 sm:p-8",
+            "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]"
+          )}
+        >
+          <h2 className="text-base sm:text-[1.0625rem] font-semibold text-foreground/95">
+            {outcomesTitle}
+          </h2>
+          <ul className="mt-5 space-y-3.5">
             {outcomes.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm text-foreground/85">
-                <Check
-                  className="h-4 w-4 text-accent shrink-0 mt-0.5"
+              <li
+                key={item}
+                className="flex items-start gap-3 text-sm sm:text-[0.9375rem] text-foreground/80"
+              >
+                <span
+                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border/60 bg-surface/50"
                   aria-hidden
-                />
-                <span className="leading-relaxed">{item}</span>
+                >
+                  <Check className="h-3 w-3 text-foreground/45" />
+                </span>
+                <span className="leading-[1.65]">{item}</span>
               </li>
             ))}
           </ul>
-        </Card>
+        </div>
       )}
     </section>
   );

@@ -64,6 +64,7 @@ export default async function HomePage() {
       <PublicPageShell>
         <FinPilotLandingSection
           ctaHref="/signup"
+          showBadge
           showCtaHint
           showOutcomes
           showIntro

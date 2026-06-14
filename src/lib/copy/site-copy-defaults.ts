@@ -107,10 +107,16 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
       "Подходит тем, кто работает по найму, на себя или совмещает несколько источников дохода.",
   },
   {
+    key: "page.landing.badge",
+    group: "pages",
+    label: "Лендинг — badge над заголовком",
+    defaultValue: "AI-помощник для личных финансов",
+  },
+  {
     key: "page.landing.cta",
     group: "pages",
     label: "Лендинг — кнопка",
-    defaultValue: "Начать разбор",
+    defaultValue: "Начать разбор ситуации",
   },
   {
     key: "page.landing.cta_hint",
@@ -123,7 +129,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "page.landing.outcomes_title",
     group: "pages",
     label: "Лендинг — заголовок блока результатов",
-    defaultValue: "Что Вы получите после разбора",
+    defaultValue: "Что Вы получите после разбора ситуации",
   },
   {
     key: "page.landing.outcome_1",

@@ -31,6 +31,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<"form" | "analyzing">("form");
   const [error, setError] = useState("");
+  const [showSlowHint, setShowSlowHint] = useState(false);
 
   const runAnalysisAndFinish = useCallback(async () => {
     setPhase("analyzing");
@@ -53,6 +54,16 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
     analysisStarted.current = true;
     void runAnalysisAndFinish();
   }, [skipGoalCreation, runAnalysisAndFinish]);
+
+  useEffect(() => {
+    if (phase !== "analyzing") {
+      setShowSlowHint(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setShowSlowHint(true), 20_000);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
 
   function selectGoal(option: (typeof GOAL_OPTIONS)[number]) {
     setSelected(option);
@@ -100,11 +111,17 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
         <Loader2 className="h-10 w-10 animate-spin text-accent" />
         <div>
           <h2 className="text-xl font-semibold">
-            {skipGoalCreation ? "Обновляем ваш план" : "Строим ваш план"}
+            {skipGoalCreation ? "Обновляем Ваш план" : "Строим ваш план"}
           </h2>
           <p className="text-sm text-muted mt-1">
             ИИ-анализируем финансы и готовим рекомендации...
           </p>
+          {showSlowHint && (
+            <p className="text-sm text-muted/90 mt-3 max-w-sm leading-relaxed">
+              Собираем рекомендации под Ваши данные. Это может занять чуть
+              больше времени.
+            </p>
+          )}
         </div>
       </div>
     );

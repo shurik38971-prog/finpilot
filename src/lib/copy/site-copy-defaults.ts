@@ -260,8 +260,8 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
   {
     key: "rescue.main_problem",
     group: "rescue",
-    label: "Секция: главная проблема",
-    defaultValue: "Главная проблема",
+    label: "Секция: что требует внимания",
+    defaultValue: "Что требует внимания",
   },
   {
     key: "rescue.monthly_gap",

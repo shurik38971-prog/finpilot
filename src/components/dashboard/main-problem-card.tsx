@@ -13,7 +13,7 @@ export function MainProblemCard({ problem }: MainProblemCardProps) {
       <CardHeader className="!p-0 space-y-2">
         <CardTitle className="text-sm flex items-center gap-2 text-orange-300">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          Главная проблема
+          Что требует внимания
         </CardTitle>
         <p className="text-sm font-medium leading-snug">{problem}</p>
       </CardHeader>

@@ -1,6 +1,7 @@
 "use client";
 
 import { getAnalyticsSessionId } from "@/lib/analytics/client";
+import { shouldHideMobileFloatingChrome } from "@/lib/layout/mobile-floating-chrome";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
@@ -32,12 +33,26 @@ export function FeedbackWidget({
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  const hideOnMobileChrome =
+    isMobile && shouldHideMobileFloatingChrome(pathname);
 
   useEffect(() => {
     onOverlayChange?.(open);
   }, [open, onOverlayChange]);
 
   if (pathname.startsWith("/admin")) return null;
+
+  if (hideOnMobileChrome) return null;
 
   async function handleSubmit() {
     if (message.trim().length < 3) return;

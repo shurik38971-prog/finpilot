@@ -22,10 +22,11 @@ export function CleanupActionsCard({ tasks }: CleanupActionsCardProps) {
       {actions.length === 0 ? (
         <div className="space-y-3">
           <p className="text-sm text-muted leading-relaxed">
-            Выберите направление в «Поиске выхода» — появятся конкретные шаги.
+            Выберите направление в разделе «Выход из ситуации» — появятся
+            конкретные шаги.
           </p>
           <Link href="/escape-plan">
-            <Button size="sm">Поиск выхода</Button>
+            <Button size="sm">Выбрать направление</Button>
           </Link>
         </div>
       ) : (

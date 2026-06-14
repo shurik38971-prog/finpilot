@@ -62,14 +62,19 @@ export function getPrimaryFinancialRisk(
   if (monthsCovered !== null && monthsCovered < targetMonths) {
     risks.push({
       severity: 65 + Math.max(0, (targetMonths - monthsCovered) * 8),
-      label: "Недостаток резервов",
+      label:
+        "После расходов и платежей остаётся слишком мало свободных денег.",
     });
   } else if (
     cushionAmount === 0 &&
     summary.freeMoney >= 0 &&
     summary.freeMoney < burnBase
   ) {
-    risks.push({ severity: 55, label: "Недостаток резервов" });
+    risks.push({
+      severity: 55,
+      label:
+        "После расходов и платежей остаётся слишком мало свободных денег.",
+    });
   }
 
   const now = new Date();

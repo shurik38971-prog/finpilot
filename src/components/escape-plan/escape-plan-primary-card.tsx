@@ -17,18 +17,21 @@ interface EscapePlanPrimaryCardProps {
   option: EscapePlanOption;
   choosing: boolean;
   onChoose: (option: EscapePlanOption) => void;
+  actionLabel?: string;
 }
 
 export function EscapePlanPrimaryCard({
   option,
   choosing,
   onChoose,
+  actionLabel,
 }: EscapePlanPrimaryCardProps) {
   const [expanded, setExpanded] = useState(false);
   const incomeRange = formatEscapeIncomeRange(option);
   const whyReasons = compactWhyReasons(option, 4);
   const primaryLabel = useCopy("escape.primary_recommendation");
-  const tryLabel = useCopy("btn.try_option");
+  const defaultStartLabel = useCopy("btn.start_direction");
+  const tryLabel = actionLabel ?? defaultStartLabel;
   const creatingLabel = useCopy("btn.creating_plan");
 
   return (

@@ -51,7 +51,7 @@ export function CapabilitiesProfileSummary({
     <Card>
       <CardHeader className="space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-base">Ваш профиль</CardTitle>
+          <CardTitle className="text-base">Ваши навыки и возможности</CardTitle>
           <Button variant="ghost" size="sm" onClick={onEdit}>
             Изменить
           </Button>

@@ -466,10 +466,14 @@ export function ActionsPageClient({
     }
   }
 
+  const showRouteNotSelected = cleanupMode && !hasActiveRoute;
   const showRouteMissingSteps =
     cleanupMode && hasActiveRoute && tasks.length === 0;
   const showEmpty =
-    tasks.length === 0 && additionalTasks.length === 0 && !showRouteMissingSteps;
+    !showRouteNotSelected &&
+    tasks.length === 0 &&
+    additionalTasks.length === 0 &&
+    !showRouteMissingSteps;
 
   return (
     <div>
@@ -481,7 +485,56 @@ export function ActionsPageClient({
       />
       <PageHeader title={pageTitle} description={pageDescription} />
 
-      {showEmpty ? (
+      {showRouteNotSelected ? (
+        <>
+          <Card>
+            <div className="flex flex-col items-center py-16 text-center px-6">
+              <div className="rounded-full bg-surface-hover p-4 mb-4">
+                <Target className="h-8 w-8 text-muted" />
+              </div>
+              <h3 className="text-lg font-medium mb-1">
+                Сначала выберите направление
+              </h3>
+              <p className="text-sm text-muted max-w-md mb-4 leading-relaxed">
+                Сначала выберите направление, с которого хотите начать. Навыки из
+                анкеты — это только подсказки; шаги появятся после явного выбора
+                маршрута.
+              </p>
+              <Link href="/escape-plan">
+                <Button>Выбрать направление</Button>
+              </Link>
+            </div>
+          </Card>
+
+          {pendingMeasures.length > 0 || doneMeasures.length > 0 ? (
+            <Card className="mt-6 border-border/80">
+              <CardHeader>
+                <CardTitle className="text-base">Дополнительные действия</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  Финансовые меры отдельно от пошагового маршрута дополнительного
+                  дохода.
+                </CardDescription>
+              </CardHeader>
+              <div>
+                {[...pendingMeasures, ...doneMeasures].map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    loadingId={loadingId}
+                    onComplete={handleComplete}
+                    onPostpone={(id) => runAction(id, postponeTask)}
+                    onDelete={(id) => {
+                      if (!confirm("Удалить задачу?")) return;
+                      runAction(id, deleteTask);
+                    }}
+                    cleanupMode={false}
+                  />
+                ))}
+              </div>
+            </Card>
+          ) : null}
+        </>
+      ) : showEmpty ? (
         <Card>
           <div className="flex flex-col items-center py-16 text-center px-6">
             <div className="rounded-full bg-surface-hover p-4 mb-4">

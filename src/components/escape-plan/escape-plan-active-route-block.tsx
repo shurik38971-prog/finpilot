@@ -1,5 +1,6 @@
 "use client";
 
+import { useCopy } from "@/components/copy/site-copy-provider";
 import { EscapePlanFailureFeedback } from "@/components/escape-plan/escape-plan-failure-feedback";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ interface EscapePlanActiveRouteBlockProps {
   mainFinancialGoal?: string;
   progress: RescueProgressSnapshot;
   onFailed: (updated: UserEscapePlan) => void;
+  onChangeRoute?: () => void;
 }
 
 export function EscapePlanActiveRouteBlock({
@@ -26,7 +28,10 @@ export function EscapePlanActiveRouteBlock({
   mainFinancialGoal,
   progress,
   onFailed,
+  onChangeRoute,
 }: EscapePlanActiveRouteBlockProps) {
+  const chosenRouteTitle = useCopy("escape.chosen_route_title");
+  const changeRouteLabel = useCopy("btn.change_route");
   const [showFailureForm, setShowFailureForm] = useState(false);
   const routeSteps = steps.filter(
     (step) => step.escape_plan_id === activePlan.id && step.status !== "archived"
@@ -35,7 +40,9 @@ export function EscapePlanActiveRouteBlock({
 
   return (
     <section className="space-y-3">
-      <h2 className="text-base font-semibold">Активный маршрут</h2>
+      <h2 className="text-base font-semibold">
+        {chosenRouteTitle}: {activePlan.option_title}
+      </h2>
       <Card className="border-accent/40 bg-accent/5">
         <CardHeader className="space-y-4">
           {mainFinancialGoal && (
@@ -98,6 +105,11 @@ export function EscapePlanActiveRouteBlock({
             <Link href="/actions">
               <Button size="sm">Все шаги в разделе «Что делать»</Button>
             </Link>
+            {onChangeRoute && (
+              <Button size="sm" variant="secondary" onClick={onChangeRoute}>
+                {changeRouteLabel}
+              </Button>
+            )}
             {!showFailureForm && (
               <Button
                 size="sm"

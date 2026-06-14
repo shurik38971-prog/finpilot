@@ -11,6 +11,7 @@ import { EscapePlanQuickActionsBlock } from "@/components/escape-plan/escape-pla
 import { EscapeRouteActivateModal } from "@/components/escape-plan/escape-route-activate-modal";
 import { RescuePlanCard } from "@/components/escape-plan/rescue-plan-card";
 import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCopy } from "@/components/copy/site-copy-provider";
 import {
   activateEscapeOption,
@@ -85,6 +86,10 @@ export function EscapePlanResults({
     | null
   >(null);
   const backupOptionsLabel = useCopy("escape.backup_options");
+  const noRouteTitle = useCopy("escape.no_route_selected_title");
+  const noRouteHint = useCopy("escape.no_route_selected_hint");
+  const recommendationsTitle = useCopy("escape.route_recommendations_title");
+  const chooseRouteLabel = useCopy("btn.try_option");
 
   const failedPlans = useMemo(
     () =>
@@ -297,6 +302,12 @@ export function EscapePlanResults({
     setActivePlanTasks([]);
   }
 
+  function scrollToRouteAlternatives() {
+    document
+      .getElementById("route-alternatives")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div className="space-y-8">
       <EscapeRouteActivateModal
@@ -332,16 +343,28 @@ export function EscapePlanResults({
           mainFinancialGoal={mainFinancialGoal}
           progress={progress}
           onFailed={handleAttemptFailed}
+          onChangeRoute={scrollToRouteAlternatives}
         />
       ) : (
-        primaryIncomeRoute && (
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold">Выберите маршрут доп.дохода</h2>
-            <EscapePlanPrimaryCard
-              option={primaryIncomeRoute}
-              choosing={choosingTitle === primaryIncomeRoute.title}
-              onChoose={handleChoose}
-            />
+        availableIncomeRoutes.length > 0 && (
+          <section className="space-y-4">
+            <Card className="border-border/60 bg-surface/25">
+              <CardHeader className="space-y-2">
+                <CardTitle className="text-base">{noRouteTitle}</CardTitle>
+                <CardDescription className="text-sm leading-relaxed">
+                  {noRouteHint}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <h2 className="text-base font-semibold">{recommendationsTitle}</h2>
+            {primaryIncomeRoute && (
+              <EscapePlanPrimaryCard
+                option={primaryIncomeRoute}
+                choosing={choosingTitle === primaryIncomeRoute.title}
+                onChoose={handleChoose}
+              />
+            )}
             {backupIncomeRoutes.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-sm font-medium text-muted">{backupOptionsLabel}</h3>
@@ -392,12 +415,14 @@ export function EscapePlanResults({
       )}
 
       <EscapePlanAlternativeRoutesBlock
+        id="route-alternatives"
         savedPlans={savedAlternativePlans}
         incomeOptions={activePlan ? availableIncomeRoutes : []}
         activatingId={activatingPlanId}
         choosingTitle={choosingTitle}
         onActivateSaved={requestActivateSaved}
         onChooseOption={requestActivateOption}
+        chooseRouteLabel={chooseRouteLabel}
         onSaveOptionAsAlternative={
           activePlan ? (option) => void handleSaveAsAlternative(option) : undefined
         }

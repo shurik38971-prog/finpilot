@@ -329,7 +329,32 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "escape.primary_recommendation",
     group: "escape",
     label: "Главная рекомендация",
-    defaultValue: "Главная рекомендация",
+    defaultValue: "Рекомендуем начать с",
+  },
+  {
+    key: "escape.no_route_selected_title",
+    group: "escape",
+    label: "Маршрут не выбран — заголовок",
+    defaultValue: "Вы ещё не выбрали маршрут",
+  },
+  {
+    key: "escape.no_route_selected_hint",
+    group: "escape",
+    label: "Маршрут не выбран — подсказка",
+    defaultValue:
+      "Ниже — подходящие направления на основе Ваших навыков и целей. Ни одно не станет активным, пока Вы явно не выберете его.",
+  },
+  {
+    key: "escape.route_recommendations_title",
+    group: "escape",
+    label: "Заголовок списка направлений",
+    defaultValue: "Подходящие направления",
+  },
+  {
+    key: "escape.chosen_route_title",
+    group: "escape",
+    label: "Заголовок выбранного маршрута",
+    defaultValue: "Ваш выбранный маршрут",
   },
   {
     key: "escape.backup_options",
@@ -360,8 +385,20 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
   {
     key: "btn.try_option",
     group: "buttons",
-    label: "Хочу попробовать",
-    defaultValue: "Хочу попробовать",
+    label: "Выбрать маршрут (запасные варианты)",
+    defaultValue: "Выбрать этот маршрут",
+  },
+  {
+    key: "btn.start_direction",
+    group: "buttons",
+    label: "Начать с направления (главная рекомендация)",
+    defaultValue: "Начать с этого направления",
+  },
+  {
+    key: "btn.change_route",
+    group: "buttons",
+    label: "Изменить маршрут",
+    defaultValue: "Изменить маршрут",
   },
   {
     key: "btn.creating_plan",

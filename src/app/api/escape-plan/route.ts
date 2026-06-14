@@ -16,7 +16,6 @@ import { getUserFinancialProfile } from "@/lib/actions/profile";
 import { DEFAULT_PROFILE_TYPE } from "@/types/profile";
 import {
   getFailedEscapeAttempts,
-  activatePrimaryIncomeRouteAfterAnalysis,
   syncFinancialMeasureTasks,
 } from "@/lib/actions/escape-plans";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
@@ -288,7 +287,6 @@ export async function POST() {
 
     await saveEscapePlanResult(plan, rescuePlan);
     await syncFinancialMeasureTasks(plan.options);
-    await activatePrimaryIncomeRouteAfterAnalysis(rankedOptions);
 
     revalidatePath("/escape-plan");
     revalidatePath("/actions");

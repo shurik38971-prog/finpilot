@@ -8,12 +8,14 @@ import { formatEscapeIncomeRange, type EscapePlanOption, type UserEscapePlan } f
 import { Loader2 } from "lucide-react";
 
 interface EscapePlanAlternativeRoutesBlockProps {
+  id?: string;
   savedPlans: UserEscapePlan[];
   incomeOptions: EscapePlanOption[];
   activatingId: string | null;
   choosingTitle: string | null;
   onActivateSaved: (plan: UserEscapePlan) => void;
   onChooseOption: (option: EscapePlanOption) => void;
+  chooseRouteLabel?: string;
   onSaveOptionAsAlternative?: (option: EscapePlanOption) => void;
 }
 
@@ -22,11 +24,13 @@ function SavedAlternativeCard({
   loading,
   disabled,
   onActivate,
+  activateLabel,
 }: {
   plan: UserEscapePlan;
   loading: boolean;
   disabled: boolean;
   onActivate: () => void;
+  activateLabel: string;
 }) {
   const option = plan.option_snapshot;
   const incomeRange = formatEscapeIncomeRange(option);
@@ -70,7 +74,7 @@ function SavedAlternativeCard({
               Переключение...
             </>
           ) : (
-            "Сделать активным"
+            activateLabel
           )}
         </Button>
       </CardHeader>
@@ -79,18 +83,20 @@ function SavedAlternativeCard({
 }
 
 export function EscapePlanAlternativeRoutesBlock({
+  id,
   savedPlans,
   incomeOptions,
   activatingId,
   choosingTitle,
   onActivateSaved,
   onChooseOption,
+  chooseRouteLabel = "Выбрать этот маршрут",
   onSaveOptionAsAlternative,
 }: EscapePlanAlternativeRoutesBlockProps) {
   if (savedPlans.length === 0 && incomeOptions.length === 0) return null;
 
   return (
-    <section className="space-y-3">
+    <section id={id} className="space-y-3 scroll-mt-6">
       <h2 className="text-base font-semibold text-muted">Альтернативные маршруты</h2>
       <div className="grid gap-3">
         {savedPlans.map((plan) => (
@@ -100,6 +106,7 @@ export function EscapePlanAlternativeRoutesBlock({
             loading={activatingId === plan.id}
             disabled={activatingId != null || choosingTitle != null}
             onActivate={() => onActivateSaved(plan)}
+            activateLabel={chooseRouteLabel}
           />
         ))}
         {incomeOptions.map((option, index) => (
@@ -108,7 +115,7 @@ export function EscapePlanAlternativeRoutesBlock({
             option={option}
             fitIndex={index}
             choosing={choosingTitle === option.title}
-            actionLabel="Сделать активным"
+            actionLabel={chooseRouteLabel}
             onChoose={onChooseOption}
             onSaveAsAlternative={onSaveOptionAsAlternative}
           />

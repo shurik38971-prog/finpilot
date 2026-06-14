@@ -402,22 +402,6 @@ export async function ensureActiveEscapeRouteSteps(): Promise<UserEscapePlan | n
   return active;
 }
 
-export async function activatePrimaryIncomeRouteAfterAnalysis(
-  plan: EscapePlanOption[]
-): Promise<UserEscapePlan | null> {
-  const active = await getActiveEscapePlan();
-  if (active) {
-    await syncActiveEscapeRouteSteps();
-    return active;
-  }
-
-  const primaryIncome =
-    plan.find((option) => isIncomeRouteOption(option)) ?? null;
-  if (!primaryIncome) return null;
-
-  return chooseEscapeOption(primaryIncome);
-}
-
 async function findExistingRouteByTitle(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -643,6 +627,7 @@ export async function syncFinancialMeasureTasks(
   revalidatePath("/actions");
 }
 
+/** Explicit user choice — creates the active income route and its steps. */
 export async function chooseEscapeOption(
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {

@@ -24,6 +24,7 @@ export interface FinPilotLandingSectionProps {
   ctaCopyKey?: string;
   showCtaHint?: boolean;
   showOutcomes?: boolean;
+  showIntro?: boolean;
   className?: string;
 }
 
@@ -32,10 +33,12 @@ export function FinPilotLandingSection({
   ctaCopyKey = "page.landing.cta",
   showCtaHint = false,
   showOutcomes = false,
+  showIntro = false,
   className,
 }: FinPilotLandingSectionProps) {
   const title = useCopy("page.dashboard.title");
   const subtitle = useCopy("page.dashboard.hero_subtitle");
+  const intro = useCopy("page.landing.intro");
   const audience = useCopy("page.dashboard.hero_audience");
   const cta = useCopy(ctaCopyKey);
   const ctaHint = useCopy("page.landing.cta_hint");
@@ -69,6 +72,9 @@ export function FinPilotLandingSection({
           <p className="text-sm sm:text-base text-foreground/85 leading-relaxed max-w-2xl">
             {subtitle}
           </p>
+          {showIntro && (
+            <p className="text-sm text-muted leading-relaxed max-w-2xl">{intro}</p>
+          )}
           <p className="text-sm text-muted leading-relaxed max-w-2xl">{audience}</p>
         </div>
 

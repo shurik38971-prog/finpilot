@@ -90,7 +90,14 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Главный экран — подзаголовок",
     defaultValue:
-      "ФинПилот анализирует доходы, расходы, долги и обязательные платежи, а затем даёт понятный план действий на ближайшие 30 дней.",
+      "ФинПилот анализирует доходы, расходы, долги и обязательные платежи, а затем помогает составить понятный план действий на 30 дней.",
+  },
+  {
+    key: "page.landing.intro",
+    group: "pages",
+    label: "Лендинг — вводный абзац",
+    defaultValue:
+      "Когда доход нестабилен, легко потерять ощущение контроля. ФинПилот — AI-помощник для личных финансов: помогает понять, что уходит на расходы и долги, какие обязательные платежи давят сильнее всего и с чего начать, чтобы навести порядок в деньгах.",
   },
   {
     key: "page.dashboard.hero_audience",
@@ -140,7 +147,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "page.landing.outcome_4",
     group: "pages",
     label: "Лендинг — результат 4",
-    defaultValue: "план действий на 30 дней",
+    defaultValue: "финансовый план на 30 дней",
   },
   {
     key: "page.landing.outcome_5",
@@ -185,7 +192,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Главный экран — карточка 2, текст",
     defaultValue:
-      "Разделим рекомендации на шаги: что сделать сегодня, за 7 дней и за 30 дней.",
+      "Разделим рекомендации на шаги: что сделать сегодня, за 7 дней и на месяц вперёд.",
   },
   {
     key: "page.dashboard.value_card_3_title",

@@ -6,10 +6,32 @@ import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "FinPilot — Поймите, что происходит с вашими деньгами",
+  metadataBase: new URL(APP_URL),
+  title: "ФинПилот — AI-помощник для личных финансов и нестабильного дохода",
   description:
-    "ФинПилот анализирует доходы, расходы, долги и обязательные платежи и даёт понятный план действий на 30 дней.",
+    "ФинПилот анализирует доходы, расходы, долги и обязательные платежи, а затем помогает составить понятный план действий на 30 дней.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "ФинПилот — разберите свою финансовую ситуацию",
+    description:
+      "Поймите, куда уходят деньги, что давит сильнее всего и какие шаги сделать в ближайшие 30 дней.",
+    type: "website",
+    url: "/",
+    locale: "ru_RU",
+    siteName: "ФинПилот",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ФинПилот — разберите свою финансовую ситуацию",
+    description:
+      "Поймите, куда уходят деньги, что давит сильнее всего и какие шаги сделать в ближайшие 30 дней.",
+  },
 };
 
 export default async function HomePage() {
@@ -37,6 +59,7 @@ export default async function HomePage() {
           ctaHref="/signup"
           showCtaHint
           showOutcomes
+          showIntro
         />
       </PublicPageShell>
     </SiteCopyProvider>

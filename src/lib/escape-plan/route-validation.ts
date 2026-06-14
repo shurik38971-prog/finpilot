@@ -66,9 +66,10 @@ export function validateAndFixRouteOption(
     ? option.user_skill
     : detectUserSkillFromText(combined) ?? undefined;
 
-  const earningFormat = isEarningFormat(option.earning_format)
-    ? option.earning_format
-    : detectEarningFormatFromRouteType(routeType) ?? undefined;
+  const routeTypeEarningFormat = detectEarningFormatFromRouteType(routeType);
+  const earningFormat =
+    routeTypeEarningFormat ??
+    (isEarningFormat(option.earning_format) ? option.earning_format : undefined);
 
   return {
     ...option,

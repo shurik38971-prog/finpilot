@@ -49,6 +49,7 @@ export const ROUTE_TYPE_LABELS: Record<RouteType, string> = {
 
 const CONSULTING_PATTERN =
   /обучени|консультаци|консультация|научить|объяснить|помочь разобраться/i;
+const TITLE_CONSULTING_PATTERN = /обучени|консультаци|консультация/i;
 const CASHBACK_PATTERN =
   /кэшбэк|кешбэк|партнёрск|партнерск|реферальн|affiliate|бонус/i;
 const FREELANCE_PROJECT_PATTERN =
@@ -186,6 +187,10 @@ export function resolveRouteType(
 ): RouteType {
   if (option.type !== "increase_income") {
     return "generic";
+  }
+
+  if (TITLE_CONSULTING_PATTERN.test(option.title)) {
+    return "consulting_training";
   }
 
   const combined = combineRouteText([

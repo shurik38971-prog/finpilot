@@ -40,5 +40,6 @@ Next.js 15 · TypeScript · Tailwind · Supabase · GPTunnel · Recharts
 
 ## Деплой
 
-- **Приложение:** Vercel → `finpilot` (или `app.finpilot.ru`)
-- **Лендинг:** отдельный Vercel-проект из папки лендинга → `NEXT_PUBLIC_APP_URL` указывает на URL приложения
+- **Приложение (production):** https://finpilot.neshablon-web.ru
+- **Приложение (Vercel):** https://finpilot-green-kappa.vercel.app — проект `finpilot` на Vercel
+- **Лендинг:** отдельный Vercel-проект `finpilot-landing` → `NEXT_PUBLIC_APP_URL` указывает на URL приложения

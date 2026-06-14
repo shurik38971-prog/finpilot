@@ -9,7 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
+import { parseNumberForCalc } from "@/lib/forms/numeric-field";
 import { Toast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/utils";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
@@ -36,8 +37,8 @@ export function IncomeExpectationsSettings({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const previewBase = useMemo(() => {
-    const bad = Number(badMonth);
-    const good = Number(goodMonth);
+    const bad = parseNumberForCalc(badMonth);
+    const good = parseNumberForCalc(goodMonth);
     if (!bad || !good || good < bad) return null;
     return deriveBaseIncomeFromProfile({
       averageMonthly: null,
@@ -57,9 +58,9 @@ export function IncomeExpectationsSettings({
     setLoading(true);
     try {
       await saveProfileIncomeParameters({
-        badMonth: Number(badMonth),
+        badMonth: parseNumberForCalc(badMonth),
         averageMonthly: null,
-        goodMonth: Number(goodMonth),
+        goodMonth: parseNumberForCalc(goodMonth),
         storedExpectedMonthly: initialParams.storedExpectedMonthly,
         useActualIncomeOnly: initialParams.useActualIncomeOnly,
       });
@@ -82,24 +83,22 @@ export function IncomeExpectationsSettings({
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSave} className="px-5 pb-5 space-y-4">
-          <Input
+          <NumericInput
             id="badMonth"
             label="Плохой месяц — минимальный доход, который обычно бывает (₽)"
-            type="number"
-            min="0"
+            mode="decimal"
             required
             value={badMonth}
-            onChange={(e) => setBadMonth(e.target.value)}
+            onValueChange={setBadMonth}
             placeholder="50000"
           />
-          <Input
+          <NumericInput
             id="goodMonth"
             label="Хороший месяц — максимальный доход, который обычно бывает (₽)"
-            type="number"
-            min="1"
+            mode="decimal"
             required
             value={goodMonth}
-            onChange={(e) => setGoodMonth(e.target.value)}
+            onValueChange={setGoodMonth}
             placeholder="120000"
           />
           {previewBase !== null && (

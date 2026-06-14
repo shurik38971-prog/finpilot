@@ -200,7 +200,7 @@ export function parseDebtFormData(formData: FormData) {
   const debt_kind = parseDebtKind(formData.get("debt_kind"));
   const remaining_amount = Number(formData.get("remaining_amount"));
   const { rate: interest_rate } = parseAnnualRateInput(
-    String(formData.get("interest_rate") ?? "0")
+    String(formData.get("interest_rate") ?? "")
   );
   const termRaw = formData.get("term_months");
   const term_months = termRaw ? Number(termRaw) : null;
@@ -209,6 +209,7 @@ export function parseDebtFormData(formData: FormData) {
     actualRaw && String(actualRaw).trim() ? Number(actualRaw) : null;
   const totalRaw = formData.get("total_amount");
   const total_amount = totalRaw ? Number(totalRaw) : remaining_amount;
+  const dueDayRaw = formData.get("due_day");
 
   const paymentFields = buildDebtPaymentFields({
     remaining_amount,
@@ -227,7 +228,8 @@ export function parseDebtFormData(formData: FormData) {
     remaining_amount,
     interest_rate,
     term_months: term_months && term_months > 0 ? term_months : null,
-    due_day: formData.get("due_day") ? Number(formData.get("due_day")) : null,
+    due_day:
+      dueDayRaw && String(dueDayRaw).trim() ? Number(dueDayRaw) : null,
     priority: Number(formData.get("priority") || 0),
     ...paymentFields,
   };

@@ -8,6 +8,7 @@ import {
   saveWizardVariableIncome,
 } from "@/lib/actions/onboarding-wizard";
 import { Button } from "@/components/ui/button";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -42,6 +43,12 @@ export function IncomeStep({
   const [phase, setPhase] = useState<Phase>("main");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [salary, setSalary] = useState("");
+  const [badMonth, setBadMonth] = useState("");
+  const [goodMonth, setGoodMonth] = useState("");
+  const [averageIncome, setAverageIncome] = useState("");
+  const [pension, setPension] = useState("");
+  const [additionalAmount, setAdditionalAmount] = useState("");
 
   async function afterMainIncomeSaved() {
     if (usesVariableIncome(profileType)) {
@@ -186,12 +193,13 @@ export function IncomeStep({
             required
             placeholder="Аренда квартиры"
           />
-          <Input
+          <NumericInput
             id="amount"
             name="amount"
             label="Сумма (₽)"
-            type="number"
-            min="1"
+            mode="decimal"
+            value={additionalAmount}
+            onValueChange={setAdditionalAmount}
             required
             placeholder="15000"
           />
@@ -230,13 +238,13 @@ export function IncomeStep({
 
       {profileType === PROFILE_TYPES.employee && (
         <form onSubmit={handleEmployeeSubmit} className="space-y-4">
-          <Input
+          <NumericInput
             id="salary"
             name="salary"
             label="Зарплата (₽)"
-            type="number"
-            min="1"
-            step="1"
+            mode="decimal"
+            value={salary}
+            onValueChange={setSalary}
             required
             placeholder="100000"
           />
@@ -256,21 +264,23 @@ export function IncomeStep({
 
       {usesVariableIncome(profileType) && (
         <form onSubmit={handleVariableSubmit} className="space-y-4">
-          <Input
+          <NumericInput
             id="badMonth"
             name="badMonth"
             label="Минимальный доход в месяц (₽)"
-            type="number"
-            min="0"
+            mode="decimal"
+            value={badMonth}
+            onValueChange={setBadMonth}
             required
             placeholder="50000"
           />
-          <Input
+          <NumericInput
             id="goodMonth"
             name="goodMonth"
             label="Максимальный доход в месяц (₽)"
-            type="number"
-            min="1"
+            mode="decimal"
+            value={goodMonth}
+            onValueChange={setGoodMonth}
             required
             placeholder="120000"
           />
@@ -283,12 +293,13 @@ export function IncomeStep({
 
       {profileType === PROFILE_TYPES.business_owner && (
         <form onSubmit={handleBusinessSubmit} className="space-y-4">
-          <Input
+          <NumericInput
             id="average"
             name="average"
             label="Средний доход в месяц (₽)"
-            type="number"
-            min="1"
+            mode="decimal"
+            value={averageIncome}
+            onValueChange={setAverageIncome}
             required
             placeholder="250000"
           />
@@ -301,12 +312,13 @@ export function IncomeStep({
 
       {profileType === PROFILE_TYPES.retiree && (
         <form onSubmit={handleRetireeSubmit} className="space-y-4">
-          <Input
+          <NumericInput
             id="pension"
             name="pension"
             label="Пенсия в месяц (₽)"
-            type="number"
-            min="1"
+            mode="decimal"
+            value={pension}
+            onValueChange={setPension}
             required
             placeholder="25000"
           />

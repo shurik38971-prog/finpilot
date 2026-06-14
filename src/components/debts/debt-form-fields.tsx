@@ -1,8 +1,16 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Select } from "@/components/ui/select";
 import { DebtPaymentPreview } from "@/components/debts/debt-payment-preview";
+import {
+  numberToFieldValue,
+  parseNumberForCalc,
+  parseOptionalInteger,
+  parseOptionalNumber,
+  rateToFieldValue,
+} from "@/lib/forms/numeric-field";
 import {
   parseAnnualRateInput,
   getCalculatedMonthlyPayment,
@@ -26,35 +34,38 @@ export interface DebtFormFieldsProps {
 export function DebtFormFields({ debt }: DebtFormFieldsProps) {
   const [debtKind, setDebtKind] = useState<DebtKind>(debt?.debt_kind ?? "credit");
   const [remainingAmount, setRemainingAmount] = useState(
-    debt?.remaining_amount ? String(debt.remaining_amount) : ""
+    numberToFieldValue(debt?.remaining_amount)
   );
   const [interestRateInput, setInterestRateInput] = useState(
-    debt?.interest_rate != null ? String(debt.interest_rate).replace(".", ",") : ""
+    rateToFieldValue(debt?.interest_rate)
   );
   const [termMonths, setTermMonths] = useState(
-    debt?.term_months ? String(debt.term_months) : ""
+    numberToFieldValue(debt?.term_months, { showZero: false })
   );
-  const [actualPayment, setActualPayment] = useState(
-    debt?.actual_monthly_payment != null
-      ? String(debt.actual_monthly_payment)
-      : debt?.payment_type === "manual" && debt.minimum_payment > 0
-        ? String(debt.minimum_payment)
-        : ""
-  );
+  const [dueDay, setDueDay] = useState(numberToFieldValue(debt?.due_day));
+  const [actualPayment, setActualPayment] = useState(() => {
+    if (debt?.actual_monthly_payment != null && debt.actual_monthly_payment > 0) {
+      return numberToFieldValue(debt.actual_monthly_payment);
+    }
+    if (debt?.payment_type === "manual" && debt.minimum_payment > 0) {
+      return numberToFieldValue(debt.minimum_payment);
+    }
+    return "";
+  });
   const [hasPersonalInterest, setHasPersonalInterest] = useState(
     debt?.debt_kind === "personal_loan"
       ? (debt.interest_rate ?? 0) > 0
       : false
   );
 
-  const parsedRemaining = remainingAmount ? Number(remainingAmount) : 0;
-  const parsedTerm = termMonths ? Number(termMonths) : null;
+  const parsedRemaining = parseNumberForCalc(remainingAmount);
+  const parsedTerm = parseOptionalInteger(termMonths);
   const { rate: parsedRate, warning: rateWarning } = parseAnnualRateInput(
     interestRateInput
   );
   const effectiveRate =
     debtKind === "personal_loan" && !hasPersonalInterest ? 0 : parsedRate;
-  const parsedActual = actualPayment.trim() ? Number(actualPayment) : null;
+  const parsedActual = parseOptionalNumber(actualPayment);
 
   const calculatedPayment = useMemo(() => {
     if (!parsedTerm || parsedTerm <= 0 || parsedRemaining <= 0) {
@@ -69,6 +80,13 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
 
   const showInterestField =
     debtKind !== "personal_loan" || hasPersonalInterest;
+
+  function handlePersonalInterestChange(withInterest: boolean) {
+    setHasPersonalInterest(withInterest);
+    if (withInterest) {
+      setInterestRateInput("");
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -93,21 +111,19 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
       <input
         type="hidden"
         name="total_amount"
-        value={parsedRemaining > 0 ? parsedRemaining : debt?.total_amount ?? 0}
+        value={parsedRemaining > 0 ? parsedRemaining : debt?.total_amount ?? ""}
       />
       <input type="hidden" name="priority" value={debt?.priority ?? 0} />
 
-      <Input
+      <NumericInput
         id="remaining_amount"
         name="remaining_amount"
         label="Остаток долга, ₽"
-        type="number"
-        min="0.01"
-        step="0.01"
+        mode="decimal"
         value={remainingAmount}
-        onChange={(e) => setRemainingAmount(e.target.value)}
+        onValueChange={setRemainingAmount}
         required
-        placeholder="150000"
+        placeholder="50000"
       />
 
       {debtKind === "personal_loan" && (
@@ -122,7 +138,7 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
                 name="has_personal_interest"
                 value="0"
                 checked={!hasPersonalInterest}
-                onChange={() => setHasPersonalInterest(false)}
+                onChange={() => handlePersonalInterestChange(false)}
               />
               Нет
             </label>
@@ -132,7 +148,7 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
                 name="has_personal_interest"
                 value="1"
                 checked={hasPersonalInterest}
-                onChange={() => setHasPersonalInterest(true)}
+                onChange={() => handlePersonalInterestChange(true)}
               />
               Да
             </label>
@@ -141,47 +157,45 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
       )}
 
       {showInterestField ? (
-        <Input
+        <NumericInput
           id="interest_rate"
           name="interest_rate"
           label="Процентная ставка, % годовых"
-          type="text"
-          inputMode="decimal"
+          mode="decimal"
           value={interestRateInput}
-          onChange={(e) => setInterestRateInput(e.target.value)}
-          placeholder="Например, 29.2"
+          onValueChange={setInterestRateInput}
+          placeholder={
+            debtKind === "personal_loan" ? "Например, 10" : "Например, 29.2"
+          }
           required={debtKind !== "personal_loan"}
         />
       ) : (
-        <input type="hidden" name="interest_rate" value="0" />
+        <input type="hidden" name="interest_rate" value="" />
       )}
 
       {rateWarning && (
         <p className="text-xs text-amber-400">{rateWarning}</p>
       )}
 
-      <Input
+      <NumericInput
         id="term_months"
         name="term_months"
         label="Срок до полного погашения, месяцев"
-        type="number"
-        min="1"
-        step="1"
+        mode="integer"
         value={termMonths}
-        onChange={(e) => setTermMonths(e.target.value)}
+        onValueChange={setTermMonths}
         placeholder="Например, 36"
         required
       />
 
-      <Input
+      <NumericInput
         id="due_day"
         name="due_day"
         label="День платежа (необязательно)"
-        type="number"
-        min="1"
-        max="31"
-        defaultValue={debt?.due_day ?? undefined}
-        placeholder="1–31"
+        mode="integer"
+        value={dueDay}
+        onValueChange={setDueDay}
+        placeholder="Например, 15"
       />
 
       <DebtPaymentPreview
@@ -190,15 +204,13 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
       />
 
       <div className="space-y-1.5">
-        <Input
+        <NumericInput
           id="actual_monthly_payment"
           name="actual_monthly_payment"
           label="Фактический ежемесячный платёж, ₽ (необязательно)"
-          type="number"
-          min="0"
-          step="0.01"
+          mode="decimal"
           value={actualPayment}
-          onChange={(e) => setActualPayment(e.target.value)}
+          onValueChange={setActualPayment}
           placeholder="Если знаете точный платёж по договору"
         />
         <p className="text-xs text-muted leading-relaxed">

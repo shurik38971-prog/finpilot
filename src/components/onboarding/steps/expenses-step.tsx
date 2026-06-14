@@ -2,7 +2,7 @@
 
 import { saveWizardExpenses } from "@/lib/actions/onboarding-wizard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
@@ -89,17 +89,14 @@ export function ExpensesStep({ onComplete }: { onComplete: () => void }) {
 
       <div className="space-y-3">
         {MANDATORY_EXPENSE_PRESETS.map((preset) => (
-          <Input
+          <NumericInput
             key={preset.key}
             id={preset.key}
             label={preset.title}
-            type="number"
-            min="0"
-            step="1"
-            inputMode="numeric"
+            mode="integer"
             placeholder={preset.placeholder}
             value={amounts[preset.key] ?? ""}
-            onChange={(e) => updateAmount(preset.key, e.target.value)}
+            onValueChange={(value) => updateAmount(preset.key, value)}
           />
         ))}
       </div>
@@ -112,17 +109,14 @@ export function ExpensesStep({ onComplete }: { onComplete: () => void }) {
           </p>
         </div>
         {OPTIONAL_EXPENSE_PRESETS.map((preset) => (
-          <Input
+          <NumericInput
             key={preset.key}
             id={preset.key}
             label={preset.title}
-            type="number"
-            min="0"
-            step="1"
-            inputMode="numeric"
+            mode="integer"
             placeholder={preset.placeholder}
             value={amounts[preset.key] ?? ""}
-            onChange={(e) => updateAmount(preset.key, e.target.value)}
+            onValueChange={(value) => updateAmount(preset.key, value)}
           />
         ))}
       </div>

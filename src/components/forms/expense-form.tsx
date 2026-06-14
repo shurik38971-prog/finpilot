@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Select } from "@/components/ui/select";
+import { numberToFieldValue } from "@/lib/forms/numeric-field";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_LABELS,
@@ -31,6 +33,7 @@ const frequencyOptions = [
 export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
   const [isRecurring, setIsRecurring] = useState(expense?.is_recurring ?? false);
   const [loading, setLoading] = useState(false);
+  const [amount, setAmount] = useState(numberToFieldValue(expense?.amount));
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -60,15 +63,15 @@ export function ExpenseForm({ expense, onSuccess }: ExpenseFormProps) {
         required
         placeholder="Аренда квартиры"
       />
-      <Input
+      <NumericInput
         id="amount"
         name="amount"
         label="Сумма (₽)"
-        type="number"
-        min="0"
-        step="0.01"
-        defaultValue={expense?.amount}
+        mode="decimal"
+        value={amount}
+        onValueChange={setAmount}
         required
+        placeholder="15000"
       />
       <Select
         id="category"

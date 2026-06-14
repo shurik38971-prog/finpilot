@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Select } from "@/components/ui/select";
+import { numberToFieldValue } from "@/lib/forms/numeric-field";
 import { INCOME_CATEGORIES, type Income } from "@/types/database";
 import { createIncome, updateIncome } from "@/lib/actions/finance";
 import { useState } from "react";
@@ -24,6 +26,7 @@ const periodOptions = [
 
 export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
   const [loading, setLoading] = useState(false);
+  const [amount, setAmount] = useState(numberToFieldValue(income?.amount));
   const defaultPeriod =
     income?.is_recurring && income.frequency ? "monthly" : "once";
 
@@ -55,15 +58,15 @@ export function IncomeForm({ income, onSuccess }: IncomeFormProps) {
         required
         placeholder="Подработка, аренда, премия"
       />
-      <Input
+      <NumericInput
         id="amount"
         name="amount"
         label="Сумма (₽)"
-        type="number"
-        min="0"
-        step="0.01"
-        defaultValue={income?.amount}
+        mode="decimal"
+        value={amount}
+        onValueChange={setAmount}
         required
+        placeholder="50000"
       />
       <Select
         id="period"

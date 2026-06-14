@@ -3,7 +3,9 @@
 import { runAnalysis } from "@/lib/analysis/run-analysis";
 import { saveWizardGoal } from "@/lib/actions/onboarding-wizard";
 import { Button } from "@/components/ui/button";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Input } from "@/components/ui/input";
+import { parseNumberForCalc } from "@/lib/forms/numeric-field";
 import type { GoalType } from "@/types/goals";
 import { GOAL_TYPE_LABELS } from "@/types/goals";
 import { Loader2, Sparkles } from "lucide-react";
@@ -24,9 +26,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
   const router = useRouter();
   const analysisStarted = useRef(false);
   const [selected, setSelected] = useState(GOAL_OPTIONS[0]);
-  const [targetAmount, setTargetAmount] = useState(
-    String(GOAL_OPTIONS[0].defaultTarget)
-  );
+  const [targetAmount, setTargetAmount] = useState("");
   const [customTitle, setCustomTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<"form" | "analyzing">("form");
@@ -56,7 +56,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
 
   function selectGoal(option: (typeof GOAL_OPTIONS)[number]) {
     setSelected(option);
-    setTargetAmount(String(option.defaultTarget));
+    setTargetAmount("");
     if (option.type !== "custom") {
       setCustomTitle("");
     }
@@ -71,7 +71,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
       selected.type === "custom"
         ? customTitle.trim() || "Моя цель"
         : selected.title;
-    const target = Number(targetAmount);
+    const target = parseNumberForCalc(targetAmount);
 
     if (!target || target <= 0) {
       setError("Укажите сумму цели");
@@ -150,15 +150,14 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
         />
       )}
 
-      <Input
+      <NumericInput
         id="targetAmount"
         label="Сумма цели (₽)"
-        type="number"
-        min="1"
+        mode="decimal"
         required
-        inputMode="numeric"
         value={targetAmount}
-        onChange={(e) => setTargetAmount(e.target.value)}
+        onValueChange={setTargetAmount}
+        placeholder={String(selected.defaultTarget)}
       />
 
       {error && <p className="text-sm text-red-400">{error}</p>}

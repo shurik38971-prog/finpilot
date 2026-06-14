@@ -3,6 +3,8 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
+import { parseNumberForCalc } from "@/lib/forms/numeric-field";
 import { Badge } from "@/components/ui/badge";
 import {
   PRESET_SCENARIOS,
@@ -30,11 +32,11 @@ export function ScenariosPageClient({
   profileType: ProfileType;
   profileIncome: ProfileIncomeParameters;
 }) {
-  const [custom, setCustom] = useState<ScenarioInput>({
+  const [custom, setCustom] = useState({
     name: "Свой сценарий",
-    incomeChangePercent: 0,
-    expenseChangePercent: 0,
-    extraDebtPayment: 0,
+    incomeChangePercent: "",
+    expenseChangePercent: "",
+    extraDebtPayment: "",
     removeNonEssential: false,
   });
 
@@ -46,17 +48,28 @@ export function ScenariosPageClient({
     [incomes, expenses, debts, profileType, profileIncome]
   );
 
+  const customScenarioInput: ScenarioInput = useMemo(
+    () => ({
+      name: custom.name,
+      incomeChangePercent: parseNumberForCalc(custom.incomeChangePercent),
+      expenseChangePercent: parseNumberForCalc(custom.expenseChangePercent),
+      extraDebtPayment: parseNumberForCalc(custom.extraDebtPayment),
+      removeNonEssential: custom.removeNonEssential,
+    }),
+    [custom]
+  );
+
   const customResult = useMemo(
     () =>
       runScenario(
         incomes,
         expenses,
         debts,
-        custom,
+        customScenarioInput,
         profileType,
         profileIncome
       ),
-    [incomes, expenses, debts, custom, profileType, profileIncome]
+    [incomes, expenses, debts, customScenarioInput, profileType, profileIncome]
   );
 
   return (
@@ -85,42 +98,35 @@ export function ScenariosPageClient({
             value={custom.name}
             onChange={(e) => setCustom({ ...custom, name: e.target.value })}
           />
-          <Input
+          <NumericInput
             id="s-income"
             label="Изменение дохода (%)"
-            type="number"
+            mode="decimal"
             value={custom.incomeChangePercent}
-            onChange={(e) =>
-              setCustom({
-                ...custom,
-                incomeChangePercent: Number(e.target.value),
-              })
+            onValueChange={(value) =>
+              setCustom({ ...custom, incomeChangePercent: value })
             }
+            placeholder="0"
           />
-          <Input
+          <NumericInput
             id="s-expense"
             label="Изменение расходов (%)"
-            type="number"
+            mode="decimal"
             value={custom.expenseChangePercent}
-            onChange={(e) =>
-              setCustom({
-                ...custom,
-                expenseChangePercent: Number(e.target.value),
-              })
+            onValueChange={(value) =>
+              setCustom({ ...custom, expenseChangePercent: value })
             }
+            placeholder="0"
           />
-          <Input
+          <NumericInput
             id="s-extra"
             label="Доп. платёж по долгам (₽)"
-            type="number"
-            min="0"
+            mode="decimal"
             value={custom.extraDebtPayment}
-            onChange={(e) =>
-              setCustom({
-                ...custom,
-                extraDebtPayment: Number(e.target.value),
-              })
+            onValueChange={(value) =>
+              setCustom({ ...custom, extraDebtPayment: value })
             }
+            placeholder="5000"
           />
         </div>
 

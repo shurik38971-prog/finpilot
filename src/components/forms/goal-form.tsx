@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Select } from "@/components/ui/select";
+import { numberToFieldValue } from "@/lib/forms/numeric-field";
 import { createGoal, updateGoal } from "@/lib/actions/goals";
 import type { Debt } from "@/types/database";
 import type { FinancialGoal, GoalType } from "@/types/goals";
@@ -23,6 +25,12 @@ const typeOptions = Object.entries(GOAL_TYPE_LABELS).map(([value, label]) => ({
 export function GoalForm({ goal, debts = [], onSuccess }: GoalFormProps) {
   const [type, setType] = useState<GoalType>(goal?.type ?? "safety_cushion");
   const [loading, setLoading] = useState(false);
+  const [targetAmount, setTargetAmount] = useState(
+    numberToFieldValue(goal?.target_amount)
+  );
+  const [currentAmount, setCurrentAmount] = useState(
+    numberToFieldValue(goal?.current_amount)
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -91,25 +99,25 @@ export function GoalForm({ goal, debts = [], onSuccess }: GoalFormProps) {
         placeholder="Подушка безопасности"
       />
       <div className="grid grid-cols-2 gap-4">
-        <Input
+        <NumericInput
           id="target_amount"
           name="target_amount"
           label="Цель (₽)"
-          type="number"
-          min="1"
-          step="0.01"
-          defaultValue={goal?.target_amount}
+          mode="decimal"
+          value={targetAmount}
+          onValueChange={setTargetAmount}
           required
+          placeholder="150000"
         />
-        <Input
+        <NumericInput
           id="current_amount"
           name="current_amount"
           label="Текущий прогресс (₽)"
-          type="number"
-          min="0"
-          step="0.01"
-          defaultValue={goal?.current_amount ?? 0}
+          mode="decimal"
+          value={currentAmount}
+          onValueChange={setCurrentAmount}
           required
+          placeholder="10000"
         />
       </div>
       <Input

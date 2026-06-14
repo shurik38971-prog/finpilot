@@ -4,13 +4,15 @@ import { CrisisScenarioComparison } from "@/components/crisis/crisis-scenario-co
 import { DebtPayoffBreakdown } from "@/components/crisis/debt-payoff-breakdown";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
+import { parseNumberForCalc } from "@/lib/forms/numeric-field";
 import { calculateDebtPayoff } from "@/lib/finance/debt-strategies";
 import type { Debt } from "@/types/database";
 import { useMemo, useState } from "react";
 
 export function CrisisPageClient({ debts }: { debts: Debt[] }) {
-  const [extraPayment, setExtraPayment] = useState(5000);
+  const [extraPaymentInput, setExtraPaymentInput] = useState("");
+  const extraPayment = parseNumberForCalc(extraPaymentInput);
   const multipleDebts = debts.length >= 2;
 
   const baseline = useMemo(
@@ -47,13 +49,13 @@ export function CrisisPageClient({ debts }: { debts: Debt[] }) {
       />
 
       <div className="mb-6 max-w-xs">
-        <Input
+        <NumericInput
           id="extra"
           label="Дополнительный платёж в месяц (₽)"
-          type="number"
-          min="0"
-          value={extraPayment}
-          onChange={(e) => setExtraPayment(Number(e.target.value))}
+          mode="decimal"
+          value={extraPaymentInput}
+          onValueChange={setExtraPaymentInput}
+          placeholder="5000"
         />
       </div>
 

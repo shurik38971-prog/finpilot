@@ -15,7 +15,24 @@ const OUTCOME_COPY_KEYS = [
   "page.landing.outcome_3",
   "page.landing.outcome_4",
   "page.landing.outcome_5",
+  "page.landing.outcome_6",
 ] as const;
+
+function LandingOutcomeItem({ copyKey }: { copyKey: string }) {
+  const text = useCopy(copyKey);
+
+  return (
+    <li className="flex items-start gap-3 text-sm sm:text-[0.9375rem] text-foreground/80">
+      <span
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border/60 bg-surface/50"
+        aria-hidden
+      >
+        <Check className="h-3 w-3 text-foreground/45" />
+      </span>
+      <span className="leading-[1.65]">{text}</span>
+    </li>
+  );
+}
 
 export interface FinPilotLandingSectionProps {
   ctaHref: string;
@@ -50,12 +67,6 @@ export function FinPilotLandingSection({
   const card2Text = useCopy("page.dashboard.value_card_2_text");
   const card3Title = useCopy("page.dashboard.value_card_3_title");
   const card3Text = useCopy("page.dashboard.value_card_3_text");
-  const outcome1 = useCopy(OUTCOME_COPY_KEYS[0]);
-  const outcome2 = useCopy(OUTCOME_COPY_KEYS[1]);
-  const outcome3 = useCopy(OUTCOME_COPY_KEYS[2]);
-  const outcome4 = useCopy(OUTCOME_COPY_KEYS[3]);
-  const outcome5 = useCopy(OUTCOME_COPY_KEYS[4]);
-  const outcomes = [outcome1, outcome2, outcome3, outcome4, outcome5];
 
   const valueCards = [
     { title: card1Title, text: card1Text, icon: VALUE_CARD_ICONS[0] },
@@ -150,19 +161,8 @@ export function FinPilotLandingSection({
             {outcomesTitle}
           </h2>
           <ul className="mt-5 space-y-3.5">
-            {outcomes.map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-3 text-sm sm:text-[0.9375rem] text-foreground/80"
-              >
-                <span
-                  className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border/60 bg-surface/50"
-                  aria-hidden
-                >
-                  <Check className="h-3 w-3 text-foreground/45" />
-                </span>
-                <span className="leading-[1.65]">{item}</span>
-              </li>
+            {OUTCOME_COPY_KEYS.map((key) => (
+              <LandingOutcomeItem key={key} copyKey={key} />
             ))}
           </ul>
         </div>

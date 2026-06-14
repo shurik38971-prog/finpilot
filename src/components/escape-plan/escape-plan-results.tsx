@@ -363,6 +363,7 @@ export function EscapePlanResults({
                 option={primaryIncomeRoute}
                 choosing={choosingTitle === primaryIncomeRoute.title}
                 onChoose={handleChoose}
+                actionLabel={chooseRouteLabel}
               />
             )}
             {backupIncomeRoutes.length > 0 && (

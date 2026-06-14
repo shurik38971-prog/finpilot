@@ -97,7 +97,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Лендинг — вводный абзац",
     defaultValue:
-      "Когда платежей много, расходы растут, а деньги расходятся быстрее, чем планировалось, легко потерять ощущение контроля. ФинПилот помогает увидеть главную проблему и собрать понятный план действий.",
+      "Когда платежей много, расходы растут, а деньги расходятся быстрее, чем планировалось, легко потерять ощущение контроля. ФинПилот помогает разобраться, что мешает, и собрать понятный план действий.",
   },
   {
     key: "page.dashboard.hero_audience",
@@ -135,13 +135,13 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "page.landing.outcome_1",
     group: "pages",
     label: "Лендинг — результат 1",
-    defaultValue: "главную проблему в текущей ситуации",
+    defaultValue: "понятную картину Вашей финансовой ситуации",
   },
   {
     key: "page.landing.outcome_2",
     group: "pages",
     label: "Лендинг — результат 2",
-    defaultValue: "понятные рекомендации без сложных финансовых терминов",
+    defaultValue: "варианты выхода из текущего положения",
   },
   {
     key: "page.landing.outcome_3",
@@ -163,6 +163,12 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
       "варианты дополнительного дохода под Ваши навыки и ситуацию",
   },
   {
+    key: "page.landing.outcome_6",
+    group: "pages",
+    label: "Лендинг — результат 6",
+    defaultValue: "первый шаг, с которого можно начать уже сегодня",
+  },
+  {
     key: "page.dashboard.hero_cta",
     group: "pages",
     label: "Главный экран — кнопка",
@@ -178,7 +184,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "page.dashboard.value_card_1_title",
     group: "pages",
     label: "Главный экран — карточка 1, заголовок",
-    defaultValue: "Найдём главную проблему",
+    defaultValue: "Поймём, что требует внимания",
   },
   {
     key: "page.dashboard.value_card_1_text",
@@ -342,7 +348,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "escape",
     label: "Маршрут не выбран — подсказка",
     defaultValue:
-      "Ниже — подходящие направления на основе Ваших навыков и целей. Ни одно не станет активным, пока Вы явно не выберете его.",
+      "Ниже — подходящие направления на основе Ваших навыков и целей. Маршрут станет активным только после нажатия «Выбрать этот маршрут».",
   },
   {
     key: "escape.route_recommendations_title",

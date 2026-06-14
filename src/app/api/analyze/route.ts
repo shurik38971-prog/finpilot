@@ -59,10 +59,10 @@ function buildAnalysisPrompt(
 ${guardrailRules}
 Тип пользователя: ${context.profileTypeLabel}
 Учитывай профиль при рекомендациях, задачах, следующем лучшем действии и оценке финансовой картины.
-currentIncome / monthlyIncome / planningMonthlyIncome — доход месяца для анализа. Если usesOnboardingBaseline=true, это данные из регистрации и они считаются реальными.
+currentIncome / monthlyIncome / planningMonthlyIncome — доход месяца для анализа. Если usesOnboardingBaseline=true, это данные из анкеты и они считаются реальными.
 primaryMonthlyIncome — зарплата, пенсия, базовый доход самозанятого или средний доход бизнеса.
 additionalMonthlyIncome — дополнительные источники сверх основного дохода.
-actualMonthlyIncome — фактические поступления, если пользователь их уже отметил; иначе равен currentIncome из регистрации.
+actualMonthlyIncome — фактические поступления, если пользователь их уже отметил; иначе равен currentIncome из анкеты.
 НЕ рекомендуй «добавить реальные доходы», если currentIncome > 0 и usesOnboardingBaseline=true.
 НЕ рекомендуй «связаться с работодателем» или «вы не получили зарплату», если primaryMonthlyIncome > 0.
 expectedMonthlyIncome — то же, что primaryMonthlyIncome.

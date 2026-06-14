@@ -187,7 +187,7 @@ export const CONFIDENCE_LABELS: Record<AnalysisConfidence, string> = {
 };
 
 export const DATA_SOURCE_LABELS: Record<AnalysisDataSource, string> = {
-  registration: "Регистрация",
-  registration_and_operations: "Регистрация + реальные операции",
+  registration: "Ответы из анкеты",
+  registration_and_operations: "Анкета + доходы и расходы",
   full_history: "Полная история за 30 дней",
 };

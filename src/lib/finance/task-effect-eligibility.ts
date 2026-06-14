@@ -116,9 +116,9 @@ export function buildTaskExplanation(
 
   if (isInformationalFinancialTask(title, description)) {
     if (context.usesOnboardingBaseline) {
-      return "Анализ основан на данных регистрации";
+      return "Анализ основан на Ваших ответах из анкеты";
     }
-    return "История операций пока неполная";
+    return "Доходов, расходов, долгов и платежей пока мало";
   }
 
   if (/подушк|резерв|накоп|сбереж/i.test(text)) {

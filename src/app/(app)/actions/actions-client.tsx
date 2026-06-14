@@ -30,6 +30,8 @@ import { TaskImpactPreview } from "@/components/tasks/task-impact-preview";
 import { TaskRecommendationContext } from "@/components/tasks/task-recommendation-context";
 import { getDisplayableTaskImpact } from "@/lib/finance/task-effect-eligibility";
 import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
+import { getRouteStepGuide } from "@/lib/escape-plan/route-step-guides";
+import { RouteStepPracticalGuide } from "@/components/escape-plan/route-step-practical-guide";
 import { benefitLabel, importanceLabel } from "@/lib/copy/ui";
 import { Toast } from "@/components/ui/toast";
 
@@ -67,15 +69,20 @@ function statusVariant(
 
 function RouteCurrentStepCard({
   task,
+  routeTitle,
   loadingId,
   onComplete,
   onPostpone,
 }: {
   task: FinancialTaskWithGoal;
+  routeTitle: string | null;
   loadingId: string | null;
   onComplete: (id: string) => void;
   onPostpone: (id: string) => void;
 }) {
+  const practicalGuide =
+    routeTitle != null ? getRouteStepGuide(routeTitle, task.title) : null;
+
   return (
     <Card className="border-accent/40 bg-accent/5 mb-6">
       <CardHeader>
@@ -95,6 +102,7 @@ function RouteCurrentStepCard({
           explanation={task.explanation}
           className="mt-3"
         />
+        {practicalGuide && <RouteStepPracticalGuide guide={practicalGuide} />}
       </CardHeader>
       <div className="px-5 pb-5 flex flex-wrap items-center gap-3">
         {task.due_date && (
@@ -113,7 +121,7 @@ function RouteCurrentStepCard({
           ) : (
             <CheckCircle2 className="h-4 w-4" />
           )}
-          Выполнено
+          Отметить шаг выполненным
         </Button>
         <Button
           size="sm"
@@ -364,6 +372,7 @@ interface ActionsPageClientProps {
   additionalTasks?: FinancialTaskWithGoal[];
   cleanupMode?: boolean;
   hasActiveRoute?: boolean;
+  activeRouteTitle?: string | null;
 }
 
 export function ActionsPageClient({
@@ -371,6 +380,7 @@ export function ActionsPageClient({
   additionalTasks = [],
   cleanupMode = false,
   hasActiveRoute = false,
+  activeRouteTitle = null,
 }: ActionsPageClientProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -493,46 +503,13 @@ export function ActionsPageClient({
                 <Target className="h-8 w-8 text-muted" />
               </div>
               <h3 className="text-lg font-medium mb-1">
-                Сначала выберите направление
+                Сначала выберите направление, с которого хотите начать.
               </h3>
-              <p className="text-sm text-muted max-w-md mb-4 leading-relaxed">
-                Сначала выберите направление, с которого хотите начать. Навыки из
-                анкеты — это только подсказки; шаги появятся после явного выбора
-                маршрута.
-              </p>
-              <Link href="/escape-plan">
+              <Link href="/escape-plan" className="mt-4">
                 <Button>Выбрать направление</Button>
               </Link>
             </div>
           </Card>
-
-          {pendingMeasures.length > 0 || doneMeasures.length > 0 ? (
-            <Card className="mt-6 border-border/80">
-              <CardHeader>
-                <CardTitle className="text-base">Дополнительные действия</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  Финансовые меры отдельно от пошагового маршрута дополнительного
-                  дохода.
-                </CardDescription>
-              </CardHeader>
-              <div>
-                {[...pendingMeasures, ...doneMeasures].map((task) => (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    loadingId={loadingId}
-                    onComplete={handleComplete}
-                    onPostpone={(id) => runAction(id, postponeTask)}
-                    onDelete={(id) => {
-                      if (!confirm("Удалить задачу?")) return;
-                      runAction(id, deleteTask);
-                    }}
-                    cleanupMode={false}
-                  />
-                ))}
-              </div>
-            </Card>
-          ) : null}
         </>
       ) : showEmpty ? (
         <Card>
@@ -636,6 +613,7 @@ export function ActionsPageClient({
               {primary && (
                 <RouteCurrentStepCard
                   task={primary}
+                  routeTitle={activeRouteTitle}
                   loadingId={loadingId}
                   onComplete={handleComplete}
                   onPostpone={(id) => runAction(id, postponeTask)}

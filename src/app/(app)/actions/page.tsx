@@ -46,6 +46,7 @@ export default async function ActionsPage() {
       additionalTasks={additionalTasks}
       cleanupMode={cleanupMode}
       hasActiveRoute={Boolean(activePlan)}
+      activeRouteTitle={activePlan?.option_title ?? null}
     />
   );
 }

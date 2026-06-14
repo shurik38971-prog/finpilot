@@ -98,7 +98,7 @@ export function SettingsPageClient({
     try {
       if (action === "analyses") {
         await clearAnalysisHistory();
-        setToastMessage("История анализов удалена");
+        setToastMessage("Сохранённые разборы удалены");
       } else {
         await clearTasks();
         setToastMessage("Задачи удалены");
@@ -218,9 +218,10 @@ export function SettingsPageClient({
         <div className="space-y-4 px-5 pb-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/60 bg-surface-hover/30 p-4">
             <div>
-              <p className="text-sm font-medium">Очистить историю анализов</p>
+              <p className="text-sm font-medium">Очистить сохранённые разборы</p>
               <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
-                Удаляет записи из раздела «История».
+                Удаляет прошлые результаты анализа и рекомендации. Доходы,
+                расходы, долги и цели сохраняются.
               </p>
             </div>
             <Button
@@ -240,7 +241,7 @@ export function SettingsPageClient({
             <div>
               <p className="text-sm font-medium">Очистить задачи</p>
               <p className="text-sm text-foreground/80 mt-1 leading-relaxed">
-                Удаляет все задачи из раздела «Что делать».
+                Удаляет текущие шаги и задачи из раздела «Что делать».
               </p>
             </div>
             <Button
@@ -372,15 +373,15 @@ export function SettingsPageClient({
         onClose={closeModal}
         title={
           modalAction === "analyses"
-            ? "Очистить историю анализов?"
+            ? "Очистить сохранённые разборы?"
             : "Очистить задачи?"
         }
       >
         <div className="space-y-4">
           <p className="text-sm text-foreground/85 leading-relaxed">
             {modalAction === "analyses"
-              ? "Будут удалены все записи из истории ИИ-анализов."
-              : "Будут удалены все задачи из раздела «Что делать»."}
+              ? "Будут удалены прошлые результаты анализа и рекомендации. Доходы, расходы, долги и цели сохранятся."
+              : "Будут удалены текущие шаги и задачи из раздела «Что делать»."}
           </p>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex justify-end gap-3">

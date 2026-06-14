@@ -6,6 +6,7 @@ import { getFinancialMeasureTasks, getFinancialTasks } from "@/lib/actions/tasks
 import { deduplicateUserTasksForUser } from "@/lib/finance/deduplicate-user-tasks";
 import { isCleanupMode } from "@/lib/feature-flags";
 import { createClient } from "@/lib/supabase/server";
+import type { EscapePlanOption } from "@/types/escape-plan";
 import { ActionsPageClient } from "./actions-client";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,9 @@ export default async function ActionsPage() {
       additionalTasks={additionalTasks}
       cleanupMode={cleanupMode}
       hasActiveRoute={Boolean(activePlan)}
-      activeRouteTitle={activePlan?.option_title ?? null}
+      activeRouteOption={
+        (activePlan?.option_snapshot as EscapePlanOption | undefined) ?? null
+      }
     />
   );
 }

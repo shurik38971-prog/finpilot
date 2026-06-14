@@ -1,6 +1,7 @@
 "use server";
 
 import { buildActiveGoalTitle } from "@/lib/escape-plan/build-active-goal";
+import { validateAndFixRouteOption } from "@/lib/escape-plan/route-validation";
 import { buildFinancialMeasureTaskRow, filterFinancialMeasureOptions } from "@/lib/escape-plan/financial-measures";
 import { isIncomeRouteOption, measureTaskKey } from "@/lib/escape-plan/recommendation-types";
 import { buildEscapeRouteSteps, sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
@@ -176,7 +177,7 @@ async function repairEscapeRouteStepOrderForPlan(
     supabase,
     userId,
     escapePlanId,
-    plan.option_snapshot as EscapePlanOption
+    normalizeRouteOption(plan.option_snapshot as EscapePlanOption)
   );
 }
 
@@ -387,7 +388,7 @@ export async function syncActiveEscapeRouteSteps(): Promise<UserEscapePlan | nul
     supabase,
     userId,
     active.id,
-    active.option_snapshot as EscapePlanOption
+    normalizeRouteOption(active.option_snapshot as EscapePlanOption)
   );
   return active;
 }
@@ -422,11 +423,16 @@ async function findExistingRouteByTitle(
   return data ? normalizeEscapePlan(data as UserEscapePlan) : null;
 }
 
+function normalizeRouteOption(option: EscapePlanOption): EscapePlanOption {
+  return validateAndFixRouteOption(option);
+}
+
 async function createActiveEscapePlan(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
+  const normalized = normalizeRouteOption(option);
   const followUpDue = new Date();
   followUpDue.setDate(followUpDue.getDate() + 7);
 
@@ -434,11 +440,11 @@ async function createActiveEscapePlan(
     .from("user_escape_plans")
     .insert({
       user_id: userId,
-      option_title: option.title,
-      option_snapshot: option,
+      option_title: normalized.title,
+      option_snapshot: normalized,
       status: "active",
       attempt_status: "in_progress",
-      active_goal: buildActiveGoalTitle(option),
+      active_goal: buildActiveGoalTitle(normalized),
       income_found: 0,
       follow_up_due_at: followUpDue.toISOString(),
     })
@@ -447,7 +453,7 @@ async function createActiveEscapePlan(
 
   if (error) throw error;
 
-  await createEscapePlanTasks(supabase, userId, data.id, option);
+  await createEscapePlanTasks(supabase, userId, data.id, normalized);
   return normalizeEscapePlan(data as UserEscapePlan);
 }
 
@@ -457,6 +463,7 @@ async function promotePlanToActive(
   planId: string,
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
+  const normalized = normalizeRouteOption(option);
   const followUpDue = new Date();
   followUpDue.setDate(followUpDue.getDate() + 7);
 
@@ -467,8 +474,8 @@ async function promotePlanToActive(
     .update({
       status: "active",
       attempt_status: "in_progress",
-      option_snapshot: option,
-      active_goal: buildActiveGoalTitle(option),
+      option_snapshot: normalized,
+      active_goal: buildActiveGoalTitle(normalized),
       income_found: 0,
       follow_up_due_at: followUpDue.toISOString(),
       follow_up_answer: null,
@@ -482,7 +489,7 @@ async function promotePlanToActive(
 
   if (error) throw error;
 
-  await createEscapePlanTasks(supabase, userId, planId, option);
+  await createEscapePlanTasks(supabase, userId, planId, normalized);
   return normalizeEscapePlan(data as UserEscapePlan);
 }
 
@@ -491,6 +498,7 @@ async function switchToEscapeOption(
   userId: string,
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
+  const normalized = normalizeRouteOption(option);
   const active = await getActiveEscapePlan();
   if (active) {
     await archiveEscapePlanTasks(supabase, userId, active.id);
@@ -507,17 +515,17 @@ async function switchToEscapeOption(
 
   await archiveOrphanActionTasks(supabase, userId);
 
-  const existing = await findExistingRouteByTitle(supabase, userId, option.title, [
+  const existing = await findExistingRouteByTitle(supabase, userId, normalized.title, [
     "alternative",
     "archived",
     "abandoned",
   ]);
 
   if (existing) {
-    return promotePlanToActive(supabase, userId, existing.id, option);
+    return promotePlanToActive(supabase, userId, existing.id, normalized);
   }
 
-  return createActiveEscapePlan(supabase, userId, option);
+  return createActiveEscapePlan(supabase, userId, normalized);
 }
 
 export async function getUserEscapePlans(): Promise<UserEscapePlan[]> {
@@ -554,7 +562,7 @@ export async function getEscapePlanTasks(
 
   if (planError) throw planError;
 
-  const option = plan.option_snapshot as EscapePlanOption;
+  const option = normalizeRouteOption(plan.option_snapshot as EscapePlanOption);
   await repairArchivedEscapeRouteSteps(supabase, userId, escapePlanId);
   await ensureEscapeRouteStepsForPlan(supabase, userId, escapePlanId, option);
 
@@ -647,9 +655,10 @@ export async function saveEscapeOptionAsAlternative(
   option: EscapePlanOption
 ): Promise<UserEscapePlan> {
   assertIncomeRouteOption(option);
+  const normalized = normalizeRouteOption(option);
   const { supabase, userId } = await getUserId();
 
-  const existing = await findExistingRouteByTitle(supabase, userId, option.title, [
+  const existing = await findExistingRouteByTitle(supabase, userId, normalized.title, [
     "alternative",
   ]);
   if (existing) {
@@ -660,11 +669,11 @@ export async function saveEscapeOptionAsAlternative(
     .from("user_escape_plans")
     .insert({
       user_id: userId,
-      option_title: option.title,
-      option_snapshot: option,
+      option_title: normalized.title,
+      option_snapshot: normalized,
       status: "alternative",
       attempt_status: "not_started",
-      active_goal: buildActiveGoalTitle(option),
+      active_goal: buildActiveGoalTitle(normalized),
       income_found: 0,
       follow_up_due_at: null,
     })

@@ -144,7 +144,10 @@ ${buildFailedAttemptsBlock(failedAttempts)}
       "confidence": "high | medium | low",
       "difficulty": "low | medium | high",
       "time_required": "коротко, например: 5 ч/нед",
-      "priority_rank": 1
+      "priority_rank": 1,
+      "route_type": "consulting_training | on_site_service | remote_service | freelance_project | cashback_partner | resale_trade | simple_side_job",
+      "user_skill": "plumbing | computers | web_development | repair | sales | other",
+      "earning_format": "consulting_training | on_site_services | remote_services | freelance_project | cashback_partner | resale_trade | simple_side_job"
     }
   ],
   "not_recommended": [

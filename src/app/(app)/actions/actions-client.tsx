@@ -30,7 +30,8 @@ import { TaskImpactPreview } from "@/components/tasks/task-impact-preview";
 import { TaskRecommendationContext } from "@/components/tasks/task-recommendation-context";
 import { getDisplayableTaskImpact } from "@/lib/finance/task-effect-eligibility";
 import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
-import { getRoutePracticalGuide } from "@/lib/escape-plan/route-step-guides";
+import { getRoutePracticalGuideForOption } from "@/lib/escape-plan/route-step-guides";
+import type { EscapePlanOption } from "@/types/escape-plan";
 import { RouteStepPracticalGuide } from "@/components/escape-plan/route-step-practical-guide";
 import { benefitLabel, importanceLabel } from "@/lib/copy/ui";
 import { Toast } from "@/components/ui/toast";
@@ -69,19 +70,23 @@ function statusVariant(
 
 function RouteCurrentStepCard({
   task,
-  routeTitle,
+  routeOption,
   loadingId,
   onComplete,
   onPostpone,
 }: {
   task: FinancialTaskWithGoal;
-  routeTitle: string | null;
+  routeOption: Pick<
+    EscapePlanOption,
+    "title" | "route_type" | "why_fits" | "first_step" | "type"
+  > | null;
   loadingId: string | null;
   onComplete: (id: string) => void;
   onPostpone: (id: string) => void;
 }) {
-  const practicalGuide =
-    routeTitle != null ? getRoutePracticalGuide(routeTitle) : null;
+  const practicalGuide = routeOption
+    ? getRoutePracticalGuideForOption(routeOption)
+    : null;
 
   return (
     <Card className="border-accent/40 bg-accent/5 mb-6">
@@ -378,7 +383,7 @@ interface ActionsPageClientProps {
   additionalTasks?: FinancialTaskWithGoal[];
   cleanupMode?: boolean;
   hasActiveRoute?: boolean;
-  activeRouteTitle?: string | null;
+  activeRouteOption?: EscapePlanOption | null;
 }
 
 export function ActionsPageClient({
@@ -386,7 +391,7 @@ export function ActionsPageClient({
   additionalTasks = [],
   cleanupMode = false,
   hasActiveRoute = false,
-  activeRouteTitle = null,
+  activeRouteOption = null,
 }: ActionsPageClientProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -619,7 +624,7 @@ export function ActionsPageClient({
               {primary && (
                 <RouteCurrentStepCard
                   task={primary}
-                  routeTitle={activeRouteTitle}
+                  routeOption={activeRouteOption}
                   loadingId={loadingId}
                   onComplete={handleComplete}
                   onPostpone={(id) => runAction(id, postponeTask)}

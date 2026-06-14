@@ -1,11 +1,13 @@
+import {
+  resolveRouteType,
+  type RouteType,
+} from "@/lib/escape-plan/route-types";
+import type { EscapePlanOption } from "@/types/escape-plan";
+
 export const ROUTE_STEP_CHANNELS = "Определить каналы поиска клиентов";
 export const ROUTE_STEP_CREATE_AD = "Создать объявление";
 
-export type RouteGuideKind =
-  | "web_dev"
-  | "on_site_repair"
-  | "computer_help"
-  | "cashback_partner";
+export type RouteGuideKind = RouteType;
 
 export interface RoutePlatformGuide {
   name: string;
@@ -19,152 +21,67 @@ export interface RouteStepGuide {
   adText: string;
   portfolioItems: string[];
   checklist: string[];
-  sectionLabels?: {
+  sectionLabels?: Partial<{
     platforms: string;
     message: string;
     details: string;
     checklist: string;
-    platformWhy?: string;
-    platformWhat?: string;
-  };
+    platformWhy: string;
+    platformWhat: string;
+  }>;
 }
 
-const STEP_COMPLETION_CHECKLIST = [
+const SERVICE_CHECKLIST = [
   "Выберите 2–3 площадки",
   "Подготовьте описание услуги",
-  "Добавьте портфолио или примеры работ",
+  "Добавьте примеры работ",
   "Опубликуйте первое объявление",
 ];
 
-const WEB_DEV_PLATFORMS: RoutePlatformGuide[] = [
+const CONSULTING_PLATFORMS: RoutePlatformGuide[] = [
+  {
+    name: "Профи.ру",
+    why: "Люди ищут консультации и обучение по конкретным темам",
+    whatToPost: "Тема, формат, длительность и цена «от»",
+  },
   {
     name: "Авито Услуги",
-    why: "Много малых бизнесов ищут исполнителей по городу",
-    whatToPost: "Короткое объявление с ценой «от», 2–3 примера работ и сроком",
+    why: "Подходит для локальных и онлайн-консультаций",
+    whatToPost: "Короткое описание темы и способ связи",
   },
   {
-    name: "Яндекс Услуги",
-    why: "Удобно для локальных заказов и быстрых откликов",
-    whatToPost: "Услуга, район, примеры работ и контакт для связи",
+    name: "Telegram / VK",
+    why: "Быстрые рекомендации в тематических чатах",
+    whatToPost: "Короткий пост: кому помогаете и какая тема",
   },
   {
-    name: "Kwork",
-    why: "Клиенты уже привыкли заказывать сайты и лендинги по пакетам",
-    whatToPost: "Кворк с понятным результатом: «лендинг под ключ», срок и что входит",
-  },
-  {
-    name: "VK / Telegram-чаты предпринимателей",
-    why: "Быстрые рекомендации и заказы от знакомых предпринимателей",
-    whatToPost: "Короткий пост: кому помогаете, 1–2 кейса, ссылка на портфолио",
-  },
-  {
-    name: "FL / freelance-площадки",
-    why: "Подходит для удалённых заказов и первых отзывов",
-    whatToPost: "Профиль с портфолио и отклики на небольшие проекты",
+    name: "Личные рекомендации",
+    why: "Первые консультации часто приходят от знакомых",
+    whatToPost: "Сообщение: тема, формат и как записаться",
   },
 ];
 
-const ON_SITE_REPAIR_PLATFORMS: RoutePlatformGuide[] = [
-  {
-    name: "Авито Услуги",
-    why: "Люди часто ищут мастера рядом с домом",
-    whatToPost: "Услуги, район выезда, примерные цены и фото работ",
-  },
-  {
-    name: "Яндекс Услуги",
-    why: "Удобно для срочных вызовов и локальных заказов",
-    whatToPost: "Список работ, зона обслуживания и быстрый контакт",
-  },
-  {
-    name: "Профи",
-    why: "Клиенты ищут проверенных мастеров с отзывами",
-    whatToPost: "Профиль с фото работ, ценами и описанием выезда",
-  },
-  {
-    name: "Местные Telegram-чаты района",
-    why: "Быстрые рекомендации соседей и сарафанное радио",
-    whatToPost: "Короткое сообщение: чем помогаете, район, телефон",
-  },
-  {
-    name: "Объявления в домовых чатах / ЖК",
-    why: "Близкая аудитория, которой нужен мастер «здесь и сейчас»",
-    whatToPost: "Простое объявление с видами работ и контактом",
-  },
+const CONSULTING_MESSAGE = `Консультация по [ваша тема]
+
+Помогу разобраться с [конкретная задача]: объясню по шагам, отвечу на вопросы, подскажу, что делать дальше.
+Формат: созвон или переписка, 30–45 минут.
+
+Напишите, с чем нужна помощь — уточню, подойдёт ли формат.`;
+
+const CONSULTING_DETAILS = [
+  "Тема и для кого консультация",
+  "Формат: созвон, переписка, мини-урок",
+  "Длительность и цена «от»",
+  "Что человек получит на выходе",
+  "Как записаться и связаться",
 ];
 
-const COMPUTER_HELP_PLATFORMS: RoutePlatformGuide[] = [
-  {
-    name: "Авито Услуги",
-    why: "Частый поиск мастера «рядом с домом» для настройки техники",
-    whatToPost: "Список услуг, выезд или удалённо, цена «от» и район",
-  },
-  {
-    name: "Яндекс Услуги",
-    why: "Подходит для срочных вызовов и локальных заказов",
-    whatToPost: "Что настраиваете, сроки выезда и контакт",
-  },
-  {
-    name: "Профи",
-    why: "Клиенты ищут специалистов с отзывами по IT-услугам",
-    whatToPost: "Профиль с перечнем работ, ценами и примерами задач",
-  },
-  {
-    name: "Местные Telegram-чаты района",
-    why: "Быстрые рекомендации соседям и знакомым",
-    whatToPost: "Короткий пост: чем помогаете, выезд, телефон",
-  },
-  {
-    name: "Объявления в домовых чатах / ЖК",
-    why: "Люди часто ищут помощь с ПК и интернетом рядом",
-    whatToPost: "Простое объявление: настройка ПК, роутера, принтера",
-  },
-];
-
-const WEB_DEV_AD_TEXT = `Разработка сайтов для малого бизнеса
-
-Сделаю сайт-визитку или лендинг под вашу задачу: структура, тексты, адаптив, базовое SEO.
-Срок: 5–10 дней. Покажу 2–3 примера работ.
-
-Пишите в сообщения — обсудим задачу и смету.`;
-
-const ON_SITE_REPAIR_AD_TEXT = `Сантехник на выезд — [укажите ваш район]
-
-Замена смесителей, устранение протечек, подключение сифона, мелкий ремонт.
-Выезд в день обращения. Работаю аккуратно, убираю за собой.
-
-Звоните или пишите — оценю задачу по фото.`;
-
-const COMPUTER_HELP_AD_TEXT = `Компьютерная помощь на дому — [укажите ваш район]
-
-Настройка ПК и ноутбука, подключение принтера, интернета и Wi‑Fi, помощь с телефоном.
-Объясню простыми словами, что сделано. Выезд в удобное время.
-
-Пишите или звоните — уточню задачу и стоимость.`;
-
-const WEB_DEV_PORTFOLIO = [
-  "2–3 скриншота готовых работ",
-  "Короткое описание задачи клиента",
-  "Что именно было сделано",
-  "Ссылка на проект или демо",
-  "Кому подойдёт такой сайт (ниша, формат бизнеса)",
-];
-
-const ON_SITE_REPAIR_PORTFOLIO = [
-  "Фото «до / после»",
-  "Краткое описание выполненной работы",
-  "Район или формат выезда",
-  "Примерные сроки выполнения",
-  "Гарантия на работу, если есть",
-  "Контакты для связи",
-];
-
-const COMPUTER_HELP_PORTFOLIO = [
-  "Список типовых задач: ПК, принтер, интернет, телефон",
-  "Краткое описание 1–2 решённых случаев",
-  "Формат работы: выезд, удалённо или оба варианта",
-  "Район обслуживания или время ответа",
-  "Отзывы или рекомендации, если есть",
-  "Контакты для связи",
+const CONSULTING_CHECKLIST = [
+  "Определена тема консультации",
+  "Выбран формат работы",
+  "Готово короткое предложение",
+  "Выбраны 2 площадки для первых заявок",
+  "Сделана первая проверка формата",
 ];
 
 const CASHBACK_PARTNER_PLATFORMS: RoutePlatformGuide[] = [
@@ -208,40 +125,152 @@ const CASHBACK_SAFETY_CHECKLIST = [
   "Сделана первая проверка: переходы или начисления",
 ];
 
-export function detectRouteGuideKind(routeTitle: string): RouteGuideKind | null {
-  const title = routeTitle.trim();
-  if (
-    /кэшбэк|кешбэк|партнёрск|партнерск|affiliate|реферальн/i.test(title)
-  ) {
-    return "cashback_partner";
-  }
-  if (
-    /сантех|ремонт.*выезд|выезд.*ремонт|мастер.*выезд|сантехник/i.test(title)
-  ) {
-    return "on_site_repair";
-  }
-  if (
-    /компьютер|настройк.*пк|it-помощ|it помощ|it услуг|ремонт.*комп|ноутбук|принтер|интернет|телефон|техподдерж|пк на дому/i.test(
-      title
-    )
-  ) {
-    return "computer_help";
-  }
-  if (
-    /разработк.*сайт|сайт.*разработ|веб-разработ|лендинг|landing|tilda|wordpress/i.test(
-      title
-    )
-  ) {
-    return "web_dev";
-  }
-  return null;
-}
+const ON_SITE_PLATFORMS: RoutePlatformGuide[] = [
+  {
+    name: "Авито Услуги",
+    why: "Люди часто ищут мастера рядом с домом",
+    whatToPost: "Услуги, район выезда, примерные цены и фото работ",
+  },
+  {
+    name: "Яндекс Услуги",
+    why: "Удобно для срочных вызовов и локальных заявок",
+    whatToPost: "Список работ, зона обслуживания и быстрый контакт",
+  },
+  {
+    name: "Профи",
+    why: "Ищут проверенных мастеров с отзывами",
+    whatToPost: "Профиль с фото работ, ценами и описанием выезда",
+  },
+  {
+    name: "Местные Telegram-чаты района",
+    why: "Быстрые рекомендации соседей",
+    whatToPost: "Короткое сообщение: чем помогаете, район, телефон",
+  },
+];
 
-function buildGuide(kind: RouteGuideKind): RouteStepGuide {
-  switch (kind) {
+const ON_SITE_AD_TEXT = `Мастер на выезд — [укажите ваш район]
+
+Выполняю [список работ]. Работаю аккуратно, уточняю задачу перед выездом.
+Звоните или пишите — оценю задачу по фото или описанию.`;
+
+const ON_SITE_DETAILS = [
+  "Фото «до / после»",
+  "Краткое описание выполненной работы",
+  "Район или формат выезда",
+  "Примерные сроки выполнения",
+  "Контакты для связи",
+];
+
+const REMOTE_PLATFORMS: RoutePlatformGuide[] = [
+  {
+    name: "Kwork",
+    why: "Удобно для пакетных удалённых услуг",
+    whatToPost: "Кворк с понятным результатом, сроком и ценой «от»",
+  },
+  {
+    name: "FL.ru",
+    why: "Подходит для удалённых задач и первых отзывов",
+    whatToPost: "Профиль с примерами и отклики на небольшие задачи",
+  },
+  {
+    name: "Telegram / VK",
+    why: "Быстрые рекомендации и прямые обращения",
+    whatToPost: "Короткий пост: чем помогаете и как связаться",
+  },
+];
+
+const REMOTE_MESSAGE = `Помогу удалённо с [ваша услуга]
+
+Формат: онлайн, сроки и стоимость обсуждаем после уточнения задачи.
+Покажу примеры работ, если нужно.
+
+Напишите, что требуется — оценю, смогу ли помочь.`;
+
+const FREELANCE_PLATFORMS: RoutePlatformGuide[] = [
+  {
+    name: "Kwork",
+    why: "Клиенты заказывают сайты и дизайн по пакетам",
+    whatToPost: "Кворк с результатом, сроком и что входит",
+  },
+  {
+    name: "FL.ru",
+    why: "Подходит для проектной работы",
+    whatToPost: "Портфолио и отклики на небольшие проекты",
+  },
+  {
+    name: "Авито Услуги",
+    why: "Локальный спрос на сайты и лендинги",
+    whatToPost: "Короткое объявление с ценой «от» и примерами",
+  },
+];
+
+const FREELANCE_MESSAGE = `Разработка сайтов для малого бизнеса
+
+Сделаю сайт-визитку или лендинг: структура, тексты, адаптив.
+Срок: 5–10 дней. Покажу 2–3 примера работ.
+
+Пишите в сообщения — обсудим задачу и смету.`;
+
+const FREELANCE_DETAILS = [
+  "2–3 скриншота готовых работ",
+  "Короткое описание задачи",
+  "Что именно было сделано",
+  "Ссылка на проект или демо",
+  "Кому подойдёт такой результат",
+];
+
+const RESALE_PLATFORMS: RoutePlatformGuide[] = [
+  {
+    name: "Авито",
+    why: "Быстрый старт для перепродажи без вложений в витрину",
+    whatToPost: "Честные фото, описание, цена и условия передачи",
+  },
+  {
+    name: "Юла",
+    why: "Дополнительный охват локального спроса",
+    whatToPost: "Короткое объявление с фото и ценой",
+  },
+  {
+    name: "Маркетплейсы",
+    why: "Если готовы к упаковке и логистике",
+    whatToPost: "Карточка товара, остатки и условия доставки",
+  },
+];
+
+const RESALE_MESSAGE = `Продаю [товар] в хорошем состоянии.
+
+Цена: [сумма]. Самовывоз / доставка по договорённости.
+Пишите — отвечу на вопросы, пришлю дополнительные фото.`;
+
+const GENERIC_CHECKLIST = [
+  "Уточнено направление",
+  "Выбран формат работы",
+  "Готово короткое предложение",
+  "Проверен спрос в одном канале",
+  "Сделан первый тест",
+];
+
+function buildGuideForRouteType(routeType: RouteType): RouteStepGuide {
+  switch (routeType) {
+    case "consulting_training":
+      return {
+        kind: routeType,
+        platforms: CONSULTING_PLATFORMS,
+        adText: CONSULTING_MESSAGE,
+        portfolioItems: CONSULTING_DETAILS,
+        checklist: CONSULTING_CHECKLIST,
+        sectionLabels: {
+          platforms: "Площадки для первых заявок",
+          platformWhy: "Почему подходит: ",
+          platformWhat: "Что разместить: ",
+          message: "Пример короткого предложения",
+          details: "Что указать в предложении",
+          checklist: "Чек-лист перед первой консультацией",
+        },
+      };
     case "cashback_partner":
       return {
-        kind,
+        kind: routeType,
         platforms: CASHBACK_PARTNER_PLATFORMS,
         adText: CASHBACK_MESSAGE_TEXT,
         portfolioItems: CASHBACK_CONDITIONS_CHECKLIST,
@@ -255,36 +284,142 @@ function buildGuide(kind: RouteGuideKind): RouteStepGuide {
           checklist: "Чек-лист безопасной проверки",
         },
       };
-    case "on_site_repair":
+    case "on_site_service":
       return {
-        kind,
-        platforms: ON_SITE_REPAIR_PLATFORMS,
-        adText: ON_SITE_REPAIR_AD_TEXT,
-        portfolioItems: ON_SITE_REPAIR_PORTFOLIO,
-        checklist: STEP_COMPLETION_CHECKLIST,
+        kind: routeType,
+        platforms: ON_SITE_PLATFORMS,
+        adText: ON_SITE_AD_TEXT,
+        portfolioItems: ON_SITE_DETAILS,
+        checklist: SERVICE_CHECKLIST,
+        sectionLabels: {
+          details: "Что показать в объявлении",
+        },
       };
-    case "computer_help":
+    case "remote_service":
       return {
-        kind,
-        platforms: COMPUTER_HELP_PLATFORMS,
-        adText: COMPUTER_HELP_AD_TEXT,
-        portfolioItems: COMPUTER_HELP_PORTFOLIO,
-        checklist: STEP_COMPLETION_CHECKLIST,
+        kind: routeType,
+        platforms: REMOTE_PLATFORMS,
+        adText: REMOTE_MESSAGE,
+        portfolioItems: [
+          "Список типовых задач",
+          "1–2 примера или кейса",
+          "Сроки и формат связи",
+          "Цена «от» или вилка",
+        ],
+        checklist: SERVICE_CHECKLIST,
+        sectionLabels: {
+          platforms: "Каналы для первых заявок",
+          message: "Пример короткого предложения",
+          details: "Что указать в профиле",
+        },
       };
+    case "freelance_project":
+      return {
+        kind: routeType,
+        platforms: FREELANCE_PLATFORMS,
+        adText: FREELANCE_MESSAGE,
+        portfolioItems: FREELANCE_DETAILS,
+        checklist: SERVICE_CHECKLIST,
+      };
+    case "resale_trade":
+      return {
+        kind: routeType,
+        platforms: RESALE_PLATFORMS,
+        adText: RESALE_MESSAGE,
+        portfolioItems: [
+          "Честные фото товара",
+          "Состояние и комплектация",
+          "Цена и торг",
+          "Способ передачи",
+        ],
+        checklist: [
+          "Выбрана категория товаров",
+          "Проверена маржа",
+          "Готово объявление",
+          "Сделана первая проверка спроса",
+        ],
+        sectionLabels: {
+          platforms: "Где продавать",
+          message: "Пример объявления",
+          details: "Что указать в карточке",
+        },
+      };
+    case "simple_side_job":
+      return {
+        kind: routeType,
+        platforms: [
+          {
+            name: "Подработка.ру",
+            why: "Разовые смены и задачи",
+            whatToPost: "Профиль и отклики на простые вакансии",
+          },
+          {
+            name: "Авито Работа",
+            why: "Локальные подработки",
+            whatToPost: "Короткий отклик с доступным графиком",
+          },
+        ],
+        adText: `Ищу подработку: [чем готовы заняться].
+Доступен [график]. Пишите — уточню детали.`,
+        portfolioItems: ["График", "Опыт", "Контакт"],
+        checklist: GENERIC_CHECKLIST,
+      };
+    case "generic":
     default:
       return {
-        kind: "web_dev",
-        platforms: WEB_DEV_PLATFORMS,
-        adText: WEB_DEV_AD_TEXT,
-        portfolioItems: WEB_DEV_PORTFOLIO,
-        checklist: STEP_COMPLETION_CHECKLIST,
+        kind: "generic",
+        platforms: [
+          {
+            name: "Личные рекомендации",
+            why: "Быстрый способ проверить идею",
+            whatToPost: "Короткое сообщение знакомым",
+          },
+          {
+            name: "Telegram / VK",
+            why: "Тематические чаты по вашей нише",
+            whatToPost: "Пост с предложением и контактом",
+          },
+        ],
+        adText: `Проверяю направление «[тема]».
+Коротко: [чем помогаете], формат [онлайн/офлайн].
+Если актуально — напишите, обсудим.`,
+        portfolioItems: [
+          "Кому подходит предложение",
+          "Формат и сроки",
+          "Примерная стоимость или бонус",
+        ],
+        checklist: GENERIC_CHECKLIST,
+        sectionLabels: {
+          platforms: "Где проверить спрос",
+          message: "Пример короткого предложения",
+          details: "Что подготовить",
+          checklist: "Чек-лист первого теста",
+        },
       };
   }
 }
 
-/** Route-specific practical example; same content for all steps of the route. */
+export function getRoutePracticalGuideForOption(
+  option: Pick<EscapePlanOption, "title" | "type"> &
+    Partial<Pick<EscapePlanOption, "route_type" | "why_fits" | "first_step">>
+): RouteStepGuide | null {
+  if (option.type && option.type !== "increase_income") return null;
+  const routeType = resolveRouteType({
+    ...option,
+    type: option.type ?? "increase_income",
+  });
+  return buildGuideForRouteType(routeType);
+}
+
+/** @deprecated use getRoutePracticalGuideForOption */
 export function getRoutePracticalGuide(routeTitle: string): RouteStepGuide | null {
-  const kind = detectRouteGuideKind(routeTitle);
-  if (!kind) return null;
-  return buildGuide(kind);
+  return getRoutePracticalGuideForOption({
+    title: routeTitle,
+    type: "increase_income",
+  });
+}
+
+export function detectRouteGuideKind(routeTitle: string): RouteGuideKind | null {
+  const guide = getRoutePracticalGuide(routeTitle);
+  return guide?.kind ?? null;
 }

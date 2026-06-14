@@ -8,6 +8,12 @@ import type {
   EscapePlanOptionType,
   EscapePlanResult,
 } from "@/types/escape-plan";
+import {
+  isEarningFormat,
+  isRouteType,
+  isUserSkillCategory,
+} from "@/lib/escape-plan/route-types";
+import { validateAndFixRouteOption } from "@/lib/escape-plan/route-validation";
 
 const OPTION_TYPES: EscapePlanOptionType[] = [
   "increase_income",
@@ -18,8 +24,34 @@ const OPTION_TYPES: EscapePlanOptionType[] = [
 const DIFFICULTIES: EscapePlanDifficulty[] = ["low", "medium", "high"];
 const CONFIDENCES: EscapePlanConfidence[] = ["high", "medium", "low"];
 
+export const ROUTE_CLASSIFICATION_GUARDRAIL = `КЛАССИФИКАЦИЯ МАРШРУТОВ (обязательно для каждого варианта increase_income):
+Не смешивай навык пользователя с форматом заработка. Один и тот же навык может вести к разным маршрутам.
+Например, сантехника может быть выездной услугой, а может быть консультацией.
+Сначала определи формат маршрута (route_type и earning_format), затем подбирай шаги и формулировки.
+
+route_type — одно из:
+on_site_service | remote_service | consulting_training | freelance_project | cashback_partner | resale_trade | simple_side_job
+
+user_skill — одно из:
+plumbing | computers | web_development | repair | sales | other
+
+earning_format — одно из:
+on_site_services | remote_services | consulting_training | freelance_project | cashback_partner | resale_trade | simple_side_job
+
+Правила route_type:
+- «обучение», «консультации», «научить», «объяснить», «помочь разобраться» → consulting_training
+- «кэшбэк», «партнёрские программы», «реферальная ссылка», «бонус» → cashback_partner
+- «выезд», «ремонт», «замена», «мастер» БЕЗ консультаций/обучения → on_site_service
+- «сайт», «лендинг», «разработка сайтов», «дизайн» → freelance_project
+
+Запрещено смешивать форматы в тексте маршрута:
+- consulting_training: не используй «выезд», «район работы», «набор инструментов», «мастер рядом с домом»
+- cashback_partner: не используй «клиенты», «заказ», «услуга», «портфолио»
+- on_site_service: не используй «реферальная ссылка», «партнёрки», «кэшбэк»
+- freelance_project: не используй шаги ремонта/выезда`;
+
 export function buildEscapePlanSystemPrompt(): string {
-  return `Ты — спокойный финансовый советник FinPilot. Помогаешь найти реалистичные варианты улучшения ситуации.
+  return `Ты — спокойный финансовый советник ФинПилот. Помогаешь найти реалистичные варианты улучшения ситуации.
 
 Тон: взрослый, конкретный, без мотивационных лозунгов. Не пиши «вы сможете всё», «у вас получится».
 Пиши: «По вашим данным есть N реалистичных направления».
@@ -46,6 +78,8 @@ export function buildEscapePlanSystemPrompt(): string {
 - не предлагать физический труд (переезды, сборка мебели, велоремонт), если у пользователя есть цифровые навыки (разработка, дизайн, маркетинг, тексты, компьютеры)
 - not_recommended: явная причина, привязанная к данным пользователя
 - 3–5 вариантов; итоговый порядок пересчитывается системой по навыкам и ограничениям
+
+${ROUTE_CLASSIFICATION_GUARDRAIL}
 
 Ответ — только валидный JSON без markdown.`;
 }
@@ -151,7 +185,7 @@ export function sanitizeEscapePlanResult(
       const o = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
       const { incomeMin, incomeMax } = parseIncomeRange(o);
       const whyChosen = asStringArray(o.why_chosen);
-      return {
+      const base = {
         title: asString(o.title, "Вариант"),
         type: asOptionType(o.type),
         why_fits: asString(o.why_fits),
@@ -167,7 +201,13 @@ export function sanitizeEscapePlanResult(
         time_required: asString(o.time_required),
         risk: asString(o.risk),
         action_steps: asStringArray(o.action_steps),
+        route_type: isRouteType(o.route_type) ? o.route_type : undefined,
+        user_skill: isUserSkillCategory(o.user_skill) ? o.user_skill : undefined,
+        earning_format: isEarningFormat(o.earning_format)
+          ? o.earning_format
+          : undefined,
       };
+      return validateAndFixRouteOption(base);
     }),
     rankingContext
   );

@@ -131,6 +131,12 @@ export const ESCAPE_CONFIDENCE_LABELS: Record<EscapePlanConfidence, string> = {
   low: "Низкая",
 };
 
+import type {
+  EarningFormat,
+  RouteType,
+  UserSkillCategory,
+} from "@/lib/escape-plan/route-types";
+
 export interface EscapePlanOption {
   title: string;
   type: EscapePlanOptionType;
@@ -150,6 +156,12 @@ export interface EscapePlanOption {
   rank_reasons?: string[];
   /** Пошаговый план только для этого варианта (не общий plan_7_days). */
   action_steps?: string[];
+  /** Классификация формата маршрута — определяет шаги и гайд. */
+  route_type?: RouteType;
+  /** Навык пользователя, к которому привязан маршрут. */
+  user_skill?: UserSkillCategory;
+  /** Формат заработка (отдельно от навыка). */
+  earning_format?: EarningFormat;
 }
 
 export type EscapeNotRecommendedReasonType = "not_worth" | "not_suitable";

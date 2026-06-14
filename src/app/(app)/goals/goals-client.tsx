@@ -182,7 +182,7 @@ export function GoalsPageClient({ goals, debts, tasks }: GoalsPageClientProps) {
         <EmptyState
           icon={Target}
           title="Нет финансовых целей"
-          description="Создайте цель, и FinPilot построит план достижения."
+          description="Создайте цель, и ФинПилот построит план достижения."
           actionLabel="Создать цель"
           onAction={openCreate}
         />

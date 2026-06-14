@@ -41,6 +41,7 @@ import { isCleanupMode } from "@/lib/feature-flags";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
 import { getAnalysisDataMaturity } from "@/lib/actions/analyses";
+import { hasDemoDataLoaded } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -128,6 +129,7 @@ export default async function DashboardPage() {
 
   const isEmpty =
     incomes.length === 0 && expenses.length === 0 && debts.length === 0;
+  const hasDemoData = hasDemoDataLoaded(incomes, debts);
 
   const profileStats =
     !cleanupMode && !financialProfile.needsProfileSetup
@@ -273,7 +275,7 @@ export default async function DashboardPage() {
             </>
           )}
 
-          <DemoDataBanner isEmpty={isEmpty} />
+          <DemoDataBanner isEmpty={isEmpty} hasDemoData={hasDemoData} />
         </div>
       </div>
     </DashboardAutoRefresh>

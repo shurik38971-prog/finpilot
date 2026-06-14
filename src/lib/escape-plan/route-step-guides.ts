@@ -1,7 +1,11 @@
 export const ROUTE_STEP_CHANNELS = "Определить каналы поиска клиентов";
 export const ROUTE_STEP_CREATE_AD = "Создать объявление";
 
-export type RouteGuideKind = "web_dev" | "on_site_repair" | "computer_help";
+export type RouteGuideKind =
+  | "web_dev"
+  | "on_site_repair"
+  | "computer_help"
+  | "cashback_partner";
 
 export interface RoutePlatformGuide {
   name: string;
@@ -15,6 +19,14 @@ export interface RouteStepGuide {
   adText: string;
   portfolioItems: string[];
   checklist: string[];
+  sectionLabels?: {
+    platforms: string;
+    message: string;
+    details: string;
+    checklist: string;
+    platformWhy?: string;
+    platformWhat?: string;
+  };
 }
 
 const STEP_COMPLETION_CHECKLIST = [
@@ -155,8 +167,54 @@ const COMPUTER_HELP_PORTFOLIO = [
   "Контакты для связи",
 ];
 
+const CASHBACK_PARTNER_PLATFORMS: RoutePlatformGuide[] = [
+  {
+    name: "Letyshops",
+    why: "Кэшбэк с покупок в популярных магазинах, без вложений",
+    whatToPost: "Проверьте минимальную сумму вывода и сроки начисления",
+  },
+  {
+    name: "Admitad / партнёрские сети",
+    why: "Реферальные ссылки на сервисы и магазины",
+    whatToPost: "Условия участия, запреты на спам и требования к трафику",
+  },
+  {
+    name: "Банковские кэшбэк-программы",
+    why: "Бонусы за обычные покупки по карте",
+    whatToPost: "Лимиты начисления, категории и срок действия акций",
+  },
+  {
+    name: "Telegram / VK",
+    why: "Простой канал для личных рекомендаций знакомым",
+    whatToPost: "Короткое сообщение без обещаний гарантированного дохода",
+  },
+];
+
+const CASHBACK_MESSAGE_TEXT = `Нашёл сервис с бонусом/кэшбэком, который может быть полезен при обычных покупках. Посмотрите условия сами, особенно минимальную сумму вывода и сроки начисления. Если подходит — можно попробовать без лишних вложений.`;
+
+const CASHBACK_CONDITIONS_CHECKLIST = [
+  "Минимальная сумма вывода и комиссии",
+  "Сроки начисления бонусов или кэшбэка",
+  "Правила участия и ограничения по региону",
+  "Нужны ли вложения или покупки «для галочки»",
+  "Как отслеживать переходы и начисления",
+];
+
+const CASHBACK_SAFETY_CHECKLIST = [
+  "Выбраны 2–3 сервиса с понятными условиями",
+  "Проверены сроки и минимальная сумма вывода",
+  "Подготовлено короткое честное сообщение",
+  "Выбран один безопасный канал без спама",
+  "Сделана первая проверка: переходы или начисления",
+];
+
 export function detectRouteGuideKind(routeTitle: string): RouteGuideKind | null {
   const title = routeTitle.trim();
+  if (
+    /кэшбэк|кешбэк|партнёрск|партнерск|affiliate|реферальн/i.test(title)
+  ) {
+    return "cashback_partner";
+  }
   if (
     /сантех|ремонт.*выезд|выезд.*ремонт|мастер.*выезд|сантехник/i.test(title)
   ) {
@@ -181,6 +239,22 @@ export function detectRouteGuideKind(routeTitle: string): RouteGuideKind | null 
 
 function buildGuide(kind: RouteGuideKind): RouteStepGuide {
   switch (kind) {
+    case "cashback_partner":
+      return {
+        kind,
+        platforms: CASHBACK_PARTNER_PLATFORMS,
+        adText: CASHBACK_MESSAGE_TEXT,
+        portfolioItems: CASHBACK_CONDITIONS_CHECKLIST,
+        checklist: CASHBACK_SAFETY_CHECKLIST,
+        sectionLabels: {
+          platforms: "Примеры площадок и сервисов",
+          platformWhy: "Зачем смотреть: ",
+          platformWhat: "На что обратить внимание: ",
+          message: "Пример короткого сообщения",
+          details: "На что смотреть в условиях",
+          checklist: "Чек-лист безопасной проверки",
+        },
+      };
     case "on_site_repair":
       return {
         kind,

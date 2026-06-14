@@ -68,7 +68,7 @@ function EmptyActionCard({ analyzeOnly = false }: { analyzeOnly?: boolean }) {
         <CardDescription className="text-xs leading-snug">
           {analyzeOnly
             ? "Сейчас у вас нет важных активных действий. Запустите новый ИИ-анализ."
-            : "Запустите ИИ-анализ или создайте цель — FinPilot подскажет одно самое полезное дело."}
+            : "Запустите ИИ-анализ или создайте цель — ФинПилот подскажет одно самое полезное дело."}
         </CardDescription>
       </CardHeader>
       <div className="px-4 pb-4 pt-0 flex gap-2">
@@ -394,7 +394,7 @@ export function NextBestActionCard({
           ))}
         </ul>
         <div className="mt-4 pt-4 border-t border-border/50 text-xs text-muted">
-          FinPilot сравнивает все активные дела и выбирает то, которое сейчас
+          ФинПилот сравнивает все активные дела и выбирает то, которое сейчас
           принесёт больше всего пользы ({importanceLabel(action.priority_score)}
           ).
         </div>

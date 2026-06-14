@@ -10,9 +10,19 @@ interface RouteStepPracticalGuideProps {
   guide: RouteStepGuide;
 }
 
+const DEFAULT_LABELS = {
+  platforms: "Рекомендуемые площадки",
+  platformWhy: "Почему подходит: ",
+  platformWhat: "Что разместить: ",
+  message: "Текст объявления",
+  details: "Что показать в портфолио",
+  checklist: "Чтобы отметить шаг выполненным",
+};
+
 export function RouteStepPracticalGuide({ guide }: RouteStepPracticalGuideProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const labels = { ...DEFAULT_LABELS, ...guide.sectionLabels };
 
   async function handleCopyAdText() {
     try {
@@ -49,7 +59,7 @@ export function RouteStepPracticalGuide({ guide }: RouteStepPracticalGuideProps)
         <div className="mt-3 space-y-4">
           <section className="space-y-3">
             <h4 className="text-sm font-medium text-foreground">
-              Рекомендуемые площадки
+              {labels.platforms}
             </h4>
             <div className="space-y-2">
               {guide.platforms.map((platform) => (
@@ -59,11 +69,11 @@ export function RouteStepPracticalGuide({ guide }: RouteStepPracticalGuideProps)
                 >
                   <p className="text-sm font-medium">{platform.name}</p>
                   <p className="text-xs text-muted leading-relaxed">
-                    <span className="text-foreground/80">Почему подходит: </span>
+                    <span className="text-foreground/80">{labels.platformWhy}</span>
                     {platform.why}
                   </p>
                   <p className="text-xs text-muted leading-relaxed">
-                    <span className="text-foreground/80">Что разместить: </span>
+                    <span className="text-foreground/80">{labels.platformWhat}</span>
                     {platform.whatToPost}
                   </p>
                 </div>
@@ -74,7 +84,7 @@ export function RouteStepPracticalGuide({ guide }: RouteStepPracticalGuideProps)
           <section className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h4 className="text-sm font-medium text-foreground">
-                Текст объявления
+                {labels.message}
               </h4>
               <Button
                 type="button"
@@ -102,7 +112,7 @@ export function RouteStepPracticalGuide({ guide }: RouteStepPracticalGuideProps)
 
           <section className="space-y-2">
             <h4 className="text-sm font-medium text-foreground">
-              Что показать в портфолио
+              {labels.details}
             </h4>
             <ul className="space-y-1.5 text-xs text-muted leading-relaxed list-disc pl-4">
               {guide.portfolioItems.map((item) => (
@@ -113,7 +123,7 @@ export function RouteStepPracticalGuide({ guide }: RouteStepPracticalGuideProps)
 
           <section className="space-y-2">
             <h4 className="text-sm font-medium text-foreground">
-              Чтобы отметить шаг выполненным
+              {labels.checklist}
             </h4>
             <ul className="space-y-1.5">
               {guide.checklist.map((item) => (

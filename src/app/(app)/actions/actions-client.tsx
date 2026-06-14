@@ -527,7 +527,7 @@ export function ActionsPageClient({
             <p className="text-sm text-muted max-w-sm mb-4">
               {cleanupMode
                 ? "Пока нет активного маршрута. Пройдите раздел «Выход из ситуации», чтобы получить план."
-                : "Запустите ИИ-анализ — FinPilot создаст персональный список дел из разбора."}
+                : "Запустите ИИ-анализ — ФинПилот создаст персональный список дел из разбора."}
             </p>
             <Link href={cleanupMode ? "/escape-plan" : "/analyze"}>
               <Button>

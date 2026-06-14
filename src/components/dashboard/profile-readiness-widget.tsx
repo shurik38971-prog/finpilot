@@ -21,7 +21,7 @@ export function ProfileReadinessWidget({
           Профиль готов на {readiness.percent}%
         </CardTitle>
         <CardDescription className="text-xs">
-          Заполните профиль — так FinPilot даст точные рекомендации
+          Заполните профиль — так ФинПилот даст точные рекомендации
         </CardDescription>
         <div className="mt-2 h-1.5 rounded-full bg-surface-hover overflow-hidden">
           <div

@@ -134,3 +134,18 @@ export const DEMO_DEBTS = [
     notes: null,
   },
 ];
+
+const DEMO_INCOME_TITLES = new Set(DEMO_INCOMES.map((income) => income.title));
+const DEMO_DEBT_TITLES = new Set(DEMO_DEBTS.map((debt) => debt.title));
+
+/** True when finances match the seeded demo dataset (not user-entered data). */
+export function hasDemoDataLoaded(
+  incomes: Array<{ title: string }>,
+  debts: Array<{ title: string }> = []
+): boolean {
+  const incomeMatches = incomes.filter((income) =>
+    DEMO_INCOME_TITLES.has(income.title)
+  ).length;
+  if (incomeMatches >= 2) return true;
+  return debts.some((debt) => DEMO_DEBT_TITLES.has(debt.title));
+}

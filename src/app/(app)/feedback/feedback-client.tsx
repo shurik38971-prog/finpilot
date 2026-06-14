@@ -55,7 +55,7 @@ function FeedbackForm() {
     <div>
       <PageHeader
         title="Обратная связь"
-        description="Помогите нам сделать FinPilot лучше для самозанятых"
+        description="Помогите нам сделать ФинПилот лучше для самозанятых"
       />
 
       {sent && (

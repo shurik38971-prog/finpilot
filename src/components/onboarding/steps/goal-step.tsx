@@ -138,7 +138,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
       <div>
         <h2 className="text-xl font-semibold">Выберите цель</h2>
         <p className="text-sm text-muted mt-1">
-          После этого FinPilot автоматически запустит анализ и откроет дашборд
+          После этого ФинПилот автоматически запустит анализ и откроет дашборд
         </p>
       </div>
 

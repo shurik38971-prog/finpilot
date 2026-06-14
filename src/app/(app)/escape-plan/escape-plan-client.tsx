@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { useCopy } from "@/components/copy/site-copy-provider";
 import { abandonActiveEscapeRoute } from "@/lib/actions/escape-plans";
 import { saveUserCapabilities } from "@/lib/actions/capabilities";
+import type { FinancialGoal } from "@/types/goals";
 import type {
   CapabilitiesFormInput,
   EscapePlanResult,
@@ -35,6 +36,7 @@ interface EscapePlanPageClientProps {
   initialFinancialMeasureTasks?: FinancialTask[];
   hasActiveRoute?: boolean;
   mainFinancialGoal?: string;
+  onboardingGoals?: FinancialGoal[];
 }
 
 export function EscapePlanPageClient({
@@ -47,6 +49,7 @@ export function EscapePlanPageClient({
   initialFinancialMeasureTasks = [],
   hasActiveRoute = false,
   mainFinancialGoal,
+  onboardingGoals = [],
 }: EscapePlanPageClientProps) {
   const router = useRouter();
   const [capabilities, setCapabilities] = useState(initialCapabilities);
@@ -183,6 +186,7 @@ export function EscapePlanPageClient({
             <div className="px-5 pb-5">
               <CapabilitiesForm
                 initial={capabilities}
+                onboardingGoals={onboardingGoals}
                 loading={loading}
                 onSubmit={handleSubmit}
               />

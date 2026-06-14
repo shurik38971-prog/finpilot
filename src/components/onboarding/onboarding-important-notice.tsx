@@ -12,7 +12,7 @@ export function OnboardingImportantNotice() {
         использования.
       </p>
       <p className="text-muted mt-2">
-        FinPilot — это финансовый навигатор, а не волшебная кнопка.
+        ФинПилот — это финансовый навигатор, а не волшебная кнопка.
       </p>
     </div>
   );

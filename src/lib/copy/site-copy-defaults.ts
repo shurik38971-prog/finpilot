@@ -329,7 +329,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "escape.survey_description",
     group: "escape",
     label: "Анкета — описание",
-    defaultValue: "Ответьте на вопросы — подберём варианты под вашу ситуацию",
+    defaultValue: "Ответьте на вопросы — подберём варианты под Вашу ситуацию",
   },
   {
     key: "escape.primary_recommendation",

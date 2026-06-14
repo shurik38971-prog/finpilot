@@ -21,7 +21,7 @@ const STEPS = [
   "После анализа вы сделали какое-нибудь действие?",
   "Что было непонятно?",
   "Какой функции вам не хватает больше всего?",
-  "Если бы FinPilot завтра перестал работать, что бы вы потеряли?",
+  "Если бы ФинПилот завтра перестал работать, что бы вы потеряли?",
 ] as const;
 
 export function PostAnalysisSurveyModal({
@@ -96,7 +96,7 @@ export function PostAnalysisSurveyModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Помогите сделать FinPilot полезнее"
+      title="Помогите сделать ФинПилот полезнее"
       className="max-w-md"
     >
       <p className="text-xs text-muted mb-4">

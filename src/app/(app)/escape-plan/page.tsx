@@ -102,6 +102,7 @@ export default async function EscapePlanPage() {
       initialFinancialMeasureTasks={financialMeasureTasks}
       hasActiveRoute={Boolean(activePlan)}
       mainFinancialGoal={mainFinancialGoal}
+      onboardingGoals={goals}
     />
   );
 }

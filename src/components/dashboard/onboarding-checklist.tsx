@@ -60,7 +60,7 @@ export function OnboardingChecklist({ progress }: OnboardingChecklistProps) {
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <ListChecks className="h-5 w-5 text-accent" />
-              Настройте FinPilot
+              Настройте ФинПилот
             </CardTitle>
             <CardDescription className="mt-1">
               Пройдите 6 шагов — займёт около 3–5 минут. После этого вы

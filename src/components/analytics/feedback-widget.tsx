@@ -175,7 +175,7 @@ export function FeedbackWidget({
                 type === "confusion"
                   ? "Что именно вызвало затруднение на этой странице?"
                   : type === "idea"
-                    ? "Что бы вы хотели видеть в FinPilot?"
+                    ? "Что бы вы хотели видеть в ФинПилот?"
                     : "Ваш вопрос..."
               }
               value={message}

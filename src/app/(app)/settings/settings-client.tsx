@@ -71,7 +71,7 @@ export function SettingsPageClient({
     <div>
       <PageHeader
         title="Настройки"
-        description="Управление аккаунтом и данными FinPilot"
+        description="Управление аккаунтом и данными ФинПилот"
       />
 
       <FinancialProfileSettings currentProfileType={profileType} />

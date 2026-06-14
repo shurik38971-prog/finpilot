@@ -83,7 +83,7 @@ export function ValueFeedbackModal({ open, onClose }: ValueFeedbackModalProps) {
       onClose={handleDismiss}
       title={
         step === "answer"
-          ? "Удалось ли FinPilot помочь разобраться в вашей финансовой ситуации?"
+          ? "Удалось ли ФинПилот помочь разобраться в вашей финансовой ситуации?"
           : answer
             ? FOLLOW_UP[answer]
             : ""

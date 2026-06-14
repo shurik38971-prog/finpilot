@@ -34,7 +34,7 @@ export function ProfileStep({
       <div>
         <h2 className="text-xl font-semibold">Выберите финансовый профиль</h2>
         <p className="text-sm text-muted mt-1">
-          FinPilot подстроит вопросы и рекомендации под вашу ситуацию
+          ФинПилот подстроит вопросы и рекомендации под Вашу ситуацию
         </p>
       </div>
 

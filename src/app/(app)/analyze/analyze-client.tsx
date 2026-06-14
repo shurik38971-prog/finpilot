@@ -166,7 +166,7 @@ export function AnalyzePageClient({
         <EmptyState
           icon={Sparkles}
           title="Недостаточно данных для анализа"
-          description="Добавьте базовые финансовые данные — после этого FinPilot сможет провести персональный разбор."
+          description="Добавьте базовые финансовые данные — после этого ФинПилот сможет провести персональный разбор."
           actionLabel="Заполнить данные"
           actionHref={fillDataHref}
           requirements={[

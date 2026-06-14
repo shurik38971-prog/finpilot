@@ -16,8 +16,44 @@ function step(
   return { title, description, why_important };
 }
 
+export function isCashbackPartnerRoute(title: string): boolean {
+  return /кэшбэк|кешбэк|партнёрск|партнерск|affiliate|реферальн/i.test(
+    title
+  );
+}
+
 function isOnSiteRepairRoute(title: string): boolean {
   return /сантех|ремонт.*выезд|выезд.*ремонт|мастер.*выезд/i.test(title);
+}
+
+function buildCashbackPartnerSteps(): EscapeRouteStep[] {
+  return [
+    step(
+      "Выбрать 2–3 подходящих сервиса",
+      "Выберите несколько сервисов, где можно получать кэшбэк, бонусы или партнёрское вознаграждение. Начните с тех, где не нужно вкладывать деньги и активно что-то продавать.",
+      "Несколько сервисов дают выбор: если один не подойдёт по условиям, можно проверить другой без лишних затрат."
+    ),
+    step(
+      "Проверить условия выплат",
+      "Посмотрите минимальную сумму вывода, сроки начисления, правила участия и ограничения. Не используйте сервис, если условия непонятны или требуют рискованных вложений.",
+      "Понятные условия выплат помогают избежать разочарований и не тратить время на сомнительные предложения."
+    ),
+    step(
+      "Выбрать безопасный способ продвижения",
+      "Если сервис даёт реферальную ссылку, выберите простой канал: личные рекомендации, Telegram, VK, чат знакомых или небольшая заметка в соцсетях. Не спамьте и не обещайте гарантированный доход.",
+      "Один понятный канал безопаснее массовой рассылки и снижает риск блокировок и недоверия."
+    ),
+    step(
+      "Подготовить короткое объяснение",
+      "Напишите простое сообщение: что это за сервис, кому он может быть полезен и какой бонус человек получит.",
+      "Короткое честное объяснение повышает доверие и помогает людям самим решить, подходит ли им сервис."
+    ),
+    step(
+      "Сделать первую проверку",
+      "Разместите ссылку или рекомендацию в одном канале и посмотрите, есть ли переходы, регистрации или начисления.",
+      "Первая безопасная проверка покажет, работает ли выбранный сервис и канал, прежде чем вкладывать больше времени."
+    ),
+  ];
 }
 
 function buildOnSiteRepairSteps(): EscapeRouteStep[] {
@@ -134,6 +170,9 @@ function buildGenericIncomeSteps(option: EscapePlanOption): EscapeRouteStep[] {
 
 /** Canonical ordered steps for income routes. AI steps are not merged to avoid chaotic order. */
 export function buildEscapeRouteSteps(option: EscapePlanOption): EscapeRouteStep[] {
+  if (isCashbackPartnerRoute(option.title)) {
+    return buildCashbackPartnerSteps();
+  }
   if (isOnSiteRepairRoute(option.title)) {
     return buildOnSiteRepairSteps();
   }

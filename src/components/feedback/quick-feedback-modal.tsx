@@ -70,7 +70,7 @@ export function QuickFeedbackModal({ open, onClose }: QuickFeedbackModalProps) {
       onClose={handleDismiss}
       title={
         step === "rating"
-          ? "Насколько полезен FinPilot?"
+          ? "Насколько полезен ФинПилот?"
           : "Что было самым полезным?"
       }
       className="max-w-md"

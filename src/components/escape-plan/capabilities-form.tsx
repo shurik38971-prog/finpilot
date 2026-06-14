@@ -16,17 +16,20 @@ import {
   type CapabilitiesFormInput,
   type UserCapabilities,
 } from "@/types/escape-plan";
+import type { FinancialGoal } from "@/types/goals";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface CapabilitiesFormProps {
   initial?: UserCapabilities | null;
+  onboardingGoals?: Pick<FinancialGoal, "type" | "title">[];
   loading?: boolean;
   onSubmit: (input: CapabilitiesFormInput) => Promise<void>;
 }
 
 export function CapabilitiesForm({
   initial,
+  onboardingGoals = [],
   loading = false,
   onSubmit,
 }: CapabilitiesFormProps) {
@@ -52,8 +55,8 @@ export function CapabilitiesForm({
       ) ??
       ""
   );
-  const [primaryGoal, setPrimaryGoal] = useState(
-    resolvePrimaryGoal(initial ?? null)
+  const [primaryGoal, setPrimaryGoal] = useState(() =>
+    resolvePrimaryGoal(initial ?? null, onboardingGoals)
   );
   const [secondaryGoals, setSecondaryGoals] = useState<string[]>(() => {
     const goals = resolveSecondaryGoals(initial ?? null);

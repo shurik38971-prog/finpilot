@@ -9,7 +9,7 @@ export function EarlyAccessBanner() {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent" />
-          Помогите улучшить FinPilot
+          Помогите улучшить ФинПилот
         </CardTitle>
         <CardDescription className="leading-relaxed">
           Какая рекомендация оказалась самой полезной?

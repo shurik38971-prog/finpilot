@@ -1,3 +1,5 @@
+import type { FinancialGoal } from "@/types/goals";
+
 export const ESCAPE_SKILLS = [
   "Вождение",
   "Работа руками / ремонт",
@@ -48,6 +50,21 @@ export const MAX_SECONDARY_GOALS = 3;
 export const CUSTOM_SECONDARY_GOAL = "Своя цель";
 
 export const DEFAULT_PRIMARY_GOAL = ESCAPE_GOALS[0];
+
+export function mapFinancialGoalToEscapePrimary(
+  goal: Pick<FinancialGoal, "type" | "title">
+): string {
+  switch (goal.type) {
+    case "safety_cushion":
+      return "Создать подушку безопасности";
+    case "debt_payoff":
+      return "Закрыть долги";
+    case "custom":
+      return "Накопить на крупную покупку";
+    default:
+      return goal.title || DEFAULT_PRIMARY_GOAL;
+  }
+}
 
 export type EscapeSkill = (typeof ESCAPE_SKILLS)[number];
 export type EscapeConstraint = (typeof ESCAPE_CONSTRAINTS)[number];
@@ -236,11 +253,18 @@ const GOAL_FOCUS_PHRASES: Record<string, string> = {
   "Снизить финансовый стресс": "снижение финансового стресса",
 };
 
-export function resolvePrimaryGoal(capabilities: UserCapabilities | null): string {
-  if (!capabilities) return DEFAULT_PRIMARY_GOAL;
-  if (capabilities.primary_goal) return capabilities.primary_goal;
-  if (capabilities.target_result) {
-    return LEGACY_TARGET_TO_GOAL[capabilities.target_result] ?? DEFAULT_PRIMARY_GOAL;
+export function resolvePrimaryGoal(
+  capabilities: UserCapabilities | null,
+  onboardingGoals: Pick<FinancialGoal, "type" | "title">[] = []
+): string {
+  if (capabilities?.primary_goal) return capabilities.primary_goal;
+  if (capabilities?.target_result) {
+    return (
+      LEGACY_TARGET_TO_GOAL[capabilities.target_result] ?? DEFAULT_PRIMARY_GOAL
+    );
+  }
+  if (onboardingGoals[0]) {
+    return mapFinancialGoalToEscapePrimary(onboardingGoals[0]);
   }
   return DEFAULT_PRIMARY_GOAL;
 }

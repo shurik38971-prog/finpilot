@@ -12,9 +12,13 @@ import { useState } from "react";
 
 interface DemoDataBannerProps {
   isEmpty: boolean;
+  hasDemoData?: boolean;
 }
 
-export function DemoDataBanner({ isEmpty }: DemoDataBannerProps) {
+export function DemoDataBanner({
+  isEmpty,
+  hasDemoData = false,
+}: DemoDataBannerProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,6 +42,8 @@ export function DemoDataBanner({ isEmpty }: DemoDataBannerProps) {
   }
 
   if (!isEmpty) {
+    if (!hasDemoData) return null;
+
     return (
       <div className="flex justify-end">
         <Button

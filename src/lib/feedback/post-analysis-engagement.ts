@@ -55,3 +55,8 @@ export function getPostAnalysisEngagementMinutes(): number {
   if (!state) return 0;
   return Math.floor(state.accumulatedMs / (60 * 1000));
 }
+
+export function clearPostAnalysisEngagement() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORAGE_KEY);
+}

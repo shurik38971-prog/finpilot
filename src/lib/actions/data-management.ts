@@ -123,6 +123,33 @@ async function clearEscapeRouteData(
   if (capsError) throw new Error(capsError.message);
 }
 
+async function clearValueFeedbackFields(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+) {
+  const { data: existing } = await supabase
+    .from("feedback")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!existing) return;
+
+  const { error } = await supabase
+    .from("feedback")
+    .update({
+      value_feedback_answer: null,
+      value_feedback_detail: null,
+      value_feedback_at: null,
+      value_feedback_dismissed_at: null,
+      value_feedback_analysis_id: null,
+      value_feedback_survey_version: null,
+    })
+    .eq("user_id", userId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function clearAnalysisHistory(): Promise<void> {
   const { supabase, userId } = await getUserId();
   await deleteUserRows(supabase, userId, ["analyses"]);
@@ -154,6 +181,7 @@ export async function restartOnboardingSetup(): Promise<void> {
 
   await deleteUserRows(supabase, userId, [...ANALYSIS_AND_TASK_TABLES]);
   await clearEscapeRouteData(supabase, userId);
+  await clearValueFeedbackFields(supabase, userId);
   await resetUserProfileType(supabase, userId);
   await resetOnboardingProgress(supabase, userId);
   await syncOnboardingAfterRestart(supabase, userId);

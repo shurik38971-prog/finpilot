@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
 import type { ProfileType } from "@/types/profile";
 import { fullAccountReset } from "@/lib/actions/data-management";
+import { clearValueFeedbackClientState } from "@/lib/feedback/value-feedback-client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -51,6 +52,7 @@ export function SettingsPageClient({
     setError("");
     try {
       await fullAccountReset();
+      clearValueFeedbackClientState();
       setModalOpen(false);
       setConfirmText("");
       setToastMessage("Все данные удалены");

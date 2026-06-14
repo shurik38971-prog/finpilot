@@ -2,7 +2,10 @@
 
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
-import { shouldShowValueFeedback } from "@/lib/feedback/value-feedback-eligibility";
+import {
+  shouldShowValueFeedback,
+  VALUE_FEEDBACK_SURVEY_VERSION,
+} from "@/lib/feedback/value-feedback-eligibility";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -17,6 +20,22 @@ async function getUserId() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   return { supabase, userId: user.id };
+}
+
+async function getLatestAnalysisId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("analyses")
+    .select("id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.id ?? null;
 }
 
 async function patchFeedbackRow(
@@ -45,14 +64,12 @@ async function patchFeedbackRow(
   if (error) throw error;
 }
 
-export async function getValueFeedbackEligibility(input?: {
-  clientEngagementMinutes?: number;
-}): Promise<{ shouldShow: boolean }> {
+export async function getValueFeedbackEligibility(): Promise<{
+  shouldShow: boolean;
+}> {
   try {
     const { supabase, userId } = await getUserId();
-    const shouldShow = await shouldShowValueFeedback(supabase, userId, {
-      clientEngagementMinutes: input?.clientEngagementMinutes,
-    });
+    const shouldShow = await shouldShowValueFeedback(supabase, userId);
     return { shouldShow };
   } catch {
     return { shouldShow: false };
@@ -79,10 +96,16 @@ export async function submitValueFeedback(input: {
     throw new Error("Feedback cooldown active");
   }
 
+  const analysisId = await getLatestAnalysisId(supabase, userId);
+  const now = new Date().toISOString();
+
   await patchFeedbackRow(supabase, userId, {
     value_feedback_answer: input.answer,
     value_feedback_detail: detail || null,
-    value_feedback_at: new Date().toISOString(),
+    value_feedback_at: now,
+    value_feedback_dismissed_at: null,
+    value_feedback_analysis_id: analysisId,
+    value_feedback_survey_version: VALUE_FEEDBACK_SURVEY_VERSION,
   });
 
   await trackProductEvent(
@@ -99,6 +122,6 @@ export async function dismissValueFeedback() {
   const { supabase, userId } = await getUserId();
 
   await patchFeedbackRow(supabase, userId, {
-    value_feedback_at: new Date().toISOString(),
+    value_feedback_dismissed_at: new Date().toISOString(),
   });
 }

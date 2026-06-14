@@ -2,6 +2,7 @@
 
 import { runAnalysis } from "@/lib/analysis/run-analysis";
 import { saveWizardGoal } from "@/lib/actions/onboarding-wizard";
+import { markAnalysisCompleted } from "@/lib/feedback/post-analysis-engagement";
 import { Button } from "@/components/ui/button";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
       return;
     }
 
+    markAnalysisCompleted();
     router.push("/dashboard");
     router.refresh();
   }, [router]);

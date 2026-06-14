@@ -1,162 +1,234 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { daysSince } from "@/lib/feedback/quick-feedback";
 
-export const VALUE_FEEDBACK_COOLDOWN_DAYS = 14;
-export const POST_ANALYSIS_ENGAGEMENT_MINUTES = 5;
-export const ANALYSIS_PAGE_VIEW_THRESHOLD = 2;
+export const VALUE_FEEDBACK_SURVEY_VERSION = 1;
+export const MIN_MINUTES_AFTER_ANALYSIS = 2;
+export const VALUE_FEEDBACK_DISMISS_COOLDOWN_HOURS = 24;
 
-const ANALYSIS_PATHS = ["/analyze", "/history"] as const;
 const PAGE_VIEW = "page_view";
-const APP_SESSION = "app_session_started";
-const TASK_COMPLETED = "task_completed";
+const DASHBOARD_OPENED = "dashboard_opened";
 
-function utcDay(iso: string): string {
-  return iso.slice(0, 10);
+const JOURNEY_PATHS = {
+  dashboard: "/dashboard",
+  escapePlan: "/escape-plan",
+  actions: "/actions",
+} as const;
+
+interface LatestAnalysis {
+  id: string;
+  createdAt: Date;
 }
 
-async function getLatestAnalysisAt(
+async function getLatestAnalysis(
   supabase: SupabaseClient,
   userId: string
-): Promise<Date | null> {
+): Promise<LatestAnalysis | null> {
   const { data, error } = await supabase
     .from("analyses")
-    .select("created_at")
+    .select("id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (error) throw error;
-  return data?.created_at ? new Date(data.created_at) : null;
+  if (!data?.created_at) return null;
+
+  return {
+    id: data.id,
+    createdAt: new Date(data.created_at),
+  };
 }
 
-async function hasFiveMinutesAfterAnalysis(
+async function hasPageViewAfter(
   supabase: SupabaseClient,
   userId: string,
-  analysisAt: Date,
-  clientEngagementMinutes?: number
-): Promise<boolean> {
-  if ((clientEngagementMinutes ?? 0) >= POST_ANALYSIS_ENGAGEMENT_MINUTES) {
-    return true;
-  }
-
-  const threshold = new Date(
-    analysisAt.getTime() + POST_ANALYSIS_ENGAGEMENT_MINUTES * 60 * 1000
-  );
-
-  const { count, error } = await supabase
-    .from("product_events")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", threshold.toISOString());
-
-  if (error) throw error;
-  return (count ?? 0) > 0;
-}
-
-async function hasAnalysisPageViews(
-  supabase: SupabaseClient,
-  userId: string
+  pagePath: string,
+  after: Date
 ): Promise<boolean> {
   const { count, error } = await supabase
     .from("product_events")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("event_name", PAGE_VIEW)
-    .in("page_path", [...ANALYSIS_PATHS]);
+    .eq("page_path", pagePath)
+    .gte("created_at", after.toISOString());
 
   if (error) throw error;
-  return (count ?? 0) >= ANALYSIS_PAGE_VIEW_THRESHOLD;
+  return (count ?? 0) > 0;
 }
 
-async function hasCompletedTask(
+async function hasDashboardViewedAfter(
   supabase: SupabaseClient,
-  userId: string
+  userId: string,
+  after: Date
 ): Promise<boolean> {
-  const [productEvents, analyticsEvents, completedTasks] = await Promise.all([
-    supabase
-      .from("product_events")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("event_name", TASK_COMPLETED),
-    supabase
-      .from("analytics_events")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("event_name", TASK_COMPLETED),
-    supabase
-      .from("financial_tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "completed"),
-  ]);
-
-  if (productEvents.error) throw productEvents.error;
-  if (analyticsEvents.error) throw analyticsEvents.error;
-  if (completedTasks.error) throw completedTasks.error;
-
-  return (
-    (productEvents.count ?? 0) > 0 ||
-    (analyticsEvents.count ?? 0) > 0 ||
-    (completedTasks.count ?? 0) > 0
+  const pageView = await hasPageViewAfter(
+    supabase,
+    userId,
+    JOURNEY_PATHS.dashboard,
+    after
   );
+  if (pageView) return true;
+
+  const { count, error } = await supabase
+    .from("analytics_events")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("event_name", DASHBOARD_OPENED)
+    .gte("created_at", after.toISOString());
+
+  if (error) throw error;
+  return (count ?? 0) > 0;
 }
 
-async function hasReturnedNextDay(
+async function getActiveRouteAfterAnalysis(
+  supabase: SupabaseClient,
+  userId: string,
+  analysisAt: Date
+): Promise<{ id: string; updatedAt: Date } | null> {
+  const { data, error } = await supabase
+    .from("user_escape_plans")
+    .select("id, updated_at, attempt_status")
+    .eq("user_id", userId)
+    .in("attempt_status", ["in_progress", "success"])
+    .gte("updated_at", analysisAt.toISOString())
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.updated_at) return null;
+
+  return {
+    id: data.id,
+    updatedAt: new Date(data.updated_at),
+  };
+}
+
+async function hasEscapeRouteStep(
+  supabase: SupabaseClient,
+  userId: string,
+  escapePlanId: string
+): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("financial_tasks")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("escape_plan_id", escapePlanId)
+    .neq("status", "archived");
+
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+async function hasCompletedValueJourney(
   supabase: SupabaseClient,
   userId: string,
   analysisAt: Date
 ): Promise<boolean> {
-  const analysisDay = utcDay(analysisAt.toISOString());
+  const [dashboardViewed, escapePlanViewed] = await Promise.all([
+    hasDashboardViewedAfter(supabase, userId, analysisAt),
+    hasPageViewAfter(supabase, userId, JOURNEY_PATHS.escapePlan, analysisAt),
+  ]);
 
-  const { data, error } = await supabase
-    .from("product_events")
-    .select("created_at")
-    .eq("user_id", userId)
-    .eq("event_name", APP_SESSION)
-    .gt("created_at", analysisAt.toISOString());
+  if (!dashboardViewed || !escapePlanViewed) return false;
 
-  if (error) throw error;
-
-  return (data ?? []).some(
-    (session) => utcDay(session.created_at) !== analysisDay
+  const activeRoute = await getActiveRouteAfterAnalysis(
+    supabase,
+    userId,
+    analysisAt
   );
+  if (!activeRoute) return false;
+
+  const [actionsAfterRoute, hasFirstStep] = await Promise.all([
+    hasPageViewAfter(
+      supabase,
+      userId,
+      JOURNEY_PATHS.actions,
+      activeRoute.updatedAt
+    ),
+    hasEscapeRouteStep(supabase, userId, activeRoute.id),
+  ]);
+
+  return actionsAfterRoute && hasFirstStep;
+}
+
+function hoursSince(iso: string): number {
+  return (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60);
+}
+
+function isAnsweredForCurrentCycle(
+  feedback: {
+    value_feedback_answer: string | null;
+    value_feedback_at: string | null;
+    value_feedback_analysis_id: string | null;
+    value_feedback_survey_version: number | null;
+  },
+  analysis: LatestAnalysis
+): boolean {
+  if (!feedback.value_feedback_answer) return false;
+
+  const surveyVersion = feedback.value_feedback_survey_version ?? 1;
+  if (surveyVersion < VALUE_FEEDBACK_SURVEY_VERSION) return false;
+
+  if (feedback.value_feedback_analysis_id) {
+    return feedback.value_feedback_analysis_id === analysis.id;
+  }
+
+  if (!feedback.value_feedback_at) return false;
+  return new Date(feedback.value_feedback_at) >= analysis.createdAt;
+}
+
+function isDismissCooldownActive(feedback: {
+  value_feedback_answer: string | null;
+  value_feedback_at: string | null;
+  value_feedback_dismissed_at: string | null;
+}): boolean {
+  if (feedback.value_feedback_answer) return false;
+
+  const dismissedAt =
+    feedback.value_feedback_dismissed_at ??
+    (feedback.value_feedback_at && !feedback.value_feedback_answer
+      ? feedback.value_feedback_at
+      : null);
+
+  if (!dismissedAt) return false;
+  return hoursSince(dismissedAt) < VALUE_FEEDBACK_DISMISS_COOLDOWN_HOURS;
+}
+
+function hasMinTimeAfterAnalysis(analysisAt: Date): boolean {
+  const elapsedMs = Date.now() - analysisAt.getTime();
+  return elapsedMs >= MIN_MINUTES_AFTER_ANALYSIS * 60 * 1000;
 }
 
 export async function shouldShowValueFeedback(
   supabase: SupabaseClient,
-  userId: string,
-  options?: { clientEngagementMinutes?: number }
+  userId: string
 ): Promise<boolean> {
-  const analysisAt = await getLatestAnalysisAt(supabase, userId);
-  if (!analysisAt) return false;
+  const analysis = await getLatestAnalysis(supabase, userId);
+  if (!analysis) return false;
 
   const { data: feedback, error } = await supabase
     .from("feedback")
-    .select("value_feedback_at")
+    .select(
+      "value_feedback_answer, value_feedback_at, value_feedback_dismissed_at, value_feedback_analysis_id, value_feedback_survey_version"
+    )
     .eq("user_id", userId)
     .maybeSingle();
 
   if (error) throw error;
 
-  if (
-    feedback?.value_feedback_at &&
-    daysSince(feedback.value_feedback_at) < VALUE_FEEDBACK_COOLDOWN_DAYS
-  ) {
+  if (feedback && isAnsweredForCurrentCycle(feedback, analysis)) {
     return false;
   }
 
-  const [fiveMinutes, analysisViews, taskDone, nextDay] = await Promise.all([
-    hasFiveMinutesAfterAnalysis(
-      supabase,
-      userId,
-      analysisAt,
-      options?.clientEngagementMinutes
-    ),
-    hasAnalysisPageViews(supabase, userId),
-    hasCompletedTask(supabase, userId),
-    hasReturnedNextDay(supabase, userId, analysisAt),
-  ]);
+  if (feedback && isDismissCooldownActive(feedback)) {
+    return false;
+  }
 
-  return fiveMinutes || analysisViews || taskDone || nextDay;
+  if (!hasMinTimeAfterAnalysis(analysis.createdAt)) {
+    return false;
+  }
+
+  return hasCompletedValueJourney(supabase, userId, analysis.createdAt);
 }

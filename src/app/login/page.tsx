@@ -43,7 +43,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <Logo variant="stacked" iconSize={40} />
+          <Logo variant="stacked" iconSize={40} href="/" />
         </div>
 
         <div className="glass p-8">
@@ -83,6 +83,10 @@ export default function LoginPage() {
             Нет аккаунта?{" "}
             <Link href="/signup" className="text-accent hover:underline">
               Зарегистрироваться
+            </Link>
+            {" · "}
+            <Link href="/" className="text-muted hover:text-foreground hover:underline">
+              О сервисе
             </Link>
           </p>
         </div>

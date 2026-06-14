@@ -97,7 +97,57 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Главный экран — для кого",
     defaultValue:
-      "Для людей с нестабильным доходом, регулярными платежами и ощущением, что деньги постоянно расходятся быстрее, чем приходят.",
+      "Для людей с нестабильным доходом, регулярными платежами и ощущением, что деньги расходятся быстрее, чем приходят.",
+  },
+  {
+    key: "page.landing.cta",
+    group: "pages",
+    label: "Лендинг — кнопка",
+    defaultValue: "Начать разбор",
+  },
+  {
+    key: "page.landing.cta_hint",
+    group: "pages",
+    label: "Лендинг — подпись под кнопкой",
+    defaultValue:
+      "Это займёт 5–7 минут. Сначала вы описываете ситуацию, затем получаете понятный план действий.",
+  },
+  {
+    key: "page.landing.outcomes_title",
+    group: "pages",
+    label: "Лендинг — заголовок блока результатов",
+    defaultValue: "Что вы получите после разбора",
+  },
+  {
+    key: "page.landing.outcome_1",
+    group: "pages",
+    label: "Лендинг — результат 1",
+    defaultValue: "финансовый индекс",
+  },
+  {
+    key: "page.landing.outcome_2",
+    group: "pages",
+    label: "Лендинг — результат 2",
+    defaultValue: "главную проблему",
+  },
+  {
+    key: "page.landing.outcome_3",
+    group: "pages",
+    label: "Лендинг — результат 3",
+    defaultValue: "понятные рекомендации",
+  },
+  {
+    key: "page.landing.outcome_4",
+    group: "pages",
+    label: "Лендинг — результат 4",
+    defaultValue: "план действий на 30 дней",
+  },
+  {
+    key: "page.landing.outcome_5",
+    group: "pages",
+    label: "Лендинг — результат 5",
+    defaultValue:
+      "идеи, где можно найти запас или дополнительный доход",
   },
   {
     key: "page.dashboard.hero_cta",
@@ -135,7 +185,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Главный экран — карточка 2, текст",
     defaultValue:
-      "Разделим рекомендации на шаги: сегодня, за 7 дней и за 30 дней.",
+      "Разделим рекомендации на шаги: что сделать сегодня, за 7 дней и за 30 дней.",
   },
   {
     key: "page.dashboard.value_card_3_title",

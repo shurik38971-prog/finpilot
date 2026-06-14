@@ -101,13 +101,14 @@ function SignupForm() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <Logo variant="stacked" iconSize={40} />
+          <Logo variant="stacked" iconSize={40} href="/" />
         </div>
 
         <div className="glass p-8">
           <h1 className="text-xl font-semibold mb-1">Регистрация</h1>
-          <p className="text-sm text-muted mb-6">
-            Начните управлять финансами умнее
+          <p className="text-sm text-muted mb-6 leading-relaxed">
+            Создайте аккаунт, чтобы описать ситуацию и получить персональный план
+            действий на 30 дней.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -153,6 +154,10 @@ function SignupForm() {
             Уже есть аккаунт?{" "}
             <Link href="/login" className="text-accent hover:underline">
               Войти
+            </Link>
+            {" · "}
+            <Link href="/" className="text-muted hover:text-foreground hover:underline">
+              О сервисе
             </Link>
           </p>
         </div>

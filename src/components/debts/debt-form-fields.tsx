@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Select } from "@/components/ui/select";
 import { DebtPaymentPreview } from "@/components/debts/debt-payment-preview";
+import { DebtPriorityInsight } from "@/components/debts/debt-priority-insight";
 import {
   numberToFieldValue,
   parseNumberForCalc,
@@ -15,6 +16,7 @@ import {
   parseAnnualRateInput,
   getCalculatedMonthlyPayment,
 } from "@/lib/finance/debt-payment";
+import { assessDebtPriority } from "@/lib/finance/debt-priority";
 import {
   DEBT_KIND_LABELS,
   DEBT_KIND_TITLE_PLACEHOLDERS,
@@ -57,6 +59,7 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
       ? (debt.interest_rate ?? 0) > 0
       : false
   );
+  const [isOverdue, setIsOverdue] = useState(debt?.is_overdue ?? false);
 
   const parsedRemaining = parseNumberForCalc(remainingAmount);
   const parsedTerm = parseOptionalInteger(termMonths);
@@ -77,6 +80,32 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
       parsedTerm
     );
   }, [parsedRemaining, effectiveRate, parsedTerm]);
+
+  const parsedDueDay = parseOptionalInteger(dueDay);
+
+  const priorityPreview = useMemo(() => {
+    const monthlyPayment =
+      parsedActual != null && parsedActual > 0
+        ? parsedActual
+        : (calculatedPayment ?? 0);
+
+    return assessDebtPriority({
+      debt_kind: debtKind,
+      interest_rate: effectiveRate,
+      remaining_amount: parsedRemaining,
+      monthly_payment: monthlyPayment,
+      is_overdue: isOverdue,
+      due_day: parsedDueDay,
+    });
+  }, [
+    debtKind,
+    effectiveRate,
+    parsedRemaining,
+    parsedActual,
+    calculatedPayment,
+    isOverdue,
+    parsedDueDay,
+  ]);
 
   const showInterestField =
     debtKind !== "personal_loan" || hasPersonalInterest;
@@ -113,7 +142,6 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
         name="total_amount"
         value={parsedRemaining > 0 ? parsedRemaining : debt?.total_amount ?? ""}
       />
-      <input type="hidden" name="priority" value={debt?.priority ?? 0} />
 
       <NumericInput
         id="remaining_amount"
@@ -218,6 +246,40 @@ export function DebtFormFields({ debt }: DebtFormFieldsProps) {
           ФинПилот рассчитает примерный платёж сам.
         </p>
       </div>
+
+      <label className="flex items-start gap-3 rounded-lg border border-border/60 px-3 py-3 cursor-pointer">
+        <input
+          type="checkbox"
+          name="is_overdue"
+          checked={isOverdue}
+          onChange={(e) => setIsOverdue(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span className="space-y-0.5">
+          <span className="block text-sm font-medium text-foreground">
+            Есть просрочка?
+          </span>
+          <span className="block text-xs text-muted leading-relaxed">
+            Отметьте, если по этому долгу уже есть просроченные платежи.
+          </span>
+        </span>
+      </label>
+
+      <div className="space-y-1.5">
+        <label htmlFor="notes" className="block text-sm text-muted">
+          Комментарий (необязательно)
+        </label>
+        <textarea
+          id="notes"
+          name="notes"
+          rows={3}
+          defaultValue={debt?.notes ?? ""}
+          placeholder="Например: договорились с банком об отсрочке"
+          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/50 resize-y min-h-[4.5rem]"
+        />
+      </div>
+
+      <DebtPriorityInsight assessment={priorityPreview} />
     </div>
   );
 }

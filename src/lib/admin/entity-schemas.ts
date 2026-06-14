@@ -149,7 +149,8 @@ export const ADMIN_ENTITY_SCHEMAS: AdminEntitySchema[] = [
       },
       { key: "minimum_payment", label: "Платёж для анализа", type: "number" },
       { key: "due_day", label: "День платежа", type: "number" },
-      { key: "priority", label: "Приоритет", type: "number" },
+      { key: "is_overdue", label: "Просрочка", type: "boolean" },
+      { key: "notes", label: "Комментарий", type: "text" },
     ],
   },
   {

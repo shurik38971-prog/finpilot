@@ -189,7 +189,7 @@ export async function getDebts() {
     .from("debts")
     .select("*")
     .eq("user_id", userId)
-    .order("priority", { ascending: true });
+    .order("priority", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row) => normalizeDebt(row as Debt));
 }
@@ -377,8 +377,32 @@ export async function seedDemoData(replace = false) {
   );
   if (expenseError) throw expenseError;
 
+  const { computeDebtPriorityScore } = await import(
+    "@/lib/finance/debt-priority"
+  );
+
   const { error: debtError } = await supabase.from("debts").insert(
-    DEMO_DEBTS.map((d) => ({ ...d, user_id: userId }))
+    DEMO_DEBTS.map((d) => {
+      const monthlyPayment =
+        d.actual_monthly_payment != null && d.actual_monthly_payment > 0
+          ? d.actual_monthly_payment
+          : (d.calculated_monthly_payment ?? d.minimum_payment ?? 0);
+
+      return {
+        ...d,
+        user_id: userId,
+        is_overdue: d.is_overdue ?? false,
+        notes: d.notes ?? null,
+        priority: computeDebtPriorityScore({
+          debt_kind: d.debt_kind,
+          interest_rate: d.interest_rate,
+          remaining_amount: d.remaining_amount,
+          monthly_payment: monthlyPayment,
+          is_overdue: d.is_overdue ?? false,
+          due_day: d.due_day,
+        }),
+      };
+    })
   );
   if (debtError) throw debtError;
 

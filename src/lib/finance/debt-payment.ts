@@ -1,3 +1,4 @@
+import { computeDebtPriorityScore } from "@/lib/finance/debt-priority";
 import type { Debt, DebtKind } from "@/types/database";
 
 export const DEBT_TERM_MISSING_WARNING =
@@ -36,6 +37,8 @@ export function normalizeDebt(row: Debt): Debt {
       (row.payment_type === "manual" && row.minimum_payment > 0
         ? row.minimum_payment
         : null),
+    is_overdue: row.is_overdue ?? false,
+    notes: row.notes ?? null,
   };
 }
 
@@ -210,6 +213,12 @@ export function parseDebtFormData(formData: FormData) {
   const totalRaw = formData.get("total_amount");
   const total_amount = totalRaw ? Number(totalRaw) : remaining_amount;
   const dueDayRaw = formData.get("due_day");
+  const due_day =
+    dueDayRaw && String(dueDayRaw).trim() ? Number(dueDayRaw) : null;
+  const is_overdue = formData.get("is_overdue") === "on";
+  const notesRaw = formData.get("notes");
+  const notes =
+    notesRaw && String(notesRaw).trim() ? String(notesRaw).trim() : null;
 
   const paymentFields = buildDebtPaymentFields({
     remaining_amount,
@@ -221,6 +230,23 @@ export function parseDebtFormData(formData: FormData) {
         : null,
   });
 
+  const monthlyPaymentForPriority =
+    paymentFields.actual_monthly_payment != null &&
+    paymentFields.actual_monthly_payment > 0
+      ? paymentFields.actual_monthly_payment
+      : (paymentFields.calculated_monthly_payment ??
+        paymentFields.minimum_payment ??
+        0);
+
+  const priority = computeDebtPriorityScore({
+    debt_kind,
+    interest_rate,
+    remaining_amount,
+    monthly_payment: monthlyPaymentForPriority,
+    is_overdue,
+    due_day,
+  });
+
   return {
     debt_kind,
     title: String(formData.get("title") ?? ""),
@@ -228,9 +254,10 @@ export function parseDebtFormData(formData: FormData) {
     remaining_amount,
     interest_rate,
     term_months: term_months && term_months > 0 ? term_months : null,
-    due_day:
-      dueDayRaw && String(dueDayRaw).trim() ? Number(dueDayRaw) : null,
-    priority: Number(formData.get("priority") || 0),
+    due_day,
+    is_overdue,
+    notes,
+    priority,
     ...paymentFields,
   };
 }

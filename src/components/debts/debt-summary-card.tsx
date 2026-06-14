@@ -10,9 +10,11 @@ import {
   getDebtOverpayment,
   resolveCalculatedMonthlyPayment,
 } from "@/lib/finance/debt-payment";
+import { assessDebtRecord } from "@/lib/finance/debt-priority";
 import { formatCurrency } from "@/lib/utils";
 import { DEBT_KIND_LABELS, type Debt } from "@/types/database";
 import { Pencil, Trash2 } from "lucide-react";
+import { DebtPriorityInsight } from "@/components/debts/debt-priority-insight";
 
 interface DebtSummaryCardProps {
   debt: Debt;
@@ -36,6 +38,7 @@ export function DebtSummaryCard({ debt, onEdit, onDelete }: DebtSummaryCardProps
           ((debt.total_amount - debt.remaining_amount) / debt.total_amount) * 100
         )
       : 0;
+  const priority = assessDebtRecord(debt);
 
   return (
     <Card>
@@ -92,6 +95,16 @@ export function DebtSummaryCard({ debt, onEdit, onDelete }: DebtSummaryCardProps
         {termWarning && (
           <p className="text-xs text-amber-400">{termWarning}</p>
         )}
+
+        {debt.is_overdue && (
+          <p className="text-xs text-red-400">Есть просрочка по этому долгу.</p>
+        )}
+
+        {debt.notes && (
+          <p className="text-xs text-muted leading-relaxed">{debt.notes}</p>
+        )}
+
+        <DebtPriorityInsight assessment={priority} />
 
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onEdit}>

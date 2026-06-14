@@ -82,7 +82,10 @@ export interface Debt {
   calculated_monthly_payment: number | null;
   actual_monthly_payment: number | null;
   due_day: number | null;
+  /** Internal sort score; higher = more urgent. Computed automatically. */
   priority: number;
+  is_overdue: boolean;
+  notes: string | null;
   created_at: string;
 }
 

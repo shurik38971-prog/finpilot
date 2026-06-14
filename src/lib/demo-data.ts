@@ -115,7 +115,8 @@ export const DEMO_DEBTS = [
     payment_type: "annuity" as const,
     debt_kind: "credit_card" as const,
     due_day: 15,
-    priority: 1,
+    is_overdue: false,
+    notes: null,
   },
   {
     title: "Рассрочка на ноутбук",
@@ -129,6 +130,7 @@ export const DEMO_DEBTS = [
     payment_type: "annuity" as const,
     debt_kind: "installment" as const,
     due_day: 5,
-    priority: 2,
+    is_overdue: false,
+    notes: null,
   },
 ];

@@ -25,15 +25,18 @@ export function RouteStepPracticalGuide({ guide }: RouteStepPracticalGuideProps)
   }
 
   return (
-    <div className="mt-4 border-t border-border/50 pt-4">
+    <div className="border-t border-border/50 pt-3">
       <Button
         type="button"
         variant="ghost"
         size="sm"
         className="h-8 px-2 -ml-2 text-accent"
         onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
       >
-        {expanded ? "Скрыть пример" : "Посмотреть пример"}
+        {expanded
+          ? "Скрыть пример"
+          : "Посмотреть пример для моего маршрута"}
         <ChevronDown
           className={cn(
             "h-4 w-4 ml-1 transition-transform",

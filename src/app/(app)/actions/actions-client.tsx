@@ -30,7 +30,7 @@ import { TaskImpactPreview } from "@/components/tasks/task-impact-preview";
 import { TaskRecommendationContext } from "@/components/tasks/task-recommendation-context";
 import { getDisplayableTaskImpact } from "@/lib/finance/task-effect-eligibility";
 import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
-import { getRouteStepGuide } from "@/lib/escape-plan/route-step-guides";
+import { getRoutePracticalGuide } from "@/lib/escape-plan/route-step-guides";
 import { RouteStepPracticalGuide } from "@/components/escape-plan/route-step-practical-guide";
 import { benefitLabel, importanceLabel } from "@/lib/copy/ui";
 import { Toast } from "@/components/ui/toast";
@@ -81,32 +81,32 @@ function RouteCurrentStepCard({
   onPostpone: (id: string) => void;
 }) {
   const practicalGuide =
-    routeTitle != null ? getRouteStepGuide(routeTitle, task.title) : null;
+    routeTitle != null ? getRoutePracticalGuide(routeTitle) : null;
 
   return (
     <Card className="border-accent/40 bg-accent/5 mb-6">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <p className="text-xs text-muted">Текущий шаг</p>
           <Badge variant="default">Сейчас</Badge>
         </div>
         <CardTitle className="text-lg">{task.title}</CardTitle>
         {task.description && (
-          <CardDescription className="text-sm leading-relaxed mt-2">
+          <CardDescription className="text-sm leading-relaxed mt-2 text-foreground/85">
             {task.description}
           </CardDescription>
         )}
-        <TaskRecommendationContext
-          title={task.title}
-          description={task.description}
-          explanation={task.explanation}
-          className="mt-3"
-        />
-        {practicalGuide && <RouteStepPracticalGuide guide={practicalGuide} />}
+        {task.explanation?.trim() && (
+          <p className="text-sm text-muted leading-relaxed mt-3">
+            <span className="text-foreground/75">Почему это важно: </span>
+            {task.explanation.trim()}
+          </p>
+        )}
       </CardHeader>
-      <div className="px-5 pb-5 flex flex-wrap items-center gap-3">
+
+      <div className="px-5 pb-4 flex flex-wrap items-center gap-3">
         {task.due_date && (
-          <span className="text-xs text-muted flex items-center gap-1">
+          <span className="text-xs text-muted flex items-center gap-1 w-full sm:w-auto">
             <Clock className="h-3 w-3" />
             до {formatHistoryDate(task.due_date)}
           </span>
@@ -132,6 +132,12 @@ function RouteCurrentStepCard({
           Отложить
         </Button>
       </div>
+
+      {practicalGuide && (
+        <div className="px-5 pb-5">
+          <RouteStepPracticalGuide guide={practicalGuide} />
+        </div>
+      )}
     </Card>
   );
 }

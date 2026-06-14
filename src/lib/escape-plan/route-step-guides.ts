@@ -1,7 +1,7 @@
 export const ROUTE_STEP_CHANNELS = "Определить каналы поиска клиентов";
 export const ROUTE_STEP_CREATE_AD = "Создать объявление";
 
-export type RouteGuideKind = "web_dev" | "on_site_repair";
+export type RouteGuideKind = "web_dev" | "on_site_repair" | "computer_help";
 
 export interface RoutePlatformGuide {
   name: string;
@@ -80,6 +80,34 @@ const ON_SITE_REPAIR_PLATFORMS: RoutePlatformGuide[] = [
   },
 ];
 
+const COMPUTER_HELP_PLATFORMS: RoutePlatformGuide[] = [
+  {
+    name: "Авито Услуги",
+    why: "Частый поиск мастера «рядом с домом» для настройки техники",
+    whatToPost: "Список услуг, выезд или удалённо, цена «от» и район",
+  },
+  {
+    name: "Яндекс Услуги",
+    why: "Подходит для срочных вызовов и локальных заказов",
+    whatToPost: "Что настраиваете, сроки выезда и контакт",
+  },
+  {
+    name: "Профи",
+    why: "Клиенты ищут специалистов с отзывами по IT-услугам",
+    whatToPost: "Профиль с перечнем работ, ценами и примерами задач",
+  },
+  {
+    name: "Местные Telegram-чаты района",
+    why: "Быстрые рекомендации соседям и знакомым",
+    whatToPost: "Короткий пост: чем помогаете, выезд, телефон",
+  },
+  {
+    name: "Объявления в домовых чатах / ЖК",
+    why: "Люди часто ищут помощь с ПК и интернетом рядом",
+    whatToPost: "Простое объявление: настройка ПК, роутера, принтера",
+  },
+];
+
 const WEB_DEV_AD_TEXT = `Разработка сайтов для малого бизнеса
 
 Сделаю сайт-визитку или лендинг под вашу задачу: структура, тексты, адаптив, базовое SEO.
@@ -93,6 +121,13 @@ const ON_SITE_REPAIR_AD_TEXT = `Сантехник на выезд — [укаж
 Выезд в день обращения. Работаю аккуратно, убираю за собой.
 
 Звоните или пишите — оценю задачу по фото.`;
+
+const COMPUTER_HELP_AD_TEXT = `Компьютерная помощь на дому — [укажите ваш район]
+
+Настройка ПК и ноутбука, подключение принтера, интернета и Wi‑Fi, помощь с телефоном.
+Объясню простыми словами, что сделано. Выезд в удобное время.
+
+Пишите или звоните — уточню задачу и стоимость.`;
 
 const WEB_DEV_PORTFOLIO = [
   "2–3 скриншота готовых работ",
@@ -111,12 +146,28 @@ const ON_SITE_REPAIR_PORTFOLIO = [
   "Контакты для связи",
 ];
 
+const COMPUTER_HELP_PORTFOLIO = [
+  "Список типовых задач: ПК, принтер, интернет, телефон",
+  "Краткое описание 1–2 решённых случаев",
+  "Формат работы: выезд, удалённо или оба варианта",
+  "Район обслуживания или время ответа",
+  "Отзывы или рекомендации, если есть",
+  "Контакты для связи",
+];
+
 export function detectRouteGuideKind(routeTitle: string): RouteGuideKind | null {
   const title = routeTitle.trim();
   if (
     /сантех|ремонт.*выезд|выезд.*ремонт|мастер.*выезд|сантехник/i.test(title)
   ) {
     return "on_site_repair";
+  }
+  if (
+    /компьютер|настройк.*пк|it-помощ|it помощ|it услуг|ремонт.*комп|ноутбук|принтер|интернет|телефон|техподдерж|пк на дому/i.test(
+      title
+    )
+  ) {
+    return "computer_help";
   }
   if (
     /разработк.*сайт|сайт.*разработ|веб-разработ|лендинг|landing|tilda|wordpress/i.test(
@@ -129,39 +180,37 @@ export function detectRouteGuideKind(routeTitle: string): RouteGuideKind | null 
 }
 
 function buildGuide(kind: RouteGuideKind): RouteStepGuide {
-  if (kind === "on_site_repair") {
-    return {
-      kind,
-      platforms: ON_SITE_REPAIR_PLATFORMS,
-      adText: ON_SITE_REPAIR_AD_TEXT,
-      portfolioItems: ON_SITE_REPAIR_PORTFOLIO,
-      checklist: STEP_COMPLETION_CHECKLIST,
-    };
+  switch (kind) {
+    case "on_site_repair":
+      return {
+        kind,
+        platforms: ON_SITE_REPAIR_PLATFORMS,
+        adText: ON_SITE_REPAIR_AD_TEXT,
+        portfolioItems: ON_SITE_REPAIR_PORTFOLIO,
+        checklist: STEP_COMPLETION_CHECKLIST,
+      };
+    case "computer_help":
+      return {
+        kind,
+        platforms: COMPUTER_HELP_PLATFORMS,
+        adText: COMPUTER_HELP_AD_TEXT,
+        portfolioItems: COMPUTER_HELP_PORTFOLIO,
+        checklist: STEP_COMPLETION_CHECKLIST,
+      };
+    default:
+      return {
+        kind: "web_dev",
+        platforms: WEB_DEV_PLATFORMS,
+        adText: WEB_DEV_AD_TEXT,
+        portfolioItems: WEB_DEV_PORTFOLIO,
+        checklist: STEP_COMPLETION_CHECKLIST,
+      };
   }
-
-  return {
-    kind,
-    platforms: WEB_DEV_PLATFORMS,
-    adText: WEB_DEV_AD_TEXT,
-    portfolioItems: WEB_DEV_PORTFOLIO,
-    checklist: STEP_COMPLETION_CHECKLIST,
-  };
 }
 
-export function getRouteStepGuide(
-  routeTitle: string,
-  stepTitle: string
-): RouteStepGuide | null {
+/** Route-specific practical example; same content for all steps of the route. */
+export function getRoutePracticalGuide(routeTitle: string): RouteStepGuide | null {
   const kind = detectRouteGuideKind(routeTitle);
   if (!kind) return null;
-
-  if (kind === "web_dev" && stepTitle === ROUTE_STEP_CHANNELS) {
-    return buildGuide(kind);
-  }
-
-  if (kind === "on_site_repair" && stepTitle === ROUTE_STEP_CREATE_AD) {
-    return buildGuide(kind);
-  }
-
-  return null;
+  return buildGuide(kind);
 }

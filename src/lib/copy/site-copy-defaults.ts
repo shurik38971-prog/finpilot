@@ -82,8 +82,73 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
   {
     key: "page.dashboard.title",
     group: "pages",
-    label: "Дашборд — заголовок",
-    defaultValue: "Дашборд",
+    label: "Главный экран — заголовок",
+    defaultValue: "Поймите, что происходит с вашими деньгами",
+  },
+  {
+    key: "page.dashboard.hero_subtitle",
+    group: "pages",
+    label: "Главный экран — подзаголовок",
+    defaultValue:
+      "ФинПилот анализирует доходы, расходы, долги и обязательные платежи, а затем даёт понятный план действий на ближайшие 30 дней.",
+  },
+  {
+    key: "page.dashboard.hero_audience",
+    group: "pages",
+    label: "Главный экран — для кого",
+    defaultValue:
+      "Для людей с нестабильным доходом, регулярными платежами и ощущением, что деньги постоянно расходятся быстрее, чем приходят.",
+  },
+  {
+    key: "page.dashboard.hero_cta",
+    group: "pages",
+    label: "Главный экран — кнопка",
+    defaultValue: "Разобрать мою ситуацию",
+  },
+  {
+    key: "page.dashboard.title_active",
+    group: "pages",
+    label: "Главный экран — заголовок (после разбора)",
+    defaultValue: "Ваша ситуация",
+  },
+  {
+    key: "page.dashboard.value_card_1_title",
+    group: "pages",
+    label: "Главный экран — карточка 1, заголовок",
+    defaultValue: "Найдём главную проблему",
+  },
+  {
+    key: "page.dashboard.value_card_1_text",
+    group: "pages",
+    label: "Главный экран — карточка 1, текст",
+    defaultValue:
+      "Покажем, что сильнее всего давит на деньги: расходы, долги, платежи или нехватка дохода.",
+  },
+  {
+    key: "page.dashboard.value_card_2_title",
+    group: "pages",
+    label: "Главный экран — карточка 2, заголовок",
+    defaultValue: "Составим план действий",
+  },
+  {
+    key: "page.dashboard.value_card_2_text",
+    group: "pages",
+    label: "Главный экран — карточка 2, текст",
+    defaultValue:
+      "Разделим рекомендации на шаги: сегодня, за 7 дней и за 30 дней.",
+  },
+  {
+    key: "page.dashboard.value_card_3_title",
+    group: "pages",
+    label: "Главный экран — карточка 3, заголовок",
+    defaultValue: "Подскажем, где искать запас",
+  },
+  {
+    key: "page.dashboard.value_card_3_text",
+    group: "pages",
+    label: "Главный экран — карточка 3, текст",
+    defaultValue:
+      "Покажем, какие расходы можно пересмотреть и какие варианты доп.дохода подходят под вашу ситуацию.",
   },
   {
     key: "page.actions.title",

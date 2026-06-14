@@ -1,5 +1,6 @@
 import { CashFlowChart } from "@/components/dashboard/cash-flow-chart";
 import { CleanupActionsCard } from "@/components/dashboard/cleanup-actions-card";
+import { DashboardWelcomeSection } from "@/components/dashboard/dashboard-welcome-section";
 import { EscapePlanLinkCard } from "@/components/dashboard/escape-plan-link-card";
 import { DashboardAutoRefresh } from "@/components/dashboard/dashboard-auto-refresh";
 import { DemoDataBanner } from "@/components/dashboard/demo-data-banner";
@@ -168,15 +169,24 @@ export default async function DashboardPage() {
         profileIncome
       );
 
+  const showWelcomeHero = cleanupMode && !onboarding?.analysis_done;
+  const welcomeCtaHref = !onboarding?.completed ? "/onboarding" : "/escape-plan";
+
   return (
     <DashboardAutoRefresh>
       <div>
-        <PageHeader
-          title={siteCopy["page.dashboard.title"]}
-          description={
-            cleanupMode ? undefined : "Сводка по вашим деньгам"
-          }
-        />
+        {cleanupMode ? (
+          showWelcomeHero ? (
+            <DashboardWelcomeSection ctaHref={welcomeCtaHref} />
+          ) : (
+            <PageHeader title={siteCopy["page.dashboard.title_active"]} />
+          )
+        ) : (
+          <PageHeader
+            title={siteCopy["page.dashboard.title"]}
+            description="Сводка по вашим деньгам"
+          />
+        )}
 
         <div className="space-y-4 max-w-xl mx-auto lg:max-w-2xl">
           {financialProfile.needsProfileSetup && <ProfileOnboardingCard />}

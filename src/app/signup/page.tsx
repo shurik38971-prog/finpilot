@@ -107,8 +107,8 @@ function SignupForm() {
         <div className="glass p-8">
           <h1 className="text-xl font-semibold mb-1">Регистрация</h1>
           <p className="text-sm text-muted mb-6 leading-relaxed">
-            Создайте аккаунт, чтобы описать ситуацию и получить персональный план
-            действий на 30 дней.
+            Аккаунт нужен, чтобы сохранить Ваши ответы и показать персональный план
+            действий на 30 дней. После регистрации сразу откроется короткая анкета.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

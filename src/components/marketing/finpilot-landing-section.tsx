@@ -64,9 +64,9 @@ export function FinPilotLandingSection({
   ];
 
   return (
-    <section className={cn("space-y-10 md:space-y-14", className)}>
-      <div className="py-6 md:py-10">
-        <div className="mx-auto max-w-xl space-y-8">
+    <section className={cn("space-y-7 md:space-y-9", className)}>
+      <div className="pt-2 pb-2 md:pt-4 md:pb-3">
+        <div className="mx-auto max-w-xl space-y-7">
           <div className="space-y-5">
             {showBadge && (
               <p className="inline-flex items-center rounded-full border border-border/70 bg-surface/40 px-3 py-1 text-xs font-medium tracking-wide text-muted">

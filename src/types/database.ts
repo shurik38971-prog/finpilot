@@ -36,9 +36,36 @@ export interface Expense {
 
 export type DebtPaymentType = "annuity" | "manual";
 
+/** @deprecated Kept for legacy rows; new debts always use calculated + optional actual payment. */
 export const DEBT_PAYMENT_TYPE_LABELS: Record<DebtPaymentType, string> = {
   annuity: "Аннуитетный (по сроку и ставке)",
   manual: "Вручную",
+};
+
+export type DebtKind =
+  | "credit"
+  | "credit_card"
+  | "microloan"
+  | "installment"
+  | "personal_loan"
+  | "other";
+
+export const DEBT_KIND_LABELS: Record<DebtKind, string> = {
+  credit: "Кредит",
+  credit_card: "Кредитная карта",
+  microloan: "Микрозайм",
+  installment: "Рассрочка",
+  personal_loan: "Занял у знакомых",
+  other: "Другой долг",
+};
+
+export const DEBT_KIND_TITLE_PLACEHOLDERS: Record<DebtKind, string> = {
+  credit: "Кредит в банке",
+  credit_card: "Кредитная карта",
+  microloan: "Микрозайм",
+  installment: "Рассрочка",
+  personal_loan: "Долг знакомому",
+  other: "Другой долг",
 };
 
 export interface Debt {
@@ -51,6 +78,9 @@ export interface Debt {
   minimum_payment: number;
   term_months: number | null;
   payment_type: DebtPaymentType;
+  debt_kind: DebtKind;
+  calculated_monthly_payment: number | null;
+  actual_monthly_payment: number | null;
   due_day: number | null;
   priority: number;
   created_at: string;

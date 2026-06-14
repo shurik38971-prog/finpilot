@@ -1,8 +1,8 @@
 "use client";
 
 import { saveWizardDebt, skipWizardDebts } from "@/lib/actions/onboarding-wizard";
+import { DebtFormFields } from "@/components/debts/debt-form-fields";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
@@ -28,13 +28,23 @@ export function DebtsStep({ onComplete }: { onComplete: () => void }) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const form = new FormData(e.currentTarget);
+    const formData = new FormData(e.currentTarget);
+
+    const remaining = Number(formData.get("remaining_amount"));
+    const term = Number(formData.get("term_months"));
+    if (!remaining || remaining <= 0) {
+      setError("Остаток долга должен быть больше 0.");
+      setLoading(false);
+      return;
+    }
+    if (!term || term <= 0) {
+      setError("Срок должен быть больше 0 месяцев.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      await saveWizardDebt({
-        title: String(form.get("title")),
-        remainingAmount: Number(form.get("remaining")),
-        minimumPayment: Number(form.get("payment")),
-      });
+      await saveWizardDebt(formData);
       onComplete();
     } catch {
       setError("Не удалось сохранить долг");
@@ -48,7 +58,7 @@ export function DebtsStep({ onComplete }: { onComplete: () => void }) {
       <div>
         <h2 className="text-xl font-semibold">Есть долги?</h2>
         <p className="text-sm text-muted mt-1">
-          Кредиты, ипотека, рассрочки — это поможет точнее построить план
+          Укажите остаток, ставку и срок — ФинПилот рассчитает примерный платёж
         </p>
       </div>
 
@@ -89,31 +99,7 @@ export function DebtsStep({ onComplete }: { onComplete: () => void }) {
 
       {hasDebt === true && (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            id="title"
-            name="title"
-            label="Название"
-            required
-            placeholder="Ипотека"
-          />
-          <Input
-            id="remaining"
-            name="remaining"
-            label="Остаток долга (₽)"
-            type="number"
-            min="1"
-            required
-            placeholder="1500000"
-          />
-          <Input
-            id="payment"
-            name="payment"
-            label="Ежемесячный платёж (₽)"
-            type="number"
-            min="0"
-            required
-            placeholder="25000"
-          />
+          <DebtFormFields />
           {error && <p className="text-sm text-red-400">{error}</p>}
           <Button type="submit" className="w-full h-12" disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Далее"}

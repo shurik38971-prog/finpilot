@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DebtAnalysisBreakdown } from "@/components/debts/debt-analysis-breakdown";
+import type { Debt } from "@/types/database";
 import type {
   AnalysisApiResponse,
   AnalysisLevel,
@@ -55,6 +57,7 @@ interface AnalyzePageClientProps {
   canAnalyze: boolean;
   hasIncome: boolean;
   hasExpense: boolean;
+  debts: Debt[];
   initialResult: AnalysisApiResponse | null;
   testerSurveySubmitted: boolean;
 }
@@ -91,6 +94,7 @@ export function AnalyzePageClient({
   canAnalyze,
   hasIncome,
   hasExpense,
+  debts,
   initialResult,
   testerSurveySubmitted,
 }: AnalyzePageClientProps) {
@@ -344,16 +348,23 @@ export function AnalyzePageClient({
             </Card>
           )}
 
-          {(result.debt_recommendation || result.cashflow_forecast_comment) && (
+          {(debts.length > 0 ||
+            result.debt_recommendation ||
+            result.cashflow_forecast_comment) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {result.debt_recommendation && (
+              {(result.debt_recommendation || debts.length > 0) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Долги</CardTitle>
                   </CardHeader>
-                  <p className="px-5 pb-5 text-sm leading-relaxed">
-                    {result.debt_recommendation}
-                  </p>
+                  <div className="px-5 pb-5 space-y-4">
+                    {debts.length > 0 && <DebtAnalysisBreakdown debts={debts} />}
+                    {result.debt_recommendation && (
+                      <p className="text-sm leading-relaxed">
+                        {result.debt_recommendation}
+                      </p>
+                    )}
+                  </div>
                 </Card>
               )}
               {result.cashflow_forecast_comment && (

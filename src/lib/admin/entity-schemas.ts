@@ -114,6 +114,19 @@ export const ADMIN_ENTITY_SCHEMAS: AdminEntitySchema[] = [
     labelPlural: "Долги",
     userScoped: true,
     fields: [
+      {
+        key: "debt_kind",
+        label: "Тип долга",
+        type: "select",
+        options: [
+          { value: "credit", label: "Кредит" },
+          { value: "credit_card", label: "Кредитная карта" },
+          { value: "microloan", label: "Микрозайм" },
+          { value: "installment", label: "Рассрочка" },
+          { value: "personal_loan", label: "Занял у знакомых" },
+          { value: "other", label: "Другой долг" },
+        ],
+      },
       { key: "title", label: "Название", type: "text", required: true },
       { key: "total_amount", label: "Сумма долга", type: "number", required: true },
       {
@@ -123,17 +136,18 @@ export const ADMIN_ENTITY_SCHEMAS: AdminEntitySchema[] = [
         required: true,
       },
       { key: "interest_rate", label: "Ставка %", type: "number" },
-      { key: "minimum_payment", label: "Платёж", type: "number" },
       { key: "term_months", label: "Срок (мес.)", type: "number" },
       {
-        key: "payment_type",
-        label: "Тип платежа",
-        type: "select",
-        options: [
-          { value: "annuity", label: "Аннуитет" },
-          { value: "manual", label: "Вручную" },
-        ],
+        key: "calculated_monthly_payment",
+        label: "Расчётный платёж",
+        type: "number",
       },
+      {
+        key: "actual_monthly_payment",
+        label: "Фактический платёж",
+        type: "number",
+      },
+      { key: "minimum_payment", label: "Платёж для анализа", type: "number" },
       { key: "due_day", label: "День платежа", type: "number" },
       { key: "priority", label: "Приоритет", type: "number" },
     ],

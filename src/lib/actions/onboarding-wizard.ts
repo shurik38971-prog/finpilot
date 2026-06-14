@@ -10,6 +10,7 @@ import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
 import { createClient } from "@/lib/supabase/server";
 import type { GoalType } from "@/types/goals";
+import { parseDebtFormData } from "@/lib/finance/debt-payment";
 import { revalidatePath } from "next/cache";
 
 const WIZARD_PATHS = ["/onboarding", "/dashboard", "/analyze"] as const;
@@ -178,22 +179,13 @@ export async function saveWizardExpenses(
   revalidateWizardPaths();
 }
 
-export async function saveWizardDebt(data: {
-  title: string;
-  remainingAmount: number;
-  minimumPayment: number;
-}) {
+export async function saveWizardDebt(formData: FormData) {
   const { supabase, userId } = await getUserId();
+  const fields = parseDebtFormData(formData);
 
   const { error } = await supabase.from("debts").insert({
     user_id: userId,
-    title: data.title,
-    total_amount: data.remainingAmount,
-    remaining_amount: data.remainingAmount,
-    interest_rate: 0,
-    minimum_payment: data.minimumPayment,
-    due_day: null,
-    priority: 0,
+    ...fields,
   });
 
   if (error) throw error;

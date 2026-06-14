@@ -242,6 +242,14 @@ function scaleDebts(debts: Debt[], paymentPercent: number, totalPercent: number)
   return debts.map((d) => ({
     ...d,
     minimum_payment: Math.max(0, d.minimum_payment * paymentFactor),
+    calculated_monthly_payment:
+      d.calculated_monthly_payment != null
+        ? Math.max(0, d.calculated_monthly_payment * paymentFactor)
+        : null,
+    actual_monthly_payment:
+      d.actual_monthly_payment != null
+        ? Math.max(0, d.actual_monthly_payment * paymentFactor)
+        : null,
     remaining_amount: Math.max(0, d.remaining_amount * totalFactor),
     total_amount: Math.max(d.remaining_amount, d.total_amount * totalFactor),
   }));

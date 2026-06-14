@@ -4,12 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  compareActualVsCalculated,
   debtTermWarning,
-  getDebtMonthlyPayment,
+  getActualPaymentMessage,
   getDebtOverpayment,
+  resolveCalculatedMonthlyPayment,
 } from "@/lib/finance/debt-payment";
 import { formatCurrency } from "@/lib/utils";
-import { DEBT_PAYMENT_TYPE_LABELS, type Debt } from "@/types/database";
+import { DEBT_KIND_LABELS, type Debt } from "@/types/database";
 import { Pencil, Trash2 } from "lucide-react";
 
 interface DebtSummaryCardProps {
@@ -19,10 +21,15 @@ interface DebtSummaryCardProps {
 }
 
 export function DebtSummaryCard({ debt, onEdit, onDelete }: DebtSummaryCardProps) {
-  const monthlyPayment = getDebtMonthlyPayment(debt);
+  const calculated = resolveCalculatedMonthlyPayment(debt);
+  const actual =
+    debt.actual_monthly_payment != null && debt.actual_monthly_payment > 0
+      ? debt.actual_monthly_payment
+      : null;
   const overpayment = getDebtOverpayment(debt);
   const termWarning = debtTermWarning(debt);
-  const paymentType = debt.payment_type ?? "annuity";
+  const comparison = compareActualVsCalculated(actual, calculated);
+  const paymentWarning = getActualPaymentMessage(comparison);
   const progressPct =
     debt.total_amount > 0
       ? Math.round(
@@ -37,7 +44,7 @@ export function DebtSummaryCard({ debt, onEdit, onDelete }: DebtSummaryCardProps
           <div>
             <CardTitle className="text-base">{debt.title}</CardTitle>
             <CardDescription>
-              {DEBT_PAYMENT_TYPE_LABELS[paymentType]}
+              {DEBT_KIND_LABELS[debt.debt_kind ?? "other"]}
               {debt.due_day ? ` · платёж ${debt.due_day}-го` : ""}
             </CardDescription>
           </div>
@@ -46,7 +53,7 @@ export function DebtSummaryCard({ debt, onEdit, onDelete }: DebtSummaryCardProps
 
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <dt className="text-muted">Сумма долга</dt>
+            <dt className="text-muted">Остаток долга</dt>
             <dd className="font-medium">{formatCurrency(debt.remaining_amount)}</dd>
           </div>
           <div>
@@ -60,9 +67,17 @@ export function DebtSummaryCard({ debt, onEdit, onDelete }: DebtSummaryCardProps
             </dd>
           </div>
           <div>
-            <dt className="text-muted">Ежемесячный платёж</dt>
-            <dd className="font-medium">{formatCurrency(monthlyPayment)}</dd>
+            <dt className="text-muted">Примерный платёж</dt>
+            <dd className="font-medium">
+              {calculated > 0 ? formatCurrency(calculated) : "—"}
+            </dd>
           </div>
+          {actual != null && (
+            <div>
+              <dt className="text-muted">Фактический платёж</dt>
+              <dd className="font-medium">{formatCurrency(actual)}</dd>
+            </div>
+          )}
           <div className="col-span-2">
             <dt className="text-muted">Примерная переплата</dt>
             <dd className="font-medium">
@@ -71,6 +86,9 @@ export function DebtSummaryCard({ debt, onEdit, onDelete }: DebtSummaryCardProps
           </div>
         </dl>
 
+        {paymentWarning && (
+          <p className="text-xs text-amber-400 leading-relaxed">{paymentWarning}</p>
+        )}
         {termWarning && (
           <p className="text-xs text-amber-400">{termWarning}</p>
         )}

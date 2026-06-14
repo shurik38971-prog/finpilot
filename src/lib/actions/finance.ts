@@ -21,11 +21,8 @@ import {
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
 import { revalidatePath } from "next/cache";
-import {
-  parseDebtPaymentType,
-  resolveDebtMinimumPayment,
-} from "@/lib/finance/debt-payment";
-import type { Frequency, IncomeType } from "@/types/database";
+import { normalizeDebt, parseDebtFormData } from "@/lib/finance/debt-payment";
+import type { Debt, Frequency, IncomeType } from "@/types/database";
 import { countIncomesByType } from "@/lib/finance/income-model";
 
 const FINANCIAL_PATHS = [
@@ -194,34 +191,11 @@ export async function getDebts() {
     .eq("user_id", userId)
     .order("priority", { ascending: true });
   if (error) throw error;
-  return data;
+  return (data ?? []).map((row) => normalizeDebt(row as Debt));
 }
 
 function parseDebtFormFields(formData: FormData) {
-  const payment_type = parseDebtPaymentType(formData.get("payment_type"));
-  const termRaw = formData.get("term_months");
-  const term_months = termRaw ? Number(termRaw) : null;
-  const remaining_amount = Number(formData.get("remaining_amount"));
-  const interest_rate = Number(formData.get("interest_rate"));
-  const manual_payment = Number(formData.get("minimum_payment") || 0);
-
-  return {
-    title: formData.get("title") as string,
-    total_amount: Number(formData.get("total_amount")),
-    remaining_amount,
-    interest_rate,
-    term_months: term_months && term_months > 0 ? term_months : null,
-    payment_type,
-    minimum_payment: resolveDebtMinimumPayment({
-      payment_type,
-      remaining_amount,
-      interest_rate,
-      term_months: term_months && term_months > 0 ? term_months : null,
-      manual_payment,
-    }),
-    due_day: formData.get("due_day") ? Number(formData.get("due_day")) : null,
-    priority: Number(formData.get("priority") || 0),
-  };
+  return parseDebtFormData(formData);
 }
 
 export async function createDebt(formData: FormData) {

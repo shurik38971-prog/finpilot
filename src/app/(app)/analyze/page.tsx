@@ -7,7 +7,7 @@ import { AnalyzePageClient } from "./analyze-client";
 export const dynamic = "force-dynamic";
 
 export default async function AnalyzePage() {
-  const [{ incomes, expenses, profileIncome }, initialResult, testerSurveySubmitted] =
+  const [{ incomes, expenses, debts, profileIncome }, initialResult, testerSurveySubmitted] =
     await Promise.all([
       getFinancialData(),
       getLatestAnalysisResult(),
@@ -23,6 +23,7 @@ export default async function AnalyzePage() {
       canAnalyze={canAnalyze}
       hasIncome={hasIncome}
       hasExpense={hasExpense}
+      debts={debts}
       initialResult={initialResult}
       testerSurveySubmitted={testerSurveySubmitted}
     />

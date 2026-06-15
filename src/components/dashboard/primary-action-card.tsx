@@ -26,7 +26,7 @@ export function PrimaryActionCard({ task }: PrimaryActionCardProps) {
             Главное действие сейчас
           </CardTitle>
           <CardDescription>
-            Запустите ИИ-анализ, чтобы ФинПилот предложил конкретные действия.
+            Запустите финансовый разбор, чтобы ФинПилот предложил конкретные действия.
           </CardDescription>
         </CardHeader>
         <div className="px-5 pb-5">

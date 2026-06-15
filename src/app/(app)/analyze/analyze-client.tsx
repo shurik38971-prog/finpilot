@@ -115,7 +115,7 @@ export function AnalyzePageClient({
     setUpdatedTasksCount(null);
     setSkippedDuplicateTasksCount(null);
 
-    trackButtonClick("analyze-run", "Запустить ИИ-анализ");
+    trackButtonClick("analyze-run", "Запустить финансовый разбор");
 
     try {
       const res = await fetch("/api/analyze", { method: "POST" });
@@ -148,7 +148,7 @@ export function AnalyzePageClient({
   return (
     <div>
       <PageHeader
-        title="ИИ-анализ"
+        title="Финансовый разбор"
         description="Персональный разбор ваших денег и что делать дальше"
         action={
           <Button onClick={handleAnalyze} disabled={loading || !canAnalyze}>
@@ -186,7 +186,7 @@ export function AnalyzePageClient({
       {!result && !loading && !error && canAnalyze && (
         <Card>
           <CardHeader>
-            <CardTitle>Разбор от ИИ</CardTitle>
+            <CardTitle>Личный финансовый разбор</CardTitle>
             <CardDescription>
               Узнайте, куда уходят деньги, хватит ли до следующего дохода и что
               сделать на 7, 30 и 90 дней
@@ -247,13 +247,13 @@ export function AnalyzePageClient({
                 {createdTasksCount !== null &&
                 updatedTasksCount !== null &&
                 (createdTasksCount > 0 || updatedTasksCount > 0)
-                  ? `Анализ готов. Обновили существующие задачи: ${updatedTasksCount}. Новых задач: ${createdTasksCount}.`
+                  ? `Разбор готов. Обновили существующие задачи: ${updatedTasksCount}. Новых задач: ${createdTasksCount}.`
                   : createdTasksCount === 0 &&
                       updatedTasksCount === 0 &&
                       skippedDuplicateTasksCount !== null &&
                       skippedDuplicateTasksCount > 0
-                    ? "Анализ готов. Новых задач нет — похожие рекомендации уже есть в действиях."
-                    : "Анализ готов"}
+                    ? "Разбор готов. Новых задач нет — похожие рекомендации уже есть в действиях."
+                    : "Разбор готов"}
               </CardTitle>
               <CardDescription>
                 {createdTasksCount !== null && createdTasksCount > 0
@@ -263,7 +263,7 @@ export function AnalyzePageClient({
                     : skippedDuplicateTasksCount !== null &&
                         skippedDuplicateTasksCount > 0
                       ? `Пропущено дублей: ${skippedDuplicateTasksCount}.`
-                      : "Рекомендации сохранены в отчёте анализа."}
+                      : "Рекомендации сохранены в финансовом разборе."}
               </CardDescription>
             </CardHeader>
             <div className="px-5 pb-5">

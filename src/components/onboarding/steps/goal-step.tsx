@@ -116,7 +116,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
             {skipGoalCreation ? "Обновляем Ваш план" : "Строим ваш план"}
           </h2>
           <p className="text-sm text-muted mt-1">
-            ИИ-анализируем финансы и готовим рекомендации...
+            Разбираем финансы и готовим рекомендации...
           </p>
           {showSlowHint && (
             <p className="text-sm text-muted/90 mt-3 max-w-sm leading-relaxed">
@@ -138,7 +138,7 @@ export function GoalStep({ skipGoalCreation = false }: { skipGoalCreation?: bool
       <div>
         <h2 className="text-xl font-semibold">Выберите цель</h2>
         <p className="text-sm text-muted mt-1">
-          После этого ФинПилот автоматически запустит анализ и откроет дашборд
+          После этого ФинПилот автоматически соберёт разбор и откроет дашборд
         </p>
       </div>
 

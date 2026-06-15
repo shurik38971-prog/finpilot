@@ -44,7 +44,7 @@ const STEPS = [
   },
   {
     field: "analysis_done" as const,
-    label: "Запустите ИИ-анализ",
+    label: "Запустите финансовый разбор",
     href: "/analyze",
     cta: "К анализу",
   },
@@ -64,7 +64,7 @@ export function OnboardingChecklist({ progress }: OnboardingChecklistProps) {
             </CardTitle>
             <CardDescription className="mt-1">
               Пройдите 6 шагов — займёт около 3–5 минут. После этого вы
-              получите главное действие от ИИ.
+              получите первый шаг от ФинПилота.
             </CardDescription>
           </div>
         </div>

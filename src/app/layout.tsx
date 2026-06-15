@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin", "cyrillic"] });
 export const metadata: Metadata = {
   title: "FinPilot — Личный кабинет",
   description:
-    "Личный финансовый директор для самозанятых: доходы, цели, ИИ-анализ и план действий.",
+    "Личный финансовый разбор: доходы, расходы, долги, цели и понятный план действий.",
   icons: {
     icon: "/favicon.svg",
   },

@@ -28,7 +28,7 @@ export function GoalFocusCard({ focus }: GoalFocusCardProps) {
             <HintTooltip hint={HINTS.goal} />
           </CardTitle>
           <CardDescription className="text-xs leading-snug">
-            Задайте цель и запустите ИИ-разбор.
+            Задайте цель и запустите финансовый разбор.
           </CardDescription>
         </CardHeader>
         <div className="px-4 pb-4 pt-0 flex gap-2">
@@ -104,7 +104,7 @@ export function GoalFocusCard({ focus }: GoalFocusCardProps) {
           </div>
         ) : (
           <p className="text-xs text-muted">
-            Нет активных задач для этой цели. Запустите ИИ-анализ.
+            Нет активных задач для этой цели. Запустите финансовый разбор.
           </p>
         )}
 

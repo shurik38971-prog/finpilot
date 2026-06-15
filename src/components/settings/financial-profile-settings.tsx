@@ -46,7 +46,7 @@ export function FinancialProfileSettings({
           <CardTitle className="text-base">Финансовый профиль</CardTitle>
           <CardDescription>
             Сейчас: {PROFILE_TYPE_LABELS[currentProfileType]}. Изменение
-            влияет на подсказки, приоритет задач и ИИ-анализ.
+            влияет на подсказки, приоритет задач и финансовый разбор.
           </CardDescription>
         </CardHeader>
         <div className="px-5 pb-5 space-y-3">

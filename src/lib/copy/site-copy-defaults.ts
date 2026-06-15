@@ -46,8 +46,8 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
   {
     key: "nav.analyze",
     group: "nav",
-    label: "ИИ-анализ",
-    defaultValue: "ИИ-анализ",
+    label: "Финансовый разбор",
+    defaultValue: "Финансовый разбор",
   },
   { key: "nav.history", group: "nav", label: "История", defaultValue: "История" },
   { key: "nav.goals", group: "nav", label: "Цели", defaultValue: "Цели" },
@@ -90,7 +90,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Главный экран — подзаголовок",
     defaultValue:
-      "ФинПилот помогает навести порядок в личных финансах: разобраться в доходах, расходах, долгах и платежах, а затем показывает, с чего начать в ближайшие 30 дней.",
+      "ФинПилот помогает разобраться в доходах, расходах, долгах и платежах, увидеть что требует внимания и составить понятный план действий на ближайшие 30 дней.",
   },
   {
     key: "page.landing.intro",
@@ -110,7 +110,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "page.landing.badge",
     group: "pages",
     label: "Лендинг — badge над заголовком",
-    defaultValue: "AI-помощник для личных финансов",
+    defaultValue: "Финансовый навигатор для личных денег",
   },
   {
     key: "page.landing.cta",
@@ -123,7 +123,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Лендинг — подпись под кнопкой",
     defaultValue:
-      "Это займёт 5–7 минут. Сначала короткая регистрация — так мы сохраним Ваши ответы и соберём персональный план действий.",
+      "Это займёт 5–7 минут. Вы ответите на несколько вопросов, а ФинПилот соберёт понятный разбор и первый шаг.",
   },
   {
     key: "page.landing.outcomes_title",
@@ -235,7 +235,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "page.actions.description",
     group: "pages",
     label: "Что делать — подзаголовок",
-    defaultValue: "Дела из ИИ-разбора — сначала самое важное, потом остальное",
+    defaultValue: "Дела из финансового разбора — сначала самое важное, потом остальное",
   },
 
   // План спасения

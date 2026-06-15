@@ -230,7 +230,7 @@ export function HistoryPageClient({ analyses }: HistoryPageClientProps) {
             <div className="rounded-lg border border-border bg-surface-hover/30 p-4">
               <p className="text-xs text-muted mb-2">
                 {comparison.current.comparison_comment
-                  ? "Комментарий ИИ"
+                  ? "Комментарий ФинПилота"
                   : "Сравнение"}
               </p>
               <p className="text-sm leading-relaxed">{comparison.comment}</p>
@@ -247,10 +247,10 @@ export function HistoryPageClient({ analyses }: HistoryPageClientProps) {
             </div>
             <h3 className="text-lg font-medium mb-1">История пуста</h3>
             <p className="text-sm text-muted max-w-sm mb-4">
-              Запустите ИИ-анализ — сохраняется один результат в день.
+              Запустите финансовый разбор — сохраняется один результат в день.
             </p>
             <Link href="/analyze" className="text-sm text-accent hover:underline">
-              Перейти к ИИ-анализу →
+              Перейти к разбору →
             </Link>
           </div>
         </Card>

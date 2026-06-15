@@ -114,7 +114,7 @@ export function QuickFeedbackModal({ open, onClose }: QuickFeedbackModalProps) {
         <div className="space-y-4">
           <textarea
             className="w-full min-h-[120px] rounded-lg border border-border bg-surface px-3 py-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-accent"
-            placeholder="Например: прогноз кэша, цели, AI-анализ..."
+            placeholder="Например: прогноз кэша, цели, финансовый разбор..."
             value={usefulText}
             onChange={(e) => setUsefulText(e.target.value)}
             maxLength={2000}

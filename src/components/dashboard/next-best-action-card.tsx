@@ -67,14 +67,14 @@ function EmptyActionCard({ analyzeOnly = false }: { analyzeOnly?: boolean }) {
         </CardTitle>
         <CardDescription className="text-xs leading-snug">
           {analyzeOnly
-            ? "Сейчас у вас нет важных активных действий. Запустите новый ИИ-анализ."
-            : "Запустите ИИ-анализ или создайте цель — ФинПилот подскажет одно самое полезное дело."}
+            ? "Сейчас у вас нет важных активных действий. Запустите новый финансовый разбор."
+            : "Запустите финансовый разбор или создайте цель — ФинПилот подскажет одно самое полезное дело."}
         </CardDescription>
       </CardHeader>
       <div className="px-4 pb-4 pt-0 flex gap-2">
         <Link href="/analyze">
           <Button size="sm">
-            {analyzeOnly ? "Запустить анализ" : "ИИ-анализ"}
+            {analyzeOnly ? "Запустить разбор" : "Финансовый разбор"}
           </Button>
         </Link>
         {!analyzeOnly && (

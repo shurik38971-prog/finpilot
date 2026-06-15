@@ -67,7 +67,6 @@ export default async function HomePage() {
           showBadge
           showCtaHint
           showOutcomes
-          showIntro
         />
       </PublicPageShell>
     </SiteCopyProvider>

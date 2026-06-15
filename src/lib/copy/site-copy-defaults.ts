@@ -90,7 +90,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     group: "pages",
     label: "Главный экран — подзаголовок",
     defaultValue:
-      "ФинПилот помогает разобраться в доходах, расходах, долгах и платежах, увидеть что требует внимания и составить понятный план действий на ближайшие 30 дней.",
+      "Когда деньги уходят быстрее, чем планировалось, сложно понять, что именно мешает. ФинПилот помогает разложить доходы, расходы, долги и платежи по полкам — и собрать понятный план на ближайшие 30 дней.",
   },
   {
     key: "page.landing.intro",
@@ -210,7 +210,7 @@ export const SITE_COPY_DEFINITIONS: SiteCopyDefinition[] = [
     key: "page.dashboard.value_card_3_title",
     group: "pages",
     label: "Главный экран — карточка 3, заголовок",
-    defaultValue: "Подскажем, где искать запас",
+    defaultValue: "Подскажем, где найти запас",
   },
   {
     key: "page.dashboard.value_card_3_text",

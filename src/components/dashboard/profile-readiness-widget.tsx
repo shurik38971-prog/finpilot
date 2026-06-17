@@ -18,11 +18,15 @@ export function ProfileReadinessWidget({
       <CardHeader className="mb-3 !px-0">
         <CardTitle className="text-sm flex items-center gap-2">
           <Gauge className="h-4 w-4 text-accent" />
-          Профиль готов на {readiness.percent}%
+          Хотите сделать разбор точнее?
         </CardTitle>
         <CardDescription className="text-xs">
-          Заполните профиль — так ФинПилот даст точные рекомендации
+          Добавьте расходы, долги и платежи позже — это поможет уточнить
+          следующие рекомендации. Сейчас можно начать с плана действий.
         </CardDescription>
+        <p className="mt-2 text-xs text-muted">
+          Данных заполнено: {readiness.percent}%
+        </p>
         <div className="mt-2 h-1.5 rounded-full bg-surface-hover overflow-hidden">
           <div
             className="h-full rounded-full bg-accent transition-all duration-300"

@@ -11,6 +11,7 @@ import { AnalysisDataSourceBadge } from "@/components/analysis/analysis-confiden
 import { PreliminaryAnalysisBanner } from "@/components/analysis/preliminary-analysis-banner";
 import { NextBestActionCard } from "@/components/dashboard/next-best-action-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { PostAnalysisHero } from "@/components/dashboard/post-analysis-hero";
 import { ProfileReadinessWidget } from "@/components/dashboard/profile-readiness-widget";
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { EarlyAccessBanner } from "@/components/early-access/early-access-banner";
@@ -40,7 +41,10 @@ import { shouldShowOnboardingChecklist } from "@/lib/onboarding/visibility";
 import { isCleanupMode } from "@/lib/feature-flags";
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
 import { trackProductEvent } from "@/lib/analytics/track-product";
-import { getAnalysisDataMaturity } from "@/lib/actions/analyses";
+import {
+  getAnalysisDataMaturity,
+  getLatestAnalysisResult,
+} from "@/lib/actions/analyses";
 import { hasDemoDataLoaded } from "@/lib/demo-data";
 import { createClient } from "@/lib/supabase/server";
 
@@ -94,12 +98,19 @@ export default async function DashboardPage() {
   );
 
   const nbaOptions = { hasNegativeCashflow: netCashFlow < 0 };
-  const [nextBestAction, taskProgress, analysisMaturity, cleanupActions] =
+  const [
+    nextBestAction,
+    taskProgress,
+    analysisMaturity,
+    cleanupActions,
+    latestAnalysis,
+  ] =
     await Promise.all([
       cleanupMode ? Promise.resolve(null) : getNextBestAction(nbaOptions),
       cleanupMode ? Promise.resolve({ completed: 0, total: 0, percent: 0 }) : getTaskProgressStats(),
       getAnalysisDataMaturity(),
       cleanupMode ? getCleanupActions(3) : Promise.resolve([]),
+      getLatestAnalysisResult(),
     ]);
 
   const forecast = cleanupMode
@@ -173,6 +184,7 @@ export default async function DashboardPage() {
 
   const showWelcomeHero = cleanupMode && !onboarding?.analysis_done;
   const welcomeCtaHref = !onboarding?.completed ? "/onboarding" : "/escape-plan";
+  const showPostAnalysisHero = Boolean(onboarding?.analysis_done && latestAnalysis);
 
   return (
     <DashboardAutoRefresh>
@@ -196,8 +208,8 @@ export default async function DashboardPage() {
             <OnboardingChecklist progress={onboarding!} />
           )}
 
-          {!cleanupMode && (
-            <ProfileReadinessWidget readiness={profileReadiness} />
+          {showPostAnalysisHero && latestAnalysis && (
+            <PostAnalysisHero analysis={latestAnalysis} />
           )}
 
           {analysisMaturity?.isPreliminary && (
@@ -268,6 +280,10 @@ export default async function DashboardPage() {
               </div>
 
               <GoalFocusCard focus={goalFocus} />
+
+              {!cleanupMode && (
+                <ProfileReadinessWidget readiness={profileReadiness} />
+              )}
 
               {profileStats && <ProfileDashboardStats stats={profileStats} />}
 

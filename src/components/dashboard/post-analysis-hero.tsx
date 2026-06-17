@@ -13,6 +13,33 @@ function firstMeaningfulText(...values: Array<string | null | undefined>) {
   return values.find((value) => value?.trim())?.trim() ?? null;
 }
 
+const TECHNICAL_SITUATION_PATTERNS = [
+  "предварительная оценка",
+  "точность будет расти",
+  "добавьте доход",
+  "добавьте расходы",
+  "добавьте долги",
+  "добавьте платеж",
+  "добавьте платёж",
+  "добавьте доходы, расходы, долги",
+  "финпилот уже использует",
+  "на основе ответов",
+] as const;
+
+function isTechnicalSituationText(text: string) {
+  const normalized = text.toLowerCase();
+  return TECHNICAL_SITUATION_PATTERNS.some((pattern) =>
+    normalized.includes(pattern)
+  );
+}
+
+function firstDiagnosticText(...values: Array<string | null | undefined>) {
+  return values.find((value) => {
+    const text = value?.trim();
+    return text && !isTechnicalSituationText(text);
+  })?.trim() ?? null;
+}
+
 const PROFILE_FILL_ACTION_PATTERNS = [
   "добавить доход",
   "добавьте доход",
@@ -93,11 +120,53 @@ function describeFinancialIndex(index?: number | null) {
   return "Сейчас важно быстро снизить давление на бюджет и выбрать один понятный следующий шаг.";
 }
 
+function diagnoseByProblem(problem: string) {
+  const normalized = problem.toLowerCase();
+
+  if (
+    normalized.includes("долг") ||
+    normalized.includes("кредит") ||
+    normalized.includes("платеж") ||
+    normalized.includes("платёж") ||
+    normalized.includes("обязатель")
+  ) {
+    return "Сейчас значительная часть свободного остатка уходит на обязательные платежи. Из-за этого запас прочности небольшой, а любая непредвиденная трата может снова выбить бюджет из равновесия.";
+  }
+
+  if (
+    normalized.includes("подуш") ||
+    normalized.includes("резерв") ||
+    normalized.includes("запас") ||
+    normalized.includes("безопасност")
+  ) {
+    return "Сейчас главная слабая точка — отсутствие запаса на непредвиденные расходы. Поэтому первый фокус — не усложнять бюджет и постепенно собрать минимальную подушку безопасности.";
+  }
+
+  if (
+    normalized.includes("расход") ||
+    normalized.includes("трат") ||
+    normalized.includes("утеч") ||
+    normalized.includes("лишн")
+  ) {
+    return "Сейчас важно увидеть, какие расходы забирают больше всего свободных денег. Это поможет найти запас без резкого ухудшения качества жизни.";
+  }
+
+  if (
+    normalized.includes("доход") ||
+    normalized.includes("заработ") ||
+    normalized.includes("поступлен")
+  ) {
+    return "Сейчас главный рычаг — усилить регулярные поступления и не распыляться на случайные шаги. Лучше выбрать один понятный способ увеличить доход и довести его до первого результата.";
+  }
+
+  return `Разбор показывает главный фокус: ${problem}. Сейчас лучше не распыляться и начать с одного практического шага, который быстрее всего снизит напряжение.`;
+}
+
 function buildSituationText(
   analysis: AnalysisApiResponse,
   financialIndex?: number | null
 ) {
-  const summary = firstMeaningfulText(
+  const summary = firstDiagnosticText(
     analysis.summary,
     analysis.health_explanation
   );
@@ -108,17 +177,14 @@ function buildSituationText(
     analysis.main_threat,
     analysis.main_problem_label
   );
-  const indexText = describeFinancialIndex(financialIndex);
+  const problemDiagnosis = problem ? diagnoseByProblem(problem) : null;
 
-  if (problem && indexText) {
-    return `${indexText} В фокусе сейчас: ${problem}`;
-  }
-  if (problem) {
-    return `Главное, что видно по разбору: ${problem}`;
-  }
+  if (problemDiagnosis) return problemDiagnosis;
+
+  const indexText = describeFinancialIndex(financialIndex);
   if (indexText) return indexText;
 
-  return "Разбор готов: начните с плана действий, чтобы спокойно пройти первые шаги.";
+  return "Разбор уже показывает первые ориентиры. Сейчас важно зафиксировать ближайшие обязательные платежи и выбрать один практический шаг на сегодня.";
 }
 
 export function PostAnalysisHero({

@@ -209,7 +209,10 @@ export default async function DashboardPage() {
           )}
 
           {showPostAnalysisHero && latestAnalysis && (
-            <PostAnalysisHero analysis={latestAnalysis} />
+            <PostAnalysisHero
+              analysis={latestAnalysis}
+              financialIndex={financialIndex}
+            />
           )}
 
           {analysisMaturity?.isPreliminary && (

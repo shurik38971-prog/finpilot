@@ -6,10 +6,50 @@ import Link from "next/link";
 
 interface PostAnalysisHeroProps {
   analysis: AnalysisApiResponse;
+  financialIndex?: number | null;
 }
 
 function firstMeaningfulText(...values: Array<string | null | undefined>) {
   return values.find((value) => value?.trim())?.trim() ?? null;
+}
+
+const PROFILE_FILL_ACTION_PATTERNS = [
+  "добавить доход",
+  "добавьте доход",
+  "заполнить доход",
+  "указать доход",
+  "внести доход",
+  "добавить расход",
+  "добавьте расход",
+  "заполнить расход",
+  "указать расход",
+  "внести расход",
+  "добавить долг",
+  "добавьте долг",
+  "заполнить долг",
+  "указать долг",
+  "внести долг",
+  "добавить платеж",
+  "добавить платёж",
+  "добавьте платеж",
+  "добавьте платёж",
+  "указать платеж",
+  "указать платёж",
+  "заполнить профиль",
+  "заполните профиль",
+  "дополнить профиль",
+  "дополните профиль",
+  "добавить данные",
+  "добавьте данные",
+  "внести данные",
+  "расходы, долги",
+] as const;
+
+function isProfileFillAction(action: string) {
+  const normalized = action.toLowerCase();
+  return PROFILE_FILL_ACTION_PATTERNS.some((pattern) =>
+    normalized.includes(pattern)
+  );
 }
 
 function buildPriorityActions(analysis: AnalysisApiResponse): string[] {
@@ -21,7 +61,8 @@ function buildPriorityActions(analysis: AnalysisApiResponse): string[] {
   ];
 
   const seen = new Set<string>();
-  const result: string[] = [];
+  const meaningful: string[] = [];
+  const profileFill: string[] = [];
 
   for (const candidate of candidates) {
     const action = candidate?.trim();
@@ -31,17 +72,60 @@ function buildPriorityActions(analysis: AnalysisApiResponse): string[] {
     if (seen.has(key)) continue;
 
     seen.add(key);
-    result.push(action);
-    if (result.length === 3) break;
+    if (isProfileFillAction(action)) {
+      profileFill.push(action);
+    } else {
+      meaningful.push(action);
+    }
   }
 
-  return result;
+  return [...meaningful, ...profileFill].slice(0, 3);
 }
 
-export function PostAnalysisHero({ analysis }: PostAnalysisHeroProps) {
-  const summary =
-    firstMeaningfulText(analysis.summary, analysis.health_explanation) ??
-    "Разбор готов: мы собрали вашу ситуацию в понятную картину и выделили, с чего лучше начать.";
+function describeFinancialIndex(index?: number | null) {
+  if (index == null) return null;
+  if (index >= 70) {
+    return "Картина выглядит устойчивой, но первые шаги помогут закрепить результат.";
+  }
+  if (index >= 40) {
+    return "Ситуация управляемая, но есть место, которое лучше укрепить в первую очередь.";
+  }
+  return "Сейчас важно быстро снизить давление на бюджет и выбрать один понятный следующий шаг.";
+}
+
+function buildSituationText(
+  analysis: AnalysisApiResponse,
+  financialIndex?: number | null
+) {
+  const summary = firstMeaningfulText(
+    analysis.summary,
+    analysis.health_explanation
+  );
+  if (summary) return summary;
+
+  const problem = firstMeaningfulText(
+    analysis.main_problem,
+    analysis.main_threat,
+    analysis.main_problem_label
+  );
+  const indexText = describeFinancialIndex(financialIndex);
+
+  if (problem && indexText) {
+    return `${indexText} В фокусе сейчас: ${problem}`;
+  }
+  if (problem) {
+    return `Главное, что видно по разбору: ${problem}`;
+  }
+  if (indexText) return indexText;
+
+  return "Разбор готов: начните с плана действий, чтобы спокойно пройти первые шаги.";
+}
+
+export function PostAnalysisHero({
+  analysis,
+  financialIndex,
+}: PostAnalysisHeroProps) {
+  const summary = buildSituationText(analysis, financialIndex);
   const mainProblem =
     firstMeaningfulText(
       analysis.main_problem,
@@ -131,7 +215,7 @@ export function PostAnalysisHero({ analysis }: PostAnalysisHeroProps) {
         <Link href="/escape-plan" className="min-w-0">
           <Button className="w-full" variant="secondary" size="lg">
             <Compass className="h-4 w-4" />
-            Найти выход из ситуации
+            Подобрать маршрут дохода
           </Button>
         </Link>
       </div>

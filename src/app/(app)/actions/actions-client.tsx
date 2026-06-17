@@ -18,9 +18,13 @@ import { GOAL_TYPE_LABELS } from "@/types/goals";
 import {
   CheckCircle2,
   Clock,
+  Database,
+  Landmark,
   Loader2,
+  TrendingUp,
   Target,
   Trash2,
+  WalletCards,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,7 +37,7 @@ import { sortEscapeRouteTasks } from "@/lib/escape-plan/route-steps";
 import { getRoutePracticalGuideForOption } from "@/lib/escape-plan/route-step-guides";
 import type { EscapePlanOption } from "@/types/escape-plan";
 import { RouteStepPracticalGuide } from "@/components/escape-plan/route-step-practical-guide";
-import { benefitLabel, importanceLabel } from "@/lib/copy/ui";
+import { benefitLabel } from "@/lib/copy/ui";
 import { Toast } from "@/components/ui/toast";
 
 function impactVariant(score: number): "danger" | "warning" | "success" | "default" {
@@ -192,89 +196,6 @@ function PostponedRouteStepRow({ task }: { task: FinancialTaskWithGoal }) {
   );
 }
 
-function PrimaryActionCard({
-  task,
-  loadingId,
-  onComplete,
-  cleanupMode = false,
-}: {
-  task: FinancialTaskWithGoal;
-  loadingId: string | null;
-  onComplete: (id: string) => void;
-  cleanupMode?: boolean;
-}) {
-  const displayImpact = getDisplayableTaskImpact(task);
-
-  return (
-    <Card className="border-accent/40 bg-accent/5 mb-6">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-muted mb-1">
-              {cleanupMode
-                ? "Следующий шаг"
-                : `Следующее лучшее действие · ${importanceLabel(task.priority_score)}`}
-            </p>
-            <CardTitle className="text-lg">{task.title}</CardTitle>
-            {!cleanupMode && (
-              <div className="mt-2">
-                <GoalBadge task={task} />
-              </div>
-            )}
-          </div>
-          {!cleanupMode && (
-            <Badge variant={impactVariant(task.impact_score)}>
-              {benefitLabel(task.impact_score, task.impact_label)}
-            </Badge>
-          )}
-        </div>
-        {task.description && (
-          <CardDescription className="text-sm leading-relaxed">
-            {task.description}
-          </CardDescription>
-        )}
-        <TaskRecommendationContext
-          title={task.title}
-          description={task.description}
-          explanation={task.explanation}
-          className="mt-3"
-          compact={cleanupMode}
-        />
-        {!cleanupMode && displayImpact && (
-          <div className="mt-3">
-            <TaskImpactPreview impact={displayImpact} />
-          </div>
-        )}
-      </CardHeader>
-      <div className="px-5 pb-5 flex flex-wrap items-center gap-3">
-        {!cleanupMode && (
-          <span className="text-xs text-muted">
-            {benefitLabel(task.impact_score, task.impact_label)}
-          </span>
-        )}
-        {task.due_date && (
-          <span className="text-xs text-muted flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            до {formatHistoryDate(task.due_date)}
-          </span>
-        )}
-        <Button
-          size="sm"
-          disabled={loadingId === task.id}
-          onClick={() => onComplete(task.id)}
-        >
-          {loadingId === task.id ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4" />
-          )}
-          Выполнено
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
 function TaskRow({
   task,
   loadingId,
@@ -376,7 +297,293 @@ function TaskRow({
   );
 }
 
-const VISIBLE_ACTIVE_TASKS = 5;
+type ActionGroupId = "finance" | "income" | "debt" | "data";
+
+interface ActionGroupConfig {
+  id: ActionGroupId;
+  title: string;
+  description: string;
+  icon: typeof WalletCards;
+  fallbackActions: string[];
+}
+
+interface GroupedAction {
+  kind: "task" | "fallback";
+  id: string;
+  task?: FinancialTaskWithGoal;
+  title?: string;
+}
+
+const ACTION_GROUPS: Record<ActionGroupId, ActionGroupConfig> = {
+  finance: {
+    id: "finance",
+    title: "Финансы",
+    description: "Что поможет удержать ситуацию под контролем",
+    icon: WalletCards,
+    fallbackActions: [
+      "Зафиксируйте обязательные траты на ближайшие 30 дней",
+      "Отделите расходы, которые можно временно отложить",
+    ],
+  },
+  income: {
+    id: "income",
+    title: "Доход",
+    description: "Что может дать дополнительный запас",
+    icon: TrendingUp,
+    fallbackActions: [
+      "Подберите один реалистичный маршрут дополнительного дохода",
+      "Сформулируйте первое простое предложение для клиента или подработки",
+    ],
+  },
+  debt: {
+    id: "debt",
+    title: "Долги и обязательства",
+    description: "Что важно проверить в первую очередь",
+    icon: Landmark,
+    fallbackActions: [
+      "Проверьте, какие платежи обязательны в ближайшие 30 дней",
+      "Не берите новые обязательства, пока не появится запас",
+    ],
+  },
+  data: {
+    id: "data",
+    title: "Данные для точности",
+    description: "Что можно добавить позже, чтобы разбор стал точнее",
+    icon: Database,
+    fallbackActions: [
+      "Добавьте регулярные платежи",
+      "Добавьте основные расходы и долги, когда будет удобно",
+    ],
+  },
+};
+
+const DATA_TASK_PATTERNS = [
+  "добавить доход",
+  "добавьте доход",
+  "заполнить доход",
+  "указать доход",
+  "внести доход",
+  "добавить расход",
+  "добавьте расход",
+  "заполнить расход",
+  "указать расход",
+  "внести расход",
+  "добавить долг",
+  "добавьте долг",
+  "заполнить долг",
+  "указать долг",
+  "внести долг",
+  "добавить платеж",
+  "добавить платёж",
+  "добавьте платеж",
+  "добавьте платёж",
+  "регулярные платеж",
+  "регулярные платёж",
+  "добавить данные",
+  "добавьте данные",
+  "заполнить профиль",
+  "дополнить профиль",
+] as const;
+
+const INCOME_PATTERNS = [
+  "доход",
+  "заработ",
+  "клиент",
+  "подработ",
+  "маршрут",
+  "предложение",
+  "услуг",
+  "продаж",
+] as const;
+
+const DEBT_PATTERNS = [
+  "долг",
+  "кредит",
+  "займ",
+  "платеж",
+  "платёж",
+  "обязательств",
+  "реструктур",
+  "просроч",
+] as const;
+
+const FINANCE_PATTERNS = [
+  "бюджет",
+  "расход",
+  "трата",
+  "подушка",
+  "резерв",
+  "запас",
+  "контроль",
+  "свободн",
+] as const;
+
+function textIncludesAny(text: string, patterns: readonly string[]) {
+  return patterns.some((pattern) => text.includes(pattern));
+}
+
+function taskText(task: FinancialTaskWithGoal) {
+  return [
+    task.title,
+    task.description,
+    task.explanation,
+    task.task_category,
+    task.normalized_title,
+    task.goal?.title,
+    task.goal?.type,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function classifyActionTask(task: FinancialTaskWithGoal): ActionGroupId {
+  const category = task.task_category;
+  const text = taskText(task);
+
+  if (textIncludesAny(text, DATA_TASK_PATTERNS)) return "data";
+  if (category === "debt_negotiation" || task.goal?.type === "debt_payoff") {
+    return "debt";
+  }
+  if (category === "increase_income" || textIncludesAny(text, INCOME_PATTERNS)) {
+    return "income";
+  }
+  if (textIncludesAny(text, DEBT_PATTERNS)) return "debt";
+  if (
+    category === "budget_control" ||
+    category === "cut_optional_spending" ||
+    category === "emergency_fund" ||
+    textIncludesAny(text, FINANCE_PATTERNS)
+  ) {
+    return "finance";
+  }
+
+  return "finance";
+}
+
+function buildGroupedActions(tasks: FinancialTaskWithGoal[]) {
+  const grouped: Record<ActionGroupId, GroupedAction[]> = {
+    finance: [],
+    income: [],
+    debt: [],
+    data: [],
+  };
+
+  for (const task of tasks) {
+    const groupId = classifyActionTask(task);
+    if (grouped[groupId].length >= 2) continue;
+    grouped[groupId].push({
+      kind: "task",
+      id: task.id,
+      task,
+    });
+  }
+
+  const hasRealDebtOrFinance =
+    grouped.debt.some((item) => item.kind === "task") ||
+    grouped.finance.some((item) => item.kind === "task");
+  const groupOrder: ActionGroupId[] = hasRealDebtOrFinance
+    ? ["debt", "finance", "income", "data"]
+    : ["finance", "income", "debt", "data"];
+
+  for (const groupId of groupOrder) {
+    if (grouped[groupId].length > 0) continue;
+    grouped[groupId] = ACTION_GROUPS[groupId].fallbackActions
+      .slice(0, 2)
+      .map((title, index) => ({
+        kind: "fallback",
+        id: `${groupId}-fallback-${index}`,
+        title,
+      }));
+  }
+
+  return groupOrder
+    .map((groupId) => ({
+      config: ACTION_GROUPS[groupId],
+      items: grouped[groupId].slice(0, 2),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+function FallbackActionRow({ title }: { title: string }) {
+  return (
+    <div className="flex items-start gap-3 border-b border-border/50 p-4 last:border-0">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-hover text-xs text-muted">
+        •
+      </span>
+      <p className="text-sm leading-relaxed text-muted">{title}</p>
+    </div>
+  );
+}
+
+function GroupedActionsRoute({
+  tasks,
+  loadingId,
+  onComplete,
+  onPostpone,
+  onDelete,
+}: {
+  tasks: FinancialTaskWithGoal[];
+  loadingId: string | null;
+  onComplete: (id: string) => void;
+  onPostpone: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const groups = buildGroupedActions(tasks);
+
+  return (
+    <div className="mb-6 space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold">Что делать сейчас</h2>
+        <p className="mt-1 text-sm text-muted">
+          Маршрут собран по смыслу: сначала самое практичное, затем то, что
+          можно уточнить позже.
+        </p>
+      </div>
+
+      <div className="grid gap-4">
+        {groups.map(({ config, items }) => {
+          const Icon = config.icon;
+
+          return (
+            <Card key={config.id} className="overflow-hidden !p-0">
+              <CardHeader className="px-5 pt-5 pb-3">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-accent/10 p-2 text-accent">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">{config.title}</CardTitle>
+                    <CardDescription className="text-sm">
+                      {config.description}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <div>
+                {items.map((item) =>
+                  item.kind === "task" && item.task ? (
+                    <TaskRow
+                      key={item.id}
+                      task={item.task}
+                      loadingId={loadingId}
+                      onComplete={onComplete}
+                      onPostpone={onPostpone}
+                      onDelete={onDelete}
+                      cleanupMode={false}
+                    />
+                  ) : (
+                    <FallbackActionRow key={item.id} title={item.title ?? ""} />
+                  )
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface ActionsPageClientProps {
   tasks: FinancialTaskWithGoal[];
@@ -395,7 +602,6 @@ export function ActionsPageClient({
 }: ActionsPageClientProps) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [showAllActive, setShowAllActive] = useState(false);
   const [feedbackTaskId, setFeedbackTaskId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [ensuringSteps, setEnsuringSteps] = useState(false);
@@ -420,9 +626,7 @@ export function ActionsPageClient({
   const futureRouteSteps = cleanupMode ? pending.slice(1) : [];
   const activeTasks = cleanupMode
     ? postponed
-    : pending
-        .filter((task) => task.id !== primary?.id)
-        .concat(postponed.filter((task) => task.id !== primary?.id));
+    : pending.concat(postponed);
   const routeComplete =
     cleanupMode &&
     !primary &&
@@ -433,14 +637,6 @@ export function ActionsPageClient({
   const pageDescription = useCopy(
     cleanupMode ? "page.actions.description_cleanup" : "page.actions.description"
   );
-
-  const hiddenActiveCount = Math.max(
-    0,
-    activeTasks.length - VISIBLE_ACTIVE_TASKS
-  );
-  const visibleActiveTasks = showAllActive
-    ? activeTasks
-    : activeTasks.slice(0, VISIBLE_ACTIVE_TASKS);
 
   async function runAction(
     id: string,
@@ -677,48 +873,17 @@ export function ActionsPageClient({
             </>
           ) : (
             <>
-              {primary && (
-                <PrimaryActionCard
-                  task={primary}
+              {activeTasks.length > 0 && (
+                <GroupedActionsRoute
+                  tasks={activeTasks}
                   loadingId={loadingId}
                   onComplete={handleComplete}
-                  cleanupMode={false}
+                  onPostpone={(id) => runAction(id, postponeTask)}
+                  onDelete={(id) => {
+                    if (!confirm("Удалить задачу?")) return;
+                    runAction(id, deleteTask);
+                  }}
                 />
-              )}
-
-              {activeTasks.length > 0 && (
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle className="text-base">Активные задачи</CardTitle>
-                  </CardHeader>
-                  <div>
-                    {visibleActiveTasks.map((task) => (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        loadingId={loadingId}
-                        onComplete={handleComplete}
-                        onPostpone={(id) => runAction(id, postponeTask)}
-                        onDelete={(id) => {
-                          if (!confirm("Удалить задачу?")) return;
-                          runAction(id, deleteTask);
-                        }}
-                        cleanupMode={false}
-                      />
-                    ))}
-                  </div>
-                  {hiddenActiveCount > 0 && !showAllActive && (
-                    <div className="px-5 pb-5">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setShowAllActive(true)}
-                      >
-                        Показать ещё ({hiddenActiveCount})
-                      </Button>
-                    </div>
-                  )}
-                </Card>
               )}
 
               {done.length > 0 && (

@@ -1,5 +1,6 @@
 "use server";
 
+import { safeLogError } from "@/lib/logging/safe-log";
 import { createClient } from "@/lib/supabase/server";
 
 async function getUserId() {
@@ -20,7 +21,7 @@ export async function hasTesterFeedbackSubmitted(): Promise<boolean> {
       .eq("user_id", userId);
 
     if (error) {
-      console.error("hasTesterFeedbackSubmitted:", error);
+      console.error("hasTesterFeedbackSubmitted:", safeLogError(error));
       return false;
     }
 

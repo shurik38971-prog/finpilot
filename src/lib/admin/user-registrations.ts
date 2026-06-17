@@ -1,4 +1,5 @@
 import { PRODUCT_EVENTS } from "@/lib/analytics/product-events";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,10 +40,6 @@ function logRegistrationDebug(
     totalUsers: users.length,
     newUsers7d: countNewSince(users, new Date(cutoffIso)),
     cutoffIso,
-    users: users.map((user) => ({
-      id: user.id,
-      created_at: user.created_at,
-    })),
   });
 }
 
@@ -157,7 +154,10 @@ export async function getUserRegistrationStats(
       };
     } catch (error) {
       lastError = error;
-      console.warn(`[admin] failed to load registrations from ${source}`, error);
+      console.warn(
+        `[admin] failed to load registrations from ${source}`,
+        safeLogError(error)
+      );
     }
   }
 

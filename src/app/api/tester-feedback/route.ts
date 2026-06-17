@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { safeLogError } from "@/lib/logging/safe-log";
 import {
   TESTER_CLARITY_OPTIONS,
   TESTER_PAID_VALUE_OPTIONS,
@@ -114,13 +115,13 @@ export async function POST(req: Request) {
     });
 
     if (error) {
-      console.error("[tester-feedback]", error);
+      console.error("[tester-feedback]", safeLogError(error));
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("tester-feedback route:", error);
+    console.error("tester-feedback route:", safeLogError(error));
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

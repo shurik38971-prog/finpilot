@@ -59,7 +59,10 @@ ${JSON.stringify(metrics, null, 2)}
   );
 
   if (!result.ok) {
-    console.error("Comparison AI error:", result.error, result.details);
+    console.error("Comparison AI error:", {
+      error: result.error,
+      hasDetails: Boolean(result.details),
+    });
     return buildFallbackComparison(current, previous, delta);
   }
 

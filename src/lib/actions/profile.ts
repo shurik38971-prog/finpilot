@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeLogError } from "@/lib/logging/safe-log";
 import {
   DEFAULT_PROFILE_TYPE,
   isProfileType,
@@ -143,6 +144,6 @@ export async function recordPrivacyAcceptance(): Promise<void> {
   );
 
   if (error) {
-    console.error("recordPrivacyAcceptance:", error);
+    console.error("recordPrivacyAcceptance:", safeLogError(error));
   }
 }

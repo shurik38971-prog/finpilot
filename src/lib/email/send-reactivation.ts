@@ -34,7 +34,11 @@ export async function sendReactivationEmail(input: {
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    console.info("[FinPilot email:dev]", { to: input.to, subject, yesUrl, noUrl });
+    console.info("[FinPilot email:dev]", {
+      subject,
+      hasRecipient: Boolean(input.to),
+      hasCampaignId: Boolean(input.campaignId),
+    });
     return { ok: true as const, dev: true };
   }
 
@@ -54,7 +58,7 @@ export async function sendReactivationEmail(input: {
 
   if (!res.ok) {
     const details = await res.text();
-    console.error("Resend error:", details);
+    console.error("Resend error:", { status: res.status });
     return { ok: false as const, error: details };
   }
 

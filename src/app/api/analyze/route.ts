@@ -18,6 +18,7 @@ import { applyPreliminaryAnalysis } from "@/lib/ai/preliminary-analysis";
 import { createTasksFromAnalysis } from "@/lib/ai/create-tasks-from-analysis";
 import { fetchAnalysisDataMaturity } from "@/lib/finance/analysis-data-maturity";
 import { getGptunnelConfig, gptunnelChat } from "@/lib/ai/gptunnel";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { PROBLEM_LABELS, resolveProblemLabel } from "@/lib/finance/problem-labels";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateString } from "@/lib/utils";
@@ -194,7 +195,10 @@ export async function POST(_req: Request) {
     );
 
     if (!chatResult.ok) {
-      console.error("GPTunnel error:", chatResult.status, chatResult.details);
+      console.error("GPTunnel error:", {
+        status: chatResult.status,
+        hasDetails: Boolean(chatResult.details),
+      });
       return NextResponse.json(
         {
           error: chatResult.error,
@@ -276,7 +280,7 @@ export async function POST(_req: Request) {
       .single();
 
     if (saveError || !saved) {
-      console.error("Failed to save analysis:", saveError);
+      console.error("Failed to save analysis:", safeLogError(saveError));
       return NextResponse.json(enriched);
     }
 
@@ -345,7 +349,7 @@ export async function POST(_req: Request) {
       analysis_id: saved.id,
     });
   } catch (error) {
-    console.error("Analyze error:", error);
+    console.error("Analyze error:", safeLogError(error));
 
     try {
       const supabase = await createClient();

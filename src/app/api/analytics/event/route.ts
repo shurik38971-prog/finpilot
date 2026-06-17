@@ -1,4 +1,5 @@
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -47,13 +48,13 @@ export async function POST(req: Request) {
 
     const { error } = await supabase.from("product_events").insert(rows);
     if (error) {
-      console.error("analytics insert error:", error);
+      console.error("analytics insert error:", safeLogError(error));
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, inserted: rows.length });
   } catch (error) {
-    console.error("analytics event route:", error);
+    console.error("analytics event route:", safeLogError(error));
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

@@ -12,6 +12,7 @@ import {
 import { getFinancialMeasureTasks } from "@/lib/actions/tasks";
 import { buildRescuePlan } from "@/lib/escape-plan/build-rescue-plan";
 import { formatMainFinancialGoal } from "@/lib/escape-plan/format-financial-goal";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { rankAndSortEscapePlanOptions } from "@/lib/escape-plan/rank-options";
 import { buildEscapeRankingContext } from "@/lib/escape-plan/capabilities-context";
 import {
@@ -37,7 +38,7 @@ export default async function EscapePlanPage() {
     try {
       await syncActiveEscapeRouteSteps();
     } catch (error) {
-      console.error("Failed to ensure active route steps:", error);
+      console.error("Failed to ensure active route steps:", safeLogError(error));
     }
   }
 
@@ -49,7 +50,10 @@ export default async function EscapePlanPage() {
     try {
       await syncFinancialMeasureTasks(capabilities.last_plan.options);
     } catch (error) {
-      console.error("Failed to sync financial measure tasks:", error);
+      console.error(
+        "Failed to sync financial measure tasks:",
+        safeLogError(error)
+      );
     }
   }
 

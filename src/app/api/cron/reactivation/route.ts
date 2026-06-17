@@ -1,3 +1,4 @@
+import { safeLogError } from "@/lib/logging/safe-log";
 import { runReactivationCampaign } from "@/lib/reactivation/run-campaign";
 import { NextResponse } from "next/server";
 
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
     const result = await runReactivationCampaign();
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    console.error("Reactivation cron error:", error);
+    console.error("Reactivation cron error:", safeLogError(error));
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Cron failed",

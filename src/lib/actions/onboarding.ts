@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { revalidatePath } from "next/cache";
 import type { OnboardingProgress, OnboardingStep } from "@/types/onboarding";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -171,7 +172,7 @@ export async function initOnboardingForNewUser(): Promise<void> {
 
     if (error) throw error;
   } catch (error) {
-    console.error("initOnboardingForNewUser failed:", error);
+    console.error("initOnboardingForNewUser failed:", safeLogError(error));
   }
 }
 
@@ -212,7 +213,10 @@ export async function markOnboardingStep(step: OnboardingStep): Promise<void> {
     revalidatePath("/dashboard");
     revalidatePath("/onboarding");
   } catch (error) {
-    console.error("markOnboardingStep failed:", step, error);
+    console.error("markOnboardingStep failed:", {
+      step,
+      error: safeLogError(error),
+    });
   }
 }
 

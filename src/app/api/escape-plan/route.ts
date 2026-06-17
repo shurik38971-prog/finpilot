@@ -9,6 +9,7 @@ import {
   sanitizeEscapePlanResult,
 } from "@/lib/ai/escape-plan-guardrails";
 import { getGptunnelConfig, gptunnelChat } from "@/lib/ai/gptunnel";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { getPrimaryFinancialRisk } from "@/lib/finance/primary-financial-risk";
 import { getGoals } from "@/lib/actions/goals";
 import { getFinancialData } from "@/lib/actions/finance";
@@ -297,7 +298,7 @@ export async function POST() {
 
     return NextResponse.json({ plan, rescuePlan });
   } catch (error) {
-    console.error("escape-plan error:", error);
+    console.error("escape-plan error:", safeLogError(error));
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Ошибка генерации плана" },
       { status: 500 }

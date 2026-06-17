@@ -4,6 +4,7 @@ import {
   PRODUCT_EVENT_SET,
   type ProductEventName,
 } from "@/lib/analytics/product-events";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { createClient } from "@/lib/supabase/server";
 
 export async function trackProductEvent(
@@ -28,6 +29,6 @@ export async function trackProductEvent(
       metadata,
     });
   } catch (error) {
-    console.error("trackProductEvent failed:", error);
+    console.error("trackProductEvent failed:", safeLogError(error));
   }
 }

@@ -7,6 +7,7 @@ import {
 import type { Debt, Expense, Income } from "@/types/database";
 import type { FinancialGoal } from "@/types/goals";
 import { hasQuantifiableFinancialEffect } from "@/lib/finance/task-effect-eligibility";
+import { safeLogError } from "@/lib/logging/safe-log";
 import type { TaskImpactSimulation } from "@/types/task-impact";
 import type { ProfileIncomeParameters } from "@/types/profile-income";
 import type { ProfileType } from "@/types/profile";
@@ -73,7 +74,7 @@ export async function createTaskImpacts(
 
   const { error } = await supabase.from("task_impacts").insert(rows);
   if (error) {
-    console.error("Failed to create task impacts:", error);
+    console.error("Failed to create task impacts:", safeLogError(error));
     return 0;
   }
 

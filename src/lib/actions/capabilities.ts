@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { revalidatePath } from "next/cache";
 import {
   CUSTOM_SECONDARY_GOAL,
@@ -275,7 +276,7 @@ export async function saveUserCapabilities(
   }
 
   if (error) {
-    console.error("[saveUserCapabilities]", error);
+    console.error("[saveUserCapabilities]", safeLogError(error));
     return { ok: false, error: formatCapabilitiesDbError(error) };
   }
 

@@ -27,6 +27,7 @@ import {
   pickBetterTask,
 } from "@/lib/finance/pick-better-task";
 import { buildTaskExplanation } from "@/lib/finance/task-effect-eligibility";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { calculateTaskPriority } from "@/lib/services/task-priority";
 import type { Debt, Expense, Income } from "@/types/database";
 import type {
@@ -482,7 +483,7 @@ export async function createTasksFromAnalysis(
       .eq("user_id", userId);
 
     if (error) {
-      console.error("Failed to update financial task:", error);
+      console.error("Failed to update financial task:", safeLogError(error));
       skippedDuplicateTasksCount += 1;
       continue;
     }
@@ -512,7 +513,7 @@ export async function createTasksFromAnalysis(
       );
 
     if (error) {
-      console.error("Failed to create financial tasks:", error);
+      console.error("Failed to create financial tasks:", safeLogError(error));
     } else {
       createdTasksCount = inserted?.length ?? 0;
       await createTaskImpacts(supabase, userId, inserted ?? [], financeOptions);
@@ -529,7 +530,7 @@ export async function createTasksFromAnalysis(
   try {
     await deduplicateUserTasksForUser(supabase, userId);
   } catch (error) {
-    console.error("Failed to deduplicate user tasks:", error);
+    console.error("Failed to deduplicate user tasks:", safeLogError(error));
   }
 
   return {

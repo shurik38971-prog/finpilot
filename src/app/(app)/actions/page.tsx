@@ -5,6 +5,7 @@ import {
 import { getFinancialMeasureTasks, getFinancialTasks } from "@/lib/actions/tasks";
 import { deduplicateUserTasksForUser } from "@/lib/finance/deduplicate-user-tasks";
 import { isCleanupMode } from "@/lib/feature-flags";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { createClient } from "@/lib/supabase/server";
 import type { EscapePlanOption } from "@/types/escape-plan";
 import { ActionsPageClient } from "./actions-client";
@@ -21,7 +22,10 @@ export default async function ActionsPage() {
     try {
       await deduplicateUserTasksForUser(supabase, user.id);
     } catch (error) {
-      console.error("Failed to deduplicate tasks on actions page:", error);
+      console.error(
+        "Failed to deduplicate tasks on actions page:",
+        safeLogError(error)
+      );
     }
   }
 
@@ -32,7 +36,7 @@ export default async function ActionsPage() {
     try {
       await syncActiveEscapeRouteSteps();
     } catch (error) {
-      console.error("Failed to ensure active route steps:", error);
+      console.error("Failed to ensure active route steps:", safeLogError(error));
     }
   }
 

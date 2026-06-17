@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { safeLogError } from "@/lib/logging/safe-log";
 import type { AnalyticsEventName } from "@/lib/analytics/events";
 
 interface TrackServerEventInput {
@@ -29,6 +30,6 @@ export async function trackServerEvent(input: TrackServerEventInput) {
       properties: input.properties ?? {},
     });
   } catch (error) {
-    console.error("trackServerEvent failed:", error);
+    console.error("trackServerEvent failed:", safeLogError(error));
   }
 }

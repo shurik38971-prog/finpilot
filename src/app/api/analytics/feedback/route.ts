@@ -1,5 +1,6 @@
 import { trackServerEvent } from "@/lib/analytics/track-server";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { safeLogError } from "@/lib/logging/safe-log";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("feedback route:", error);
+    console.error("feedback route:", safeLogError(error));
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
